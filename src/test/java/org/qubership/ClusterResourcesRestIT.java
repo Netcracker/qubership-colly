@@ -3,6 +3,6 @@ package org.qubership;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 
 @QuarkusIntegrationTest
-class EnvironmentsResourceIT extends EnvironmentsResourceTest {
+class ClusterResourcesRestIT extends ClusterResourcesRestTest {
     // Execute the same tests but in packaged mode.
 }

@@ -7,12 +7,12 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.containsString;
 
 @QuarkusTest
-class EnvironmentsResourceTest {
+class ClusterResourcesRestTest {
 
     @Test
     void testHelloEndpoint() {
         given()
-                .when().get("/environments/tick")
+                .when().get("/clusters/tick")
                 .then()
                 .statusCode(200)
                 .body(containsString("demo-k8s"))

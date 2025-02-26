@@ -1,4 +1,6 @@
 package org.qubership.colly.data;
 
-public record Cluster(String name) {
+import java.util.List;
+
+public record Cluster(String name, List<Namespace> namespaces) {
 }

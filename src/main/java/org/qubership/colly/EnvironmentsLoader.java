@@ -10,6 +10,7 @@ import io.kubernetes.client.util.KubeConfig;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.apache.commons.compress.utils.Lists;
 import org.qubership.colly.data.Cluster;
 import org.qubership.colly.data.Environment;
 import org.qubership.colly.data.Namespace;
@@ -38,7 +39,7 @@ public class EnvironmentsLoader {
     private List<Environment> loadClusterEnvironments(KubeConfig kubeConfig) {
         List<Environment> environments;
 
-        Cluster cluster = new Cluster(kubeConfig.getCurrentContext());
+        Cluster cluster = new Cluster(kubeConfig.getCurrentContext(), Lists.newArrayList());
         try {
             ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
             Configuration.setDefaultApiClient(client);
@@ -52,7 +53,11 @@ public class EnvironmentsLoader {
             Map<String, List<Namespace>> namespaceToEnvName = list.getItems()
                     .stream()
                     .map(v1Namespace ->
-                            new Namespace(v1Namespace.getMetadata().getName(), v1Namespace.getMetadata().getUid(), v1Namespace.getMetadata().getLabels().getOrDefault(ENVIRONMENT_NAME, v1Namespace.getMetadata().getName())))
+                            new Namespace(v1Namespace.getMetadata().getName(),
+                                    v1Namespace.getMetadata().getUid(),
+                                    v1Namespace.getMetadata().getLabels().getOrDefault(ENVIRONMENT_NAME, v1Namespace.getMetadata().getName()),
+                                    Lists.newArrayList(),
+                                    Lists.newArrayList()))
                     .collect(Collectors.groupingBy(Namespace::envName));
 
             environments = new ArrayList<>(namespaceToEnvName.entrySet().stream()
