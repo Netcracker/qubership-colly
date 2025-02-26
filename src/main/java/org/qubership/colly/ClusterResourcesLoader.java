@@ -5,10 +5,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1ConfigMapList;
-import io.kubernetes.client.openapi.models.V1DeploymentList;
-import io.kubernetes.client.openapi.models.V1NamespaceList;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 import io.quarkus.logging.Log;
@@ -16,10 +13,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.compress.utils.Lists;
 import org.jetbrains.annotations.NotNull;
-import org.qubership.colly.data.Cluster;
-import org.qubership.colly.data.ConfigMap;
-import org.qubership.colly.data.Deployment;
-import org.qubership.colly.data.Namespace;
+import org.qubership.colly.data.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,7 +59,8 @@ public class ClusterResourcesLoader {
                                     v1Namespace.getMetadata().getUid(),
                                     "",
                                     loadDeployments(v1Namespace.getMetadata().getName()),
-                                    loadConfigMaps(v1Namespace.getMetadata().getName()))
+                                    loadConfigMaps(v1Namespace.getMetadata().getName()),
+                                    loadPods(v1Namespace.getMetadata().getName()))
                     )
                     .collect(Collectors.toList());
 
@@ -75,6 +70,24 @@ public class ClusterResourcesLoader {
             throw new RuntimeException("Can't load resources from cluster - " + kubeConfig.getCurrentContext(), e);
         }
         return namespaces;
+    }
+
+    private List<Pod> loadPods(String namespaceName) {
+        CoreV1Api api = new CoreV1Api();
+        CoreV1Api.APIlistNamespacedPodRequest request = api.listNamespacedPod(namespaceName);
+        List<Pod> pods;
+        try {
+            V1PodList execute = request.execute();
+            pods = execute.getItems().stream()
+                    .map(v1Pod ->new Pod(v1Pod.getMetadata().getName(),
+                            v1Pod.getStatus().getPhase(),
+                            v1Pod.toJson()))
+                    .toList();
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+        Log.debug("Loaded " + pods.size() + " pods for namespace = " + namespaceName);
+        return pods;
     }
 
     private List<ConfigMap> loadConfigMaps(String namespaceName) {
@@ -88,7 +101,7 @@ public class ClusterResourcesLoader {
         }
         List<ConfigMap> configMaps = configMapList.getItems().stream().map(v1ConfigMap ->
                 new ConfigMap(getNameSafely(v1ConfigMap.getMetadata()), v1ConfigMap.toJson())).toList();
-        Log.debug("Loaded " + configMaps.size() + " config maps for cluster = " + namespaceName);
+        Log.debug("Loaded " + configMaps.size() + " config maps for namespace = " + namespaceName);
         return configMaps;
     }
 

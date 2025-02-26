@@ -57,6 +57,7 @@ public class EnvironmentsLoader {
                                     v1Namespace.getMetadata().getUid(),
                                     v1Namespace.getMetadata().getLabels().getOrDefault(ENVIRONMENT_NAME, v1Namespace.getMetadata().getName()),
                                     Lists.newArrayList(),
+                                    Lists.newArrayList(),
                                     Lists.newArrayList()))
                     .collect(Collectors.groupingBy(Namespace::envName));
 
