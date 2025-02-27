@@ -15,6 +15,7 @@
         <quarkus.platform.version>3.18.2</quarkus.platform.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.2</surefire-plugin.version>
+        <kubernetes-client-java.version>22.0.1</kubernetes-client-java.version>
     </properties>
 
     <dependencyManagement>
@@ -33,7 +34,7 @@
         <dependency>
             <groupId>io.kubernetes</groupId>
             <artifactId>client-java</artifactId>
-            <version>22.0.1</version>
+            <version>${kubernetes-client-java.version}</version>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -76,7 +77,6 @@
                             <goal>build</goal>
                             <goal>generate-code</goal>
                             <goal>generate-code-tests</goal>
-                            <goal>native-image-agent</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -119,19 +119,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>native</id>
-            <activation>
-                <property>
-                    <name>native</name>
-                </property>
-            </activation>
-            <properties>
-                <skipITs>false</skipITs>
-                <quarkus.native.enabled>true</quarkus.native.enabled>
-            </properties>
-        </profile>
-    </profiles>
 </project>
