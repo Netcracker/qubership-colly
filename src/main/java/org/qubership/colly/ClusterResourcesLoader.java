@@ -100,7 +100,7 @@ public class ClusterResourcesLoader {
             throw new RuntimeException(e);
         }
         List<ConfigMap> configMaps = configMapList.getItems().stream().map(v1ConfigMap ->
-                new ConfigMap(getNameSafely(v1ConfigMap.getMetadata()), v1ConfigMap.toJson())).toList();
+                new ConfigMap(getNameSafely(v1ConfigMap.getMetadata()), v1ConfigMap.getData(), v1ConfigMap.toJson())).toList();
         Log.debug("Loaded " + configMaps.size() + " config maps for namespace = " + namespaceName);
         return configMaps;
     }

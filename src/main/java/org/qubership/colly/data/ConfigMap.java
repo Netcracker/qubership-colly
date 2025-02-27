@@ -1,4 +1,6 @@
 package org.qubership.colly.data;
 
-public record ConfigMap(String name, String configuration) {
+import java.util.Map;
+
+public record ConfigMap(String name, Map<String, String> content, String configuration) {
 }
