@@ -12,13 +12,14 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.compress.utils.Lists;
-import org.jetbrains.annotations.NotNull;
 import org.qubership.colly.db.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
 
 @ApplicationScoped
 public class ClusterResourcesLoader {
@@ -42,41 +43,42 @@ public class ClusterResourcesLoader {
             throw new RuntimeException("Can't load kubeconfig - " + kubeConfig.getCurrentContext(), e);
         }
         CoreV1Api api = new CoreV1Api();
-        List<Namespace> namespaces = loadNamespaces(kubeConfig, api);
-        return new Cluster(parseClusterName(kubeConfig), namespaces);
+        List<Environment> environments = loadEnvironments(api);
+        return new Cluster(parseClusterName(kubeConfig), environments);
     }
 
-    private static String parseClusterName(KubeConfig kubeConfig) {
-        Map<String, String> o = (Map<String, String>) kubeConfig.getClusters().getFirst();
-        String name = o.get("name");
-        Log.info("[INFO] true cluster name: " + name);
-        return name;
-    }
-
-    @NotNull
-    private List<Namespace> loadNamespaces(KubeConfig kubeConfig, CoreV1Api api) {
+    private List<Environment> loadEnvironments(CoreV1Api api) {
         CoreV1Api.APIlistNamespaceRequest apilistNamespaceRequest = api.listNamespace();
-        List<Namespace> namespaces;
+
+        List<Environment> environments = new ArrayList<>();
         try {
             V1NamespaceList list = apilistNamespaceRequest.execute();
-            namespaces = list.getItems().stream()
-                    .map(v1Namespace ->
-                            new Namespace(
-                                    v1Namespace.getMetadata().getUid(),
-                                    getNameSafely(v1Namespace.getMetadata()),
-                                    v1Namespace.getMetadata().getLabels().getOrDefault("environmentName", v1Namespace.getMetadata().getName()),
-                                    loadDeployments(v1Namespace.getMetadata().getName()),
-                                    loadConfigMaps(v1Namespace.getMetadata().getName()),
-                                    loadPods(v1Namespace.getMetadata().getName()))
-                    )
-                    .toList();
+            for (V1Namespace v1Namespace : list.getItems()) {
+                Namespace namespace = new Namespace(
+                        v1Namespace.getMetadata().getUid(),
+                        getNameSafely(v1Namespace.getMetadata()),
+                        loadDeployments(v1Namespace.getMetadata().getName()),
+                        loadConfigMaps(v1Namespace.getMetadata().getName()),
+                        loadPods(v1Namespace.getMetadata().getName()));
+                String environmentName = v1Namespace.getMetadata().getLabels().getOrDefault("environmentName", v1Namespace.getMetadata().getName());
+                Optional<Environment> environmentOpt = environments.stream()
+                        .filter(env -> env.name.equals(environmentName))
+                        .findFirst();
 
-            Log.debug("Loaded " + namespaces.size() + " namespaces for cluster = " + kubeConfig.getCurrentContext());
-
+                if (environmentOpt.isEmpty()) {
+                    Environment environment = new Environment(environmentName, List.of(namespace));
+                    environments.add(environment);
+                } else {
+                    Environment environment = environmentOpt.get();
+                    environment.addNamespace(namespace);
+                }
+            }
         } catch (ApiException e) {
-            throw new RuntimeException("Can't load resources from cluster - " + kubeConfig.getCurrentContext(), e);
+            throw new RuntimeException("Can't load resources from cluster", e);
         }
-        return namespaces;
+
+
+        return environments;
     }
 
     private List<Pod> loadPods(String namespaceName) {
@@ -147,5 +149,12 @@ public class ClusterResourcesLoader {
             return "<empty_name>";
         }
         return meta.getName();
+    }
+
+    private static String parseClusterName(KubeConfig kubeConfig) {
+        Map<String, String> o = (Map<String, String>) kubeConfig.getClusters().getFirst();
+        String name = o.get("name");
+        Log.info("[INFO] true cluster name: " + name);
+        return name;
     }
 }

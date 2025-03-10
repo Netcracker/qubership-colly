@@ -39,19 +39,23 @@
                     <thead class="table-light">
                     <tr>
                         <th class="sortable" onclick="sortTable(0)">Env</th>
-                        <th class="sortable" onclick="sortTable(1)">Namespace</th>
+                        <th class="sortable" onclick="sortTable(1)">Namespaces</th>
                         <th class="sortable" onclick="sortTable(2)">Cluster</th>
-                        <th class="sortable" onclick="sortTable(3)">Active Pods</th>
+                        <th class="sortable" onclick="sortTable(3)">Owner</th>
                     </tr>
                     </thead>
                     <tbody>
                     {#for cluster in clusters}
-                        {#for namespace in cluster.namespaces}
+                        {#for env in cluster.environments}
                             <tr>
-                                <td>{namespace.envName}</td>
-                                <td>{namespace.name}</td>
+                                <td>{env.name}</td>
+                                <td>
+                                    {#for namespace in env.namespaces}
+                                        <p>{namespace.name}</p>
+                                    {/for}
+                                </td>
                                 <td>{cluster.name}</td>
-                                <td>{namespace.pods.size}</td>
+                                <td>{env.owner}</td>
                             </tr>
                         {/for}
                     {/for}

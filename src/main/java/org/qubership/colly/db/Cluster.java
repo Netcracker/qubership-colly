@@ -14,11 +14,12 @@ public class Cluster extends PanacheEntityBase {
     public String name;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    public List<Namespace> namespaces;
+    public List<Environment> environments;
 
-    public Cluster(String name, List<Namespace> namespaces) {
+
+    public Cluster(String name, List<Environment> environments) {
         this.name = name;
-        this.namespaces = namespaces;
+        this.environments = environments;
     }
 
     public Cluster() {
