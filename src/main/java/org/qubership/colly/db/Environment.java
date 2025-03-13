@@ -1,11 +1,8 @@
 package org.qubership.colly.db;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -14,20 +11,22 @@ public class Environment extends PanacheEntity {
 
     public String name;
     public String owner;
+    public String description;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToOne
+    @JoinColumn(referencedColumnName = "name")
+    public Cluster cluster;
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Namespace> namespaces;
 
-    public Environment(String name, List<Namespace> namespaces) {
+
+    public Environment(String name) {
         this.name = name;
-        this.namespaces = new ArrayList<>(namespaces);
+        this.namespaces = new java.util.ArrayList<>();
     }
 
     public Environment() {
-    }
-
-    public void addNamespace(Namespace namespace) {
-        this.namespaces.add(namespace);
     }
 
     public List<Namespace> getNamespaces() {
@@ -35,7 +34,11 @@ public class Environment extends PanacheEntity {
     }
 
     public void setNamespaces(List<Namespace> namespaces) {
-        this.namespaces = new ArrayList<>(namespaces);
+        this.namespaces = namespaces;
+    }
+
+    public void addNamespace(Namespace namespace) {
+        this.namespaces.add(namespace);
     }
 }
 

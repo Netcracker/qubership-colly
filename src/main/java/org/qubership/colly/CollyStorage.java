@@ -5,13 +5,11 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.qubership.colly.data.ClusterDto;
-import org.qubership.colly.data.Environment;
 import org.qubership.colly.db.Cluster;
+import org.qubership.colly.db.Environment;
 import org.qubership.colly.storage.ClusterRepository;
-import org.qubership.colly.storage.NamespaceRepository;
+import org.qubership.colly.storage.EnvironmentRepository;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -20,53 +18,31 @@ public class CollyStorage {
 
     @Inject
     ClusterResourcesLoader clusterResourcesLoader;
-    @Inject
-    EnvironmentsLoader environmentsLoader;
 
     @Inject
     ClusterRepository clusterRepository;
 
     @Inject
-    NamespaceRepository namespaceRepository;
+    EnvironmentRepository environmentRepository;
 
     @Scheduled(cron = "{cron.schedule}")
     @Transactional
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();
-        List<Cluster> clusters = clusterResourcesLoader.loadClusters();
+        clusterResourcesLoader.loadClusters();
         Date loadCompleteTime = new Date();
-        for (Cluster cluster : clusters) {
-            storeInDb(cluster);
-        }
-        Date storedInDb = new Date();
         long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
-        long storingDuration = storedInDb.getTime() - loadCompleteTime.getTime();
-        Log.info("Task completed. Total clusters loaded: " + clusters.size());
+        Log.info("Task for loading resources from clusters has completed.");
         Log.info("Loading Duration =" + loadingDuration + " ms");
-        Log.info("Storing Duration =" + storingDuration + " ms");
-    }
-
-    public void storeInDb(Cluster newCluster) {
-        Cluster cluster = clusterRepository.findByName(newCluster.name);
-
-        if (cluster != null) {
-            Log.info("before delete namespace count =" + namespaceRepository.count());
-            clusterRepository.delete(cluster);
-            Log.info("after delete namespace count =" + namespaceRepository.count());
-        } else {
-            Log.debug("new cluster =" + newCluster.name);
-        }
-        Log.info("cluster is ready to persist " + newCluster.name);
-        clusterRepository.persist(newCluster);
     }
 
     public List<Environment> getEnvironments() {
-        return environmentsLoader.loadEnvironments();
+        return environmentRepository.findAll().list();
     }
 
-    public List<ClusterDto> getClusters() {
-        return Collections.emptyList();
+    public List<Cluster> getClusters() {
+        return clusterRepository.findAll().list();
     }
 
     public List<Cluster> getClustersFromDb() {

@@ -5,9 +5,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import org.qubership.colly.data.ClusterDto;
-import org.qubership.colly.data.Environment;
 import org.qubership.colly.db.Cluster;
+import org.qubership.colly.db.Environment;
 
 import java.util.List;
 
@@ -21,7 +20,7 @@ public class ClusterResourcesRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/")
-    public List<ClusterDto> getClusters() {
+    public List<Cluster> getClusters() {
         return collyStorage.getClusters();
     }
 

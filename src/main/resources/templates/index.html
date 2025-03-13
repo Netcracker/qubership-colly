@@ -38,15 +38,15 @@
                 <table id="envTable" class="table table-hover table-bordered mb-0">
                     <thead class="table-light">
                     <tr>
-                        <th class="sortable" onclick="sortTable(0)">Env</th>
-                        <th class="sortable" onclick="sortTable(1)">Namespaces</th>
+                        <th class="sortable" onclick="sortTable(0)">Environment</th>
+                        <th class="sortable" onclick="sortTable(1)">Namespace(s)</th>
                         <th class="sortable" onclick="sortTable(2)">Cluster</th>
                         <th class="sortable" onclick="sortTable(3)">Owner</th>
+                        <th class="sortable" onclick="sortTable(4)">Description</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {#for cluster in clusters}
-                        {#for env in cluster.environments}
+                        {#for env in environments}
                             <tr>
                                 <td>{env.name}</td>
                                 <td>
@@ -54,11 +54,11 @@
                                         <p>{namespace.name}</p>
                                     {/for}
                                 </td>
-                                <td>{cluster.name}</td>
+                                <td>{env.cluster.name}</td>
                                 <td>{env.owner}</td>
+                                <td>{env.description}</td>
                             </tr>
                         {/for}
-                    {/for}
                     </tbody>
                 </table>
             </div>
