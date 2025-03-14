@@ -9,7 +9,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
-import org.qubership.colly.db.Cluster;
+import org.qubership.colly.db.Environment;
 
 import java.util.List;
 
@@ -26,8 +26,8 @@ public class IndexController {
     @GET
     @Blocking
     public TemplateInstance index() {
-        List<Cluster> clusters = clusterResourcesRest.loadEClustersFromDB();
-        return index.data("clusters", clusters);
+        List<Environment> environments = clusterResourcesRest.getEnvironments();
+        return index.data("environments", environments);
     }
 
 }

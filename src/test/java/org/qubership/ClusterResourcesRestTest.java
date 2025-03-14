@@ -4,7 +4,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.containsString;
 
 @QuarkusTest
 class ClusterResourcesRestTest {
@@ -12,11 +11,10 @@ class ClusterResourcesRestTest {
     @Test
     void testHelloEndpoint() {
         given()
-                .when().get("/clusters/tick")
+                .when().post("/clusters/tick")
                 .then()
-                .statusCode(200)
-                .body(containsString("demo-k8s"))
-        ;
+                .statusCode(204);
+//                .body(containsString("demo-k8s"))
     }
 
 }
