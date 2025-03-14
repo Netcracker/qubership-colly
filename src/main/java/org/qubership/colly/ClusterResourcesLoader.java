@@ -27,8 +27,6 @@ import java.util.Optional;
 public class ClusterResourcesLoader {
 
     @Inject
-    KubeConfigLoader kubeConfigLoader;
-    @Inject
     NamespaceRepository namespaceRepository;
     @Inject
     ClusterRepository clusterRepository;
@@ -41,22 +39,9 @@ public class ClusterResourcesLoader {
     @Inject
     PodRepository podRepository;
 
+
     @Transactional
-    public List<Cluster> loadClusters() {
-        List<Cluster> result = new ArrayList<>();
-        List<KubeConfig> kubeConfigs = kubeConfigLoader.loadKubeConfigs();
-        kubeConfigs.forEach(kubeConfig -> result.add(loadClusterResources(kubeConfig)));
-        return result;
-    }
-
-    private static String parseClusterName(KubeConfig kubeConfig) {
-        Map<String, String> o = (Map<String, String>) kubeConfig.getClusters().getFirst();
-        String name = o.get("name");
-        Log.info("[INFO] true cluster name: " + name);
-        return name;
-    }
-
-    private Cluster loadClusterResources(KubeConfig kubeConfig) {
+    public void loadClusterResources(KubeConfig kubeConfig) {
 
         try {
             ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
@@ -76,7 +61,13 @@ public class ClusterResourcesLoader {
         clusterRepository.persist(cluster);
         cluster.environments = loadEnvironments(api, cluster);
         clusterRepository.persist(cluster);
-        return cluster;
+    }
+
+    private static String parseClusterName(KubeConfig kubeConfig) {
+        Map<String, String> o = (Map<String, String>) kubeConfig.getClusters().getFirst();
+        String name = o.get("name");
+        Log.info("[INFO] true cluster name: " + name);
+        return name;
     }
 
     private List<Environment> loadEnvironments(CoreV1Api api, Cluster cluster) {

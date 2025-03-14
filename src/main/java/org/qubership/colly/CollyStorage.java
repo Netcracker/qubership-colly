@@ -1,10 +1,10 @@
 package org.qubership.colly;
 
+import io.kubernetes.client.util.KubeConfig;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import org.qubership.colly.db.Cluster;
 import org.qubership.colly.db.Environment;
 import org.qubership.colly.storage.ClusterRepository;
@@ -25,12 +25,15 @@ public class CollyStorage {
     @Inject
     EnvironmentRepository environmentRepository;
 
+    @Inject
+    KubeConfigLoader kubeConfigLoader;
+
     @Scheduled(cron = "{cron.schedule}")
-    @Transactional
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();
-        clusterResourcesLoader.loadClusters();
+        List<KubeConfig> kubeConfigs = kubeConfigLoader.loadKubeConfigs();
+        kubeConfigs.forEach(kubeConfig -> clusterResourcesLoader.loadClusterResources(kubeConfig));
         Date loadCompleteTime = new Date();
         long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
         Log.info("Task for loading resources from clusters has completed.");
