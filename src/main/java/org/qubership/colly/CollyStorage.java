@@ -5,11 +5,13 @@ import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.qubership.colly.db.Cluster;
 import org.qubership.colly.db.Environment;
 import org.qubership.colly.storage.ClusterRepository;
 import org.qubership.colly.storage.EnvironmentRepository;
 
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
@@ -41,14 +43,24 @@ public class CollyStorage {
     }
 
     public List<Environment> getEnvironments() {
-        return environmentRepository.findAll().list();
+        return environmentRepository.findAll().stream().sorted(Comparator.comparing(o -> o.name)).toList();
     }
 
     public List<Cluster> getClusters() {
         return clusterRepository.findAll().list();
     }
 
-    public List<Cluster> getClustersFromDb() {
-        return clusterRepository.findAll().list();
+
+    @Transactional
+    public void saveEnvironment(String id, String name, String owner, String description) {
+        Environment environment = environmentRepository.findById(Long.valueOf(id));
+        if (environment == null) {
+            throw new RuntimeException("Environment with id " + id + " not found");
+        }
+        Log.info("Saving environment with id " + id + " name " + name + " owner " + owner + " description " + description);
+        environment.name = name;
+        environment.owner = owner;
+        environment.description = description;
+        environmentRepository.persist(environment);
     }
 }

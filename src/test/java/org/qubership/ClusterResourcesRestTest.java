@@ -11,7 +11,7 @@ class ClusterResourcesRestTest {
     @Test
     void testHelloEndpoint() {
         given()
-                .when().post("/clusters/tick")
+                .when().post("/colly/tick")
                 .then()
                 .statusCode(204);
 //                .body(containsString("demo-k8s"))

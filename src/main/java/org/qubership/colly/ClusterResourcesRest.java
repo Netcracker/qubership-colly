@@ -1,17 +1,14 @@
 package org.qubership.colly;
 
 import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.qubership.colly.db.Cluster;
 import org.qubership.colly.db.Environment;
 
 import java.util.List;
 
-@Path("/clusters")
+@Path("/colly")
 public class ClusterResourcesRest {
     @Inject
     CollyStorage collyStorage;
@@ -19,7 +16,7 @@ public class ClusterResourcesRest {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/")
+    @Path("/clusters")
     public List<Cluster> getClusters() {
         return collyStorage.getClusters();
     }
@@ -38,11 +35,13 @@ public class ClusterResourcesRest {
         collyStorage.executeTask();
     }
 
-    @GET
-    @Path("/db")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<Cluster> loadEClustersFromDB() {
-        return collyStorage.getClustersFromDb();
+    @POST
+    @Path("/environments/{envId}")
+    public void saveEnvironment(@PathParam("envId") String id,
+                                @FormParam("name") String name,
+                                @FormParam("owner") String owner,
+                                @FormParam("description") String description) {
+        collyStorage.saveEnvironment(id, name, owner, description);
     }
 
 

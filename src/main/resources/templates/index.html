@@ -43,27 +43,64 @@
                         <th class="sortable" onclick="sortTable(2)">Cluster</th>
                         <th class="sortable" onclick="sortTable(3)">Owner</th>
                         <th class="sortable" onclick="sortTable(4)">Description</th>
+                        <th>Actions</th>
                     </tr>
                     </thead>
                     <tbody>
-                        {#for env in environments}
-                            <tr>
-                                <td>{env.name}</td>
-                                <td>
-                                    {#for namespace in env.namespaces}
-                                        <p>{namespace.name}</p>
-                                    {/for}
-                                </td>
-                                <td>{env.cluster.name}</td>
-                                <td>{env.owner}</td>
-                                <td>{env.description}</td>
-                            </tr>
-                        {/for}
+                    {#for env in environments}
+                        <tr>
+                            <td>{env.name}</td>
+                            <td>
+                                {#for namespace in env.namespaces}
+                                    <p>{namespace.name}</p>
+                                {/for}
+                            </td>
+                            <td>{env.cluster.name}</td>
+                            <td>{env.owner}</td>
+                            <td>{env.description}</td>
+                            <td>
+                                <button type="button" class="btn btn-outline-light"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editDialog"
+                                        data-bs-env="{env.render()}">
+                                    ✏️
+                                </button>
+                            </td>
+                        </tr>
+                    {/for}
                     </tbody>
                 </table>
             </div>
             <!-- Empty State -->
             <div id="emptyState">No matching environments found</div>
+        </div>
+    </div>
+    <div class="modal fade" id="editDialog" tabindex="-1" aria-labelledby="title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="title">Edit Environment</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" aria-label="Name" id="envNameField" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Owner</label>
+                        <input type="text" aria-label="Owner" id="envOwnerField" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" aria-label="Description" id="envDescriptionField" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveChanges()">Save changes</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -73,6 +110,8 @@
         crossorigin="anonymous"></script>
 
 <script>
+    let envId = null;
+
     function sortTable(columnIndex) {
         const table = document.getElementById("envTable");
         const rows = Array.from(table.tBodies[0].rows);
@@ -118,6 +157,44 @@
         document.getElementById("filterInput").value = "";
         filterTable();
     }
+
+    let dialog = document.getElementById('editDialog');
+
+    async function saveChanges() {
+        const newName = dialog.querySelector('#envNameField').value;
+        const newOwner = dialog.querySelector('#envOwnerField').value;
+        const newDescription = dialog.querySelector('#envDescriptionField').value;
+
+        if (newName.trim() === '') {
+            alert('Please fill Environment Name.');
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('name', newName);
+        formData.append('owner', newOwner);
+        formData.append('description', newDescription);
+
+        await fetch('/colly/environments/' + envId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+        });
+
+        location.reload();
+    }
+
+    dialog.addEventListener('show.bs.modal', event => {
+        // Button that triggered the modal
+        const button = event.relatedTarget;
+        // Extract info from data-bs-* attributes
+        const env = JSON.parse(button.getAttribute('data-bs-env'));
+        envId = env.id;
+        dialog.querySelector('#envNameField').value = env.name;
+        dialog.querySelector('#envOwnerField').value = env.owner;
+        dialog.querySelector('#envDescriptionField').value = env.description;
+    })
+
 </script>
 
 </body>
