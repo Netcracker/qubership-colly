@@ -8,11 +8,13 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
+import io.kubernetes.client.util.credentials.AccessTokenAuthentication;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.apache.commons.compress.utils.Lists;
+import org.qubership.colly.data.CloudPassport;
 import org.qubership.colly.db.*;
 import org.qubership.colly.storage.*;
 
@@ -39,18 +41,42 @@ public class ClusterResourcesLoader {
     @Inject
     PodRepository podRepository;
 
+    public static String parseClusterName(KubeConfig kubeConfig) {
+        Map<String, String> o = (Map<String, String>) kubeConfig.getClusters().getFirst();
+        String name = o.get("name");
+        Log.info("[INFO] true cluster name: " + name);
+        return name;
+    }
+
+    @Transactional
+    public void loadClusterResources(CloudPassport cloudPassport) {
+        AccessTokenAuthentication authentication = new AccessTokenAuthentication(cloudPassport.token());
+        try {
+            ApiClient client = ClientBuilder.standard()
+                    .setAuthentication(authentication)
+                    .setBasePath(cloudPassport.cloudApiHost())
+                    .setVerifyingSsl(false)
+                    .build();
+            loadClusterResources(client, cloudPassport.name());
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to create client for cluster - " + cloudPassport, e);
+        }
+    }
 
     @Transactional
     public void loadClusterResources(KubeConfig kubeConfig) {
-
+        Log.info("[INFO] loading kubeconfig: " + kubeConfig.getServer());
         try {
             ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
-            Configuration.setDefaultApiClient(client);
+            loadClusterResources(client, parseClusterName(kubeConfig));
         } catch (IOException e) {
             throw new RuntimeException("Can't load kubeconfig - " + kubeConfig.getCurrentContext(), e);
         }
+    }
+
+    private void loadClusterResources(ApiClient client, String clusterName) {
+        Configuration.setDefaultApiClient(client);
         CoreV1Api api = new CoreV1Api();
-        String clusterName = parseClusterName(kubeConfig);
 
         Cluster cluster = clusterRepository.findByName(clusterName);
         if (cluster == null) {
@@ -61,13 +87,6 @@ public class ClusterResourcesLoader {
         clusterRepository.persist(cluster);
         cluster.environments = loadEnvironments(api, cluster);
         clusterRepository.persist(cluster);
-    }
-
-    private static String parseClusterName(KubeConfig kubeConfig) {
-        Map<String, String> o = (Map<String, String>) kubeConfig.getClusters().getFirst();
-        String name = o.get("name");
-        Log.info("[INFO] true cluster name: " + name);
-        return name;
     }
 
     private List<Environment> loadEnvironments(CoreV1Api api, Cluster cluster) {
@@ -92,7 +111,7 @@ public class ClusterResourcesLoader {
 
                 String environmentName = v1Namespace.getMetadata().getLabels().getOrDefault("environmentName", v1Namespace.getMetadata().getName());
 
-                Environment environment = environmentRepository.findByNameAndCluster(environmentName,cluster.name);
+                Environment environment = environmentRepository.findByNameAndCluster(environmentName, cluster.name);
                 if (environment == null) {
 
                     Optional<Environment> environmentOpt = environments.stream()
@@ -117,7 +136,7 @@ public class ClusterResourcesLoader {
                 environmentRepository.persist(environment);
             }
         } catch (ApiException e) {
-            throw new RuntimeException("Can't load resources from cluster", e);
+            throw new RuntimeException("Can't load resources from cluster " + cluster.name, e);
         }
 
 
