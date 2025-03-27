@@ -64,6 +64,8 @@ If you want to learn more about building native executables, please consult <htt
 ## Run in Docker
 
 ```shell script
+docker run -d --rm --name colly-db -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres postgres:17
 docker build -f src/main/docker/Dockerfile.jvm -t qubership/qubership-colly .
 docker run -v ~/.kube:/kubeconfigs -i --rm -p 8080:8080 qubership/qubership-colly
+docker run -v ./src/test/resources/kubeconfigs:/kubeconfigs -e ENV_INSTANCES_REPO=https://github.com/ormig/cloud-passport-samples.git -i --rm -p 8080:8080 qubership/qubership-colly
 ```

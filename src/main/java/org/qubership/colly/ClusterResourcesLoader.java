@@ -81,10 +81,11 @@ public class ClusterResourcesLoader {
         Cluster cluster = clusterRepository.findByName(clusterName);
         if (cluster == null) {
             cluster = new Cluster(clusterName);
+            Log.info("Cluster " + clusterName + " not found in db. Creating new one.");
+            clusterRepository.persist(cluster);
         }
 
         //it is required to set links to cluster only if it was saved to db. so need to invoke persist two
-        clusterRepository.persist(cluster);
         cluster.environments = loadEnvironments(api, cluster);
         clusterRepository.persist(cluster);
     }

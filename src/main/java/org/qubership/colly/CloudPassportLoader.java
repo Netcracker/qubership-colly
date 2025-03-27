@@ -5,37 +5,76 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.data.CloudData;
 import org.qubership.colly.data.CloudPassport;
 import org.qubership.colly.data.CloudPassportData;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @ApplicationScoped
 public class CloudPassportLoader {
 
     private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
-    @ConfigProperty(name = "env.instances.path")
-    String envInstancesPath;
+    private static final String GIT_DIRECTORY = "./git-repo";
 
+    @ConfigProperty(name = "env.instances.repo")
+    Optional<String> gitRepoUrl;
+
+
+    private void cloneGitRepository() {
+        if (gitRepoUrl.isEmpty()) {
+            Log.error("gitRepoUrl parameter is not set. Skipping repository cloning.");
+            return;
+        }
+        File directory = new File(GIT_DIRECTORY);
+        if (directory.exists()) {
+            Log.info("Repository was already cloned. Directory: " + directory);
+            return;
+        }
+
+        String gitRepoUrlValue = gitRepoUrl.get();
+        try {
+            Log.info("Cloning repository: " + gitRepoUrlValue);
+            Git.cloneRepository()
+                    .setURI(gitRepoUrlValue)
+                    .setDirectory(directory)
+                    .call();
+            Log.info("Repository cloned.");
+        } catch (GitAPIException e) {
+            throw new RuntimeException("Error during clone repository: " + gitRepoUrlValue, e);
+        }
+    }
 
     public List<CloudPassport> loadCloudPassports() {
-        try (Stream<Path> paths = Files.list(Paths.get(envInstancesPath))) {
+        cloneGitRepository();
+        Path dir = Paths.get(GIT_DIRECTORY);
+        if (!dir.toFile().exists()) {
+            return Collections.emptyList();
+        }
+        try (Stream<Path> paths = Files.walk(dir)) {
             return paths.filter(Files::isDirectory)
                     .map(path -> path.resolve(CLOUD_PASSPORT_FOLDER))
                     .filter(Files::isDirectory)
                     .map(path -> processYamlFilesInCloudPassportFolder(path, path.getParent().getFileName().toString()))
+                    .filter(Objects::nonNull)
                     .toList();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            Log.error("Error loading CloudPassports from " + dir, e);
         }
+        return Collections.emptyList();
     }
 
 
@@ -47,8 +86,9 @@ public class CloudPassportLoader {
                     .filter(path -> path.getFileName().toString().equals(rootFolderName + ".yml"))
                     .map(this::parseCloudPassportDataFile)
                     .findFirst().orElseThrow();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            Log.error("Error loading Cloud Passport from " + folderPath, e);
+            return null;
         }
 
         String token;
@@ -58,8 +98,9 @@ public class CloudPassportLoader {
                     .map(path -> parseTokenFromCredsFile(path, cloudPassportData))
                     .findFirst().orElseThrow();
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            Log.error("Error loading Cloud Passport from " + folderPath, e);
+            return null;
         }
         CloudData cloud = cloudPassportData.getCloud();
         String cloudApiHost = cloud.getCloudProtocol() + "://" + cloud.getCloudApiHost() + ":" + cloud.getCloudApiPort();
