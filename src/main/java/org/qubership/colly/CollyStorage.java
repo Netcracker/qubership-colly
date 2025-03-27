@@ -41,9 +41,10 @@ public class CollyStorage {
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports();
         cloudPassports.forEach(cloudPassport -> clusterResourcesLoader.loadClusterResources(cloudPassport));
         List<String> clusterNames = cloudPassports.stream().map(CloudPassport::name).toList();
+        Log.info("Cloud passports loaded for clusters: " + clusterNames);
         List<KubeConfig> kubeConfigs = kubeConfigLoader.loadKubeConfigs();
         kubeConfigs.stream()
-                .filter(kubeConfig -> clusterNames.contains(ClusterResourcesLoader.parseClusterName(kubeConfig)))
+                .filter(kubeConfig -> !clusterNames.contains(ClusterResourcesLoader.parseClusterName(kubeConfig)))
                 .forEach(kubeConfig -> clusterResourcesLoader.loadClusterResources(kubeConfig));
 
         Date loadCompleteTime = new Date();
