@@ -56,6 +56,7 @@ jobs:
         run: |
           echo "**Metadata:** ${{ steps.metadata.outputs.result }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ steps.prepare_tags.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dry Run:** ${{ github.event.inputs.dry-run }}"
 
   docker-build:
     uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
