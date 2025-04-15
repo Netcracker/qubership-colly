@@ -11,7 +11,6 @@ on:
         description: 'Release version (e.g., 1.0.0)'
 permissions:
   packages: write
-  contents: read
 
 jobs:
   mvn-build:
@@ -60,15 +59,6 @@ jobs:
           echo "**Metadata:** ${{ steps.metadata.outputs.result }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ steps.prepare_tags.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
 
-#  docker-build:
-#    uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
-#    needs: perform-version
-#    with:
-#      ref: ${{ github.event.ref }}
-#      artifact-id: ${{ github.event.repository.name }}
-#      dry-run: false
-#      download-artifact: true
-#      tags: ${{ needs.perform-version.outputs.tags }}
   docker-build:
     name: "Build Docker Images"
     needs: perform-version
@@ -78,8 +68,9 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/docker-action@main
         with:
           ref: ${{ github.ref }}
-          dry-run: true
+          dry-run: ${{ inputs.dry-run }}
           download-artifact: true
           tags: ${{ needs.perform-version.outputs.tags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
