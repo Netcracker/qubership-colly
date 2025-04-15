@@ -61,12 +61,12 @@ jobs:
           echo "**Tags:** ${{ steps.prepare_tags.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
 
   docker-build:
-    uses: nookyo/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
+    uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
     needs: perform-version
     with:
       ref: ${{ github.event.ref }}
       artifact-id: ${{ github.event.repository.name }}
-      dry-run: true
+      dry-run: false
       download-artifact: true
       tags: ${{ needs.perform-version.outputs.tags }}
 #  docker-build:
