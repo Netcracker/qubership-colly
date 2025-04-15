@@ -60,27 +60,26 @@ jobs:
           echo "**Metadata:** ${{ steps.metadata.outputs.result }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ steps.prepare_tags.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
 
-  docker-build:
-    uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
-    needs: perform-version
-    with:
-      ref: ${{ github.event.ref }}
-      artifact-id: ${{ github.event.repository.name }}
-      dry-run: false
-      download-artifact: true
-      tags: ${{ needs.perform-version.outputs.tags }}
 #  docker-build:
-#    name: "Build Docker Images"
+#    uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
 #    needs: perform-version
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Docker
-#        uses: nookyo/qubership-workflow-hub/actions/docker-action@main
-#        with:
-#          ref: ${{ github.ref }}
-#          dry-run: true
-#          download-artifact: true
-#          tags: ${{ needs.perform-version.outputs.tags }}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+#    with:
+#      ref: ${{ github.event.ref }}
+#      artifact-id: ${{ github.event.repository.name }}
+#      dry-run: false
+#      download-artifact: true
+#      tags: ${{ needs.perform-version.outputs.tags }}
+  docker-build:
+    name: "Build Docker Images"
+    needs: perform-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        with:
+          ref: ${{ github.ref }}
+          dry-run: true
+          download-artifact: true
+          tags: ${{ needs.perform-version.outputs.tags }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
