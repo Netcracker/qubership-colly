@@ -1,5 +1,6 @@
 package org.qubership.colly.db;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
@@ -12,6 +13,7 @@ public class Cluster extends PanacheEntityBase {
     public String name;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     public List<Environment> environments;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)

@@ -1,5 +1,6 @@
 package org.qubership.colly.db;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
@@ -17,6 +18,7 @@ public class Namespace extends PanacheEntityBase {
 
     @ManyToOne()
     @JoinColumn(referencedColumnName = "id")
+    @JsonIgnore
     public Environment environment;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)

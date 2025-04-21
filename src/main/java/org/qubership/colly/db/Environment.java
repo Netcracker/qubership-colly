@@ -24,11 +24,9 @@ public class Environment extends PanacheEntity {
 
     @ManyToOne
     @JoinColumn(referencedColumnName = "name")
-    @JsonIgnore
     public Cluster cluster;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
     private List<Namespace> namespaces;
 
 
