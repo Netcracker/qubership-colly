@@ -50,9 +50,5 @@ public class Environment extends PanacheEntity {
         this.namespaces.add(namespace);
     }
 
-    public String render() throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.writeValueAsString(this);
-    }
 }
 
