@@ -5,7 +5,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import {DataGrid} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./components/EditEnvironmentDialog";
-import {Environment} from "./entities/environments";
+import {Environment, STATUS_MAPPING} from "./entities/environments";
 
 
 export default function EnvironmentsOverview() {
@@ -64,7 +64,7 @@ export default function EnvironmentsOverview() {
             namespaces: env.namespaces.map(ns => ns.name).join(", "),
             cluster: env.cluster?.name,
             owner: env.owner,
-            status: env.status,
+            status: STATUS_MAPPING[env.status] || env.status,
             description: env.description,
             raw: env
         }));

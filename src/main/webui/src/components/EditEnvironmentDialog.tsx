@@ -1,6 +1,6 @@
 import {Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, TextField} from "@mui/material";
 import React from "react";
-import {ALL_STATUSES, Environment, EnvironmentStatus} from "../entities/environments";
+import {ALL_STATUSES, Environment, EnvironmentStatus, STATUS_MAPPING} from "../entities/environments";
 
 type Props = {
     environment: Environment;
@@ -33,7 +33,7 @@ export default function EditEnvironmentDialog({environment, onClose, onSave}: Pr
                 label={"Status"}
                 margin="dense"
             >
-                {ALL_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}
+                {ALL_STATUSES.map(status => <MenuItem key={status} value={status}>{STATUS_MAPPING[status]}</MenuItem>)}
             </Select>
             <TextField
                 label="Description"
