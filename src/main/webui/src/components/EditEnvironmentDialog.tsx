@@ -1,4 +1,14 @@
-import {Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Select, TextField} from "@mui/material";
+import {
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    FormControl, InputLabel,
+    MenuItem,
+    Select,
+    TextField
+} from "@mui/material";
 import React from "react";
 import {ALL_STATUSES, Environment, EnvironmentStatus, STATUS_MAPPING} from "../entities/environments";
 
@@ -18,7 +28,12 @@ export default function EditEnvironmentDialog({environment, onClose, onSave}: Pr
     return <Dialog open={!!localEnv} onClose={onClose} fullWidth={true} maxWidth="sm">
         <DialogTitle>Edit Environment</DialogTitle>
         <DialogContent>
-            <TextField label="Name" value={localEnv.name || ''} disabled fullWidth margin="dense"/>
+            <TextField
+                label="Name"
+                value={localEnv.name || ''}
+                disabled
+                fullWidth
+                margin="dense"/>
             <TextField
                 label="Owner"
                 value={localEnv.owner || ''}
@@ -26,15 +41,18 @@ export default function EditEnvironmentDialog({environment, onClose, onSave}: Pr
                 fullWidth
                 margin="dense"
             />
+            <FormControl sx={{mt: 1, mb: 1}} fullWidth>
+            <InputLabel>Status</InputLabel>
             <Select
-                value={localEnv.status || ''}
-                onChange={e => setLocalEnv(prev => ({...prev, status: e.target.value as EnvironmentStatus}))}
-                fullWidth
-                label={"Status"}
-                margin="dense"
+                    value={localEnv.status || ''}
+                    onChange={e => setLocalEnv(prev => ({...prev, status: e.target.value as EnvironmentStatus}))}
+                    fullWidth
+                    label="Status"
+                    margin="dense"
             >
                 {ALL_STATUSES.map(status => <MenuItem key={status} value={status}>{STATUS_MAPPING[status]}</MenuItem>)}
             </Select>
+            </FormControl>
             <TextField
                 label="Description"
                 value={localEnv.description || ''}
