@@ -1,37 +1,13 @@
 import React, {useEffect, useState} from "react";
-import {
-    Box,
-    Button,
-    Checkbox,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    FormControlLabel,
-    InputAdornment,
-    MenuItem,
-    OutlinedInput,
-    Select,
-    TextField,
-    Typography
-} from "@mui/material";
+import {Box, Button, Checkbox, FormControlLabel, InputAdornment, OutlinedInput} from "@mui/material";
 import {DataGrid} from '@mui/x-data-grid';
+import EditEnvironmentDialog from "./components/EditEnvironmentDialog";
+import {ALL_STATUSES, Environment, EnvironmentStatus} from "./entities/environments";
 
-type EnvironmentStatus = "IN_USE" | "RESERVED" | "FREE" | "MIGRATING";
-const statuses: EnvironmentStatus[] = ["IN_USE", "RESERVED", "FREE", "MIGRATING"];
-type Environment = {
-    id: number;
-    name: string;
-    namespaces: { name: string }[];
-    cluster: { name: string };
-    owner: string;
-    status: EnvironmentStatus;
-    description: string;
-};
 
 export default function EnvironmentsOverview() {
     const [filter, setFilter] = useState("");
-    const [statusFilter, setStatusFilter] = useState(() => new Set(statuses));
+    const [statusFilter, setStatusFilter] = useState(() => new Set(ALL_STATUSES));
     const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null);
     const [environments, setEnvironments] = useState<Environment[]>([]);
 
@@ -43,25 +19,24 @@ export default function EnvironmentsOverview() {
     }, []);
 
 
-    const handleSave = async () => {
-        if (!selectedEnv) return;
+    const handleSave = async (changedEnv:Environment) => {
+        if (!changedEnv) return;
 
         try {
             const formData = new FormData();
-            formData.append("name", selectedEnv.name);
-            formData.append("owner", selectedEnv.owner);
-            formData.append("status", selectedEnv.status);
-            formData.append("description", selectedEnv.description);
-            const response = await fetch(`/colly/environments/${selectedEnv.id}`, {
+            formData.append("name", changedEnv.name);
+            formData.append("owner", changedEnv.owner);
+            formData.append("status", changedEnv.status);
+            formData.append("description", changedEnv.description);
+            const response = await fetch(`/colly/environments/${changedEnv.id}`, {
                 method: "POST",
                 body: formData
-                });
+            });
 
 
             if (response.ok) {
                 setSelectedEnv(null);
-                const updated = await response.json();
-                setEnvironments(prev => prev.map(env => env.id === updated.id ? updated : env));
+                setEnvironments(prev => prev.map(env => env.id === changedEnv.id ? changedEnv : env));
             } else {
                 console.error("Failed to save changes", await response.text());
             }
@@ -121,8 +96,6 @@ export default function EnvironmentsOverview() {
 
     return (
         <Box sx={{p: 4}}>
-            <Typography variant="h5" gutterBottom align="center">Environments Overview</Typography>
-
             <Box sx={{display: 'flex', gap: 2, mb: 2, maxWidth: 500, mx: 'auto'}}>
                 <OutlinedInput
                     fullWidth
@@ -135,7 +108,7 @@ export default function EnvironmentsOverview() {
             </Box>
 
             <Box sx={{display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center', mb: 3}}>
-                {statuses.map(status => (
+                {ALL_STATUSES.map(status => (
                     <FormControlLabel
                         key={status}
                         control={<Checkbox checked={statusFilter.has(status)} onChange={() => toggleStatus(status)}/>}
@@ -152,36 +125,8 @@ export default function EnvironmentsOverview() {
                 />
             </Box>
 
-
-            <Dialog open={!!selectedEnv} onClose={() => setSelectedEnv(null)}>
-                <DialogTitle>Edit Environment</DialogTitle>
-                <DialogContent sx={{display: 'flex', flexDirection: 'column', gap: 2, mt: 1}}>
-                    <TextField label="Name" value={selectedEnv?.name || ''} disabled fullWidth/>
-                    <TextField
-                        label="Owner"
-                        value={selectedEnv?.owner || ''}
-                        onChange={e => setSelectedEnv(prev => prev ? {...prev, owner: e.target.value} : prev)}
-                        fullWidth
-                    />
-                    <Select
-                        value={selectedEnv?.status || ''}
-                        onChange={e => setSelectedEnv(prev => prev ? {...prev, status: e.target.value as EnvironmentStatus} : prev)}
-                        fullWidth
-                    >
-                        {statuses.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}
-                    </Select>
-                    <TextField
-                        label="Description"
-                        value={selectedEnv?.description || ''}
-                        onChange={e => setSelectedEnv(prev => prev ? {...prev, description: e.target.value} : prev)}
-                        fullWidth
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setSelectedEnv(null)} color="secondary">Close</Button>
-                    <Button onClick={handleSave} color="primary">Save Changes</Button>
-                </DialogActions>
-            </Dialog>
+            {selectedEnv && <EditEnvironmentDialog environment={selectedEnv} onSave={handleSave}
+                                                   onClose={() => setSelectedEnv(null)}/>}
         </Box>
     );
 }
