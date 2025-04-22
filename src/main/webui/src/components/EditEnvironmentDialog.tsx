@@ -15,20 +15,23 @@ export default function EditEnvironmentDialog({environment, onClose, onSave}: Pr
         onSave(localEnv);
     };
 
-    return <Dialog open={!!localEnv} onClose={onClose}>
+    return <Dialog open={!!localEnv} onClose={onClose} fullWidth={true} maxWidth="sm">
         <DialogTitle>Edit Environment</DialogTitle>
-        <DialogContent sx={{display: 'flex', flexDirection: 'column', gap: 2, mt: 1}}>
-            <TextField label="Name" value={localEnv.name || ''} disabled fullWidth/>
+        <DialogContent>
+            <TextField label="Name" value={localEnv.name || ''} disabled fullWidth margin="dense"/>
             <TextField
                 label="Owner"
                 value={localEnv.owner || ''}
                 onChange={e => setLocalEnv(prevState => ({...prevState, owner: e.target.value}))}
                 fullWidth
+                margin="dense"
             />
             <Select
                 value={localEnv.status || ''}
                 onChange={e => setLocalEnv(prev => ({...prev, status: e.target.value as EnvironmentStatus}))}
                 fullWidth
+                label={"Status"}
+                margin="dense"
             >
                 {ALL_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}
             </Select>
@@ -37,6 +40,7 @@ export default function EditEnvironmentDialog({environment, onClose, onSave}: Pr
                 value={localEnv.description || ''}
                 onChange={e => setLocalEnv(prev => ({...prev, description: e.target.value}))}
                 fullWidth
+                margin="dense"
             />
         </DialogContent>
         <DialogActions>

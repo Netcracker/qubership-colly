@@ -1,13 +1,15 @@
 import React, {useEffect, useState} from "react";
-import {Box, Button, Checkbox, FormControlLabel, InputAdornment, OutlinedInput} from "@mui/material";
+import {Box, IconButton, InputAdornment} from "@mui/material";
+import TextField from '@mui/material/TextField';
+import SearchIcon from '@mui/icons-material/Search';
+import EditIcon from '@mui/icons-material/Edit';
 import {DataGrid} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./components/EditEnvironmentDialog";
-import {ALL_STATUSES, Environment, EnvironmentStatus} from "./entities/environments";
+import {Environment} from "./entities/environments";
 
 
 export default function EnvironmentsOverview() {
     const [filter, setFilter] = useState("");
-    const [statusFilter, setStatusFilter] = useState(() => new Set(ALL_STATUSES));
     const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null);
     const [environments, setEnvironments] = useState<Environment[]>([]);
 
@@ -19,7 +21,7 @@ export default function EnvironmentsOverview() {
     }, []);
 
 
-    const handleSave = async (changedEnv:Environment) => {
+    const handleSave = async (changedEnv: Environment) => {
         if (!changedEnv) return;
 
         try {
@@ -33,7 +35,6 @@ export default function EnvironmentsOverview() {
                 body: formData
             });
 
-
             if (response.ok) {
                 setSelectedEnv(null);
                 setEnvironments(prev => prev.map(env => env.id === changedEnv.id ? changedEnv : env));
@@ -43,14 +44,6 @@ export default function EnvironmentsOverview() {
         } catch (error) {
             console.error("Error during save:", error);
         }
-    };
-
-    const toggleStatus = (status: EnvironmentStatus) => {
-        setStatusFilter(prev => {
-            const newSet = new Set(prev);
-            newSet.has(status) ? newSet.delete(status) : newSet.add(status);
-            return newSet;
-        });
     };
 
     const filteredRows = environments
@@ -63,7 +56,7 @@ export default function EnvironmentsOverview() {
                 env.description,
                 ...(env.namespaces || []).map(ns => ns.name)
             ].join(" ").toLowerCase();
-            return flatValues.includes(filter.toLowerCase()) && statusFilter.has(env.status);
+            return flatValues.includes(filter.toLowerCase());
         })
         .map(env => ({
             id: env.id,
@@ -87,8 +80,11 @@ export default function EnvironmentsOverview() {
             field: "actions",
             headerName: "Actions",
             sortable: false,
+            filter: false,
             renderCell: (params: { row: { raw: React.SetStateAction<Environment | null>; }; }) => (
-                <Button variant="outlined" onClick={() => setSelectedEnv(params.row.raw)}>✏️</Button>
+                <IconButton size={"small"} onClick={() => setSelectedEnv(params.row.raw)}>
+                    <EditIcon fontSize="inherit"/>
+                </IconButton>
             ),
             flex: 0.5
         }
@@ -96,32 +92,31 @@ export default function EnvironmentsOverview() {
 
     return (
         <Box sx={{p: 4}}>
-            <Box sx={{display: 'flex', gap: 2, mb: 2, maxWidth: 500, mx: 'auto'}}>
-                <OutlinedInput
-                    fullWidth
-                    placeholder="Search Environment..."
-                    value={filter}
+            <Box sx={{display: 'flex', gap: 2, mb: 2, mx: 'auto', justifyContent: 'flex-start'}}>
+                <TextField
+                    id="filled-search"
+                    label="Search Environment"
+                    type="search"
+                    size="small"
+                    slotProps={{
+                        input: {
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon />
+                                </InputAdornment>
+                            ),
+                        },
+                    }}
                     onChange={(e) => setFilter(e.target.value)}
-                    startAdornment={<InputAdornment position="start">Search</InputAdornment>}
                 />
-                <Button variant="outlined" onClick={() => setFilter("")}>Clear</Button>
             </Box>
 
-            <Box sx={{display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center', mb: 3}}>
-                {ALL_STATUSES.map(status => (
-                    <FormControlLabel
-                        key={status}
-                        control={<Checkbox checked={statusFilter.has(status)} onChange={() => toggleStatus(status)}/>}
-                        label={status}
-                    />
-                ))}
-            </Box>
-
-            <Box sx={{height: 500}}>
+            <Box>
                 <DataGrid
                     rows={filteredRows}
                     columns={columns}
                     disableRowSelectionOnClick
+                    showToolbar
                 />
             </Box>
 

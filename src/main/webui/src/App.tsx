@@ -7,7 +7,7 @@ function App() {
 
     return (
         <div className="App">
-            <Typography variant="h5" gutterBottom align="center">Environments Overview</Typography>
+            <Typography variant="h5" align="center">Environments Overview</Typography>
             <EnvTable/>
         </div>
     );
