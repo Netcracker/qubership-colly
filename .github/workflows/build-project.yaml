@@ -16,7 +16,7 @@ jobs:
   mvn-build:
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
-      maven-command: "--batch-mode package"
+      maven-command: "--batch-mode clean package"
       upload-artifact: true
       artifact-id: ${{ github.event.repository.name }}
     secrets:
