@@ -19,6 +19,7 @@ jobs:
       maven-command: "--batch-mode clean package"
       upload-artifact: true
       artifact-id: ${{ github.event.repository.name }}
+      ref: ${{ github.head_ref }}
     secrets:
       maven-token: ${{ secrets.GITHUB_TOKEN }}
   perform-version:
