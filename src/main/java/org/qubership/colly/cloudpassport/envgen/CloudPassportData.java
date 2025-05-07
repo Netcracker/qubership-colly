@@ -1,4 +1,4 @@
-package org.qubership.colly.data;
+package org.qubership.colly.cloudpassport.envgen;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

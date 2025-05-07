@@ -1,12 +1,11 @@
 package org.qubership.colly;
 
-import io.kubernetes.client.util.KubeConfig;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.qubership.colly.data.CloudPassport;
+import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.db.Cluster;
 import org.qubership.colly.db.Environment;
 import org.qubership.colly.db.EnvironmentStatus;
@@ -44,10 +43,10 @@ public class CollyStorage {
         cloudPassports.forEach(cloudPassport -> clusterResourcesLoader.loadClusterResources(cloudPassport));
         List<String> clusterNames = cloudPassports.stream().map(CloudPassport::name).toList();
         Log.info("Cloud passports loaded for clusters: " + clusterNames);
-        List<KubeConfig> kubeConfigs = kubeConfigLoader.loadKubeConfigs();
-        kubeConfigs.stream()
-                .filter(kubeConfig -> !clusterNames.contains(ClusterResourcesLoader.parseClusterName(kubeConfig)))
-                .forEach(kubeConfig -> clusterResourcesLoader.loadClusterResources(kubeConfig));
+//        List<KubeConfig> kubeConfigs = kubeConfigLoader.loadKubeConfigs();
+//        kubeConfigs.stream()
+//                .filter(kubeConfig -> !clusterNames.contains(ClusterResourcesLoader.parseClusterName(kubeConfig)))
+//                .forEach(kubeConfig -> clusterResourcesLoader.loadClusterResources(kubeConfig));
 
         Date loadCompleteTime = new Date();
         long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
