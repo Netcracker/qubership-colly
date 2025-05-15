@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Create name
-        uses: netcracker/qubership-workflow-hub/actions/metadata-action@88256152618d801616fc53f46211f911245fb57b
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@1da8fc9aaecd6304ff15cde15d661831f7b3cded
         id: metadata
         with:
           configuration-path: .github/metadata-action-config.yml
