@@ -4,7 +4,7 @@ branches-template:
   - "bugfix/*": "bugfix-{{ref-name}}-{{timestamp}}, {{dist-tag}}"
   - tag: "v{{major}}.{{minor}}.{{patch}}, {{dist-tag}}"
 
-distribution-tags:
+distribution-tag:
   - main: "latest"
   - "feature/*": "dev"
   - "bugfix/*": "dev"
