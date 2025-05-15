@@ -22,7 +22,9 @@ categories:
     labels:
       - documentation
 
-change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
+change-template: |
+  - (#$NUMBER) $TITLE by @$AUTHOR
+
 no-changes-template: 'No significant changes'
 
 template: |
@@ -31,7 +33,9 @@ template: |
   ### What's Changed
   $CHANGES
 
-  **Contributors:** $CONTRIBUTORS
+  ---
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
 
 version-resolver:
   major:
@@ -44,4 +48,3 @@ version-resolver:
     labels:
       - patch
   default: patch
-  

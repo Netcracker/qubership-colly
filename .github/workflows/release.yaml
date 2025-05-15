@@ -1,0 +1,138 @@
+---
+# Copied from https://github.com/Netcracker/.github/blob/main/workflow-templates/helm-charts-release.yaml
+
+# This workflow is used to release Helm charts and Docker images.
+# It has a dry run stage to check the build process without actually publishing the artifacts.
+# The workflow is triggered manually and allows the user to specify the release version.
+# The workflow also creates a GitHub release after the deployment stage if the deployment is successful.
+# The workflow uses the `netcracker/qubership-workflow-hub/actions/helm-charts-release` action to perform the release steps.
+# The workflow requires the following inputs:
+# - `release`: The release version to publish.
+# - configuration file used for the release process: `.github/helm-charts-release-config.yaml`
+#   Example: config/examples/helm-charts-release-config.yaml
+# - Assets configuration file: `.github/assets-config.yml`
+#   Example: config/examples/assets-config.yml
+# - GitHub release drafter configuration file: `.github/release-drafter-config.yml`
+#   Example: config/examples/release-drafter-config.yml
+
+name: Helm Charts Release
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release version'
+        required: true
+        type: string
+permissions:
+  contents: write
+  packages: write
+run-name: ${{ github.repository }} Release ${{ github.event.inputs.release }}
+concurrency:
+  group: 'helm-charts-release'
+  cancel-in-progress: false
+jobs:
+  check-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if tag exists
+        id: check_tag
+        uses: netcracker/qubership-workflow-hub/actions/tag-action@main
+        with:
+          tag-name: 'v${{ inputs.release }}'
+          ref: ${{ github.ref }}
+          create-tag: false
+          check-tag: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-check-build:
+    needs: [check-tag]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker check build
+        id: docker-check-build
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        with:
+          ref: ${{ github.ref }}
+          dry-run: true
+          download-artifact: true
+          tags: "test-${{ inputs.release }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  chart-release:
+    needs: [docker-check-build, check-tag]
+    runs-on: ubuntu-latest
+    outputs:
+      images-versions: ${{ steps.update-versions.outputs.images-versions }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: "Update versions in values"
+        id: update-versions
+        uses: netcracker/qubership-workflow-hub/actions/helm-charts-release@main
+        with:
+          release-version: ${{ inputs.release }}
+          config-file: .github/helm-charts-release-config.yaml
+        env:
+          ${{ insert }}: ${{ vars }}
+
+      - name: "Debug"
+        run: |
+          echo "Images versions: ${{ steps.update-versions.outputs.images-versions }}"
+  tag:
+    needs: [chart-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release tag
+        uses: netcracker/qubership-workflow-hub/actions/tag-action@main
+        with:
+          tag-name: "v${{ inputs.release }}"
+          ref: "release-${{ inputs.release }}"
+          create-tag: true
+          check-tag: false
+
+  docker-build:
+    needs: [tag, chart-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version for current component
+        id: get-version
+        run: |
+          echo "IMAGE_VERSION=${{ fromJson(needs.chart-release.outputs.images-versions) || inputs.release }}" >> $GITHUB_ENV
+      - name: Docker build
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        with:
+          ref: v${{ inputs.release }}
+          download-artifact: false
+          dry-run: false
+          tags: "${{ env.IMAGE_VERSION }},latest"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  github-release:
+    needs: [docker-build]
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@main
+    with:
+      version: ${{ inputs.release }}
+      publish: true
+
+  upload-assets:
+    needs: [github-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ inputs.release }}
+
+      - name: Archive and Upload Assets
+        uses: netcracker/qubership-workflow-hub/actions/archive-and-upload-assets@main
+        with:
+          config-path: './.github/assets-config.yml'
+          dist-path: './dist'
+          upload: true
+          ref: v${{ inputs.release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

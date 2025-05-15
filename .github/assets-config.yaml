@@ -1,0 +1,4 @@
+archives:
+  - source: charts
+    outputName: helm-charts
+    archiveType: tar.gz

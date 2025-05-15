@@ -1,0 +1,7 @@
+---
+charts:
+  - name: qubership-colly
+    chart_file: charts/qubership-colly/Chart.yaml
+    values_file: charts/qubership-colly/values.yaml
+    image:
+      - ghcr.io/netcracker/qubership-colly:${release}
