@@ -1,0 +1,32 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.colly.name }}-http
+  labels:
+    name: {{ .Values.colly.name }}
+    app.kubernetes.io/name: {{ .Values.colly.name }}
+  {{- if .Values.colly.ingress.http.annotations }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    {{- toYaml .Values.colly.ingress.http.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.colly.ingress.className }}
+  ingressClassName: {{ .Values.colly.ingress.className }}
+  {{- end }}
+  {{- if .Values.colly.ingress.tls }}
+  tls:
+    {{- toYaml .Values.colly.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.colly.name }}-service
+                port:
+                  number: 80
