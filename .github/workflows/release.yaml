@@ -92,9 +92,19 @@ jobs:
           ref: "release-${{ inputs.release }}"
           create-tag: true
           check-tag: false
+  mvn-build:
+    needs: [tag, chart-release]
+    uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
+    with:
+      maven-command: "--batch-mode clean package"
+      upload-artifact: true
+      artifact-id: ${{ github.event.repository.name }}
+      ref: ${{ github.head_ref }}
+    secrets:
+      maven-token: ${{ secrets.GITHUB_TOKEN }}
 
   docker-build:
-    needs: [tag, chart-release]
+    needs: [tag, mvn-build, chart-release]
     runs-on: ubuntu-latest
     steps:
       - name: Get version for current component
