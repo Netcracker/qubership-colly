@@ -1,0 +1,10 @@
+---
+version: 1.5
+cloud:
+  CLOUD_API_HOST: some.unreachable.url
+  CLOUD_API_PORT: "8443"
+  CLOUD_DEPLOY_TOKEN: cloud-deploy-sa-token
+  CLOUD_PROTOCOL: https
+cse:
+  MONITORING_TYPE: VictoriaDB
+  MONITORING_NAMESPACE: victoria

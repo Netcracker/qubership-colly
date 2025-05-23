@@ -1,15 +1,12 @@
 import React, {useEffect, useState} from "react";
-import {Box, Chip, IconButton, InputAdornment} from "@mui/material";
-import TextField from '@mui/material/TextField';
-import SearchIcon from '@mui/icons-material/Search';
+import {Box, Chip, IconButton} from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
-import {DataGrid} from '@mui/x-data-grid';
+import {DataGrid, GridColDef} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./components/EditEnvironmentDialog";
 import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "./entities/environments";
 
 
 export default function EnvironmentsOverview() {
-    const [filter, setFilter] = useState("");
     const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null);
     const [environments, setEnvironments] = useState<Environment[]>([]);
 
@@ -53,34 +50,32 @@ export default function EnvironmentsOverview() {
         }
     };
 
-    const filteredRows = environments
-        .filter(env => {
-            const flatValues = [
-                env.name,
-                env.cluster?.name,
-                env.owner,
-                env.status,
-                env.labels,
-                env.description,
-                env.type,
-                ...(env.namespaces || []).map(ns => ns.name)
-            ].join(" ").toLowerCase();
-            return flatValues.includes(filter.toLowerCase());
-        })
-        .map(env => ({
-            id: env.id,
-            name: env.name,
-            namespaces: env.namespaces.map(ns => ns.name).join(", "),
-            cluster: env.cluster?.name,
-            owner: env.owner,
-            status: STATUS_MAPPING[env.status] || env.status,
-            type: ENVIRONMENT_TYPES_MAPPING[env.type] || env.type,
-            labels: env.labels,
-            description: env.description,
-            raw: env
-        }));
+    const rows = environments.map(env => ({
+        id: env.id,
+        name: env.name,
+        namespaces: env.namespaces.map(ns => ns.name).join(", "),
+        cluster: env.cluster?.name,
+        owner: env.owner,
+        status: STATUS_MAPPING[env.status] || env.status,
+        type: ENVIRONMENT_TYPES_MAPPING[env.type] || env.type,
+        labels: env.labels,
+        description: env.description,
+        ...(env.monitoringData || {}),
+        raw: env
+    }));
 
-    const columns = [
+    const monitoringKeys = environments.length > 0 && environments[0].monitoringData
+        ? Object.keys(environments[0].monitoringData)
+        : [];
+
+    const monitoringColumns: GridColDef[] = monitoringKeys.map(key => ({
+        field: key,
+        headerName: key,
+        flex: 0.8,
+        type: 'string'
+    }));
+
+    const baseColumns: GridColDef[] = [
         {field: "name", headerName: "Environment", flex: 1},
         {field: "type", headerName: "Environment Type", flex: 1},
         {field: "namespaces", headerName: "Namespace(s)", flex: 1},
@@ -94,45 +89,27 @@ export default function EnvironmentsOverview() {
                     {params.row.labels.map(label => <Chip label={label}/>)}
                 </>
         },
-        {field: "description", headerName: "Description", flex: 2},
-        {
-            field: "actions",
-            headerName: "Actions",
-            sortable: false,
-            filter: false,
-            renderCell: (params: { row: { raw: React.SetStateAction<Environment | null>; }; }) => (
-                <IconButton size={"small"} onClick={() => setSelectedEnv(params.row.raw)}>
-                    <EditIcon fontSize="inherit"/>
-                </IconButton>
-            ),
-            flex: 0.5
-        }
+        {field: "description", headerName: "Description", flex: 2}
     ];
+    const actionsColumn: GridColDef = {
+        field: "actions",
+        headerName: "Actions",
+        sortable: false,
+        filterable: false,
+        renderCell: (params: { row: { raw: React.SetStateAction<Environment | null>; }; }) => (
+            <IconButton size={"small"} onClick={() => setSelectedEnv(params.row.raw)}>
+                <EditIcon fontSize="inherit"/>
+            </IconButton>
+        ),
+        flex: 0.5
+    }
+    const columns: GridColDef[] = [...baseColumns, ...monitoringColumns, actionsColumn];
 
     return (
         <Box sx={{p: 4}}>
-            <Box sx={{display: 'flex', gap: 2, mb: 2, mx: 'auto', justifyContent: 'flex-start'}}>
-                <TextField
-                    id="filled-search"
-                    label="Search Environment"
-                    type="search"
-                    size="small"
-                    slotProps={{
-                        input: {
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon/>
-                                </InputAdornment>
-                            ),
-                        },
-                    }}
-                    onChange={(e) => setFilter(e.target.value)}
-                />
-            </Box>
-
             <Box>
                 <DataGrid
-                    rows={filteredRows}
+                    rows={rows}
                     columns={columns}
                     disableRowSelectionOnClick
                     showToolbar
