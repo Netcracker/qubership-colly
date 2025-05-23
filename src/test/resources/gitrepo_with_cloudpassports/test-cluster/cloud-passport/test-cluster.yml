@@ -11,3 +11,5 @@ cloud:
   PRODUCTION_MODE: "false"
   SOME_UI_URL: https://som-ui.my-cluster.com
   ANOTHER_UI_URL: https://another-ui.my-cluster.com
+cse:
+  MONITORING_EXT_MONITORING_QUERY_URL: http://localhost:8428

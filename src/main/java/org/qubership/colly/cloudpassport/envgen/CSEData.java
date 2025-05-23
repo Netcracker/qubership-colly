@@ -11,7 +11,18 @@ public class CSEData {
     @JsonProperty("MONITORING_TYPE")
     private String monitoringType;
 
+    @JsonProperty("MONITORING_EXT_MONITORING_QUERY_URL")
+    private String monitoringExtMonitoringQueryUrl;
+
     public CSEData() {
+    }
+
+    public String getMonitoringExtMonitoringQueryUrl() {
+        return monitoringExtMonitoringQueryUrl;
+    }
+
+    public void setMonitoringExtMonitoringQueryUrl(String monitoringExtMonitoringQueryUrl) {
+        this.monitoringExtMonitoringQueryUrl = monitoringExtMonitoringQueryUrl;
     }
 
     public String getMonitoringNamespace() {

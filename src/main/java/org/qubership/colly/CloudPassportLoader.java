@@ -32,8 +32,8 @@ public class CloudPassportLoader {
 
     public static final String ENV_DEFINITION_YML_FILENAME = "env_definition.yml";
     public static final String NAMESPACE_YML_FILENAME = "namespace.yml";
-    private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
     public static final String MONITORING_TYPE_VICTORIA_DB = "VictoriaDB";
+    private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
     @Inject
     GitService gitService;
 
@@ -118,8 +118,12 @@ public class CloudPassportLoader {
         Log.info("Cloud API Host: " + cloudApiHost);
         CSEData cse = cloudPassportData.getCse();
         URI monitoringUri = null;
-        if (cse != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
-            monitoringUri = URI.create("http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429");
+        if (cse != null) {
+            if (cse.getMonitoringExtMonitoringQueryUrl() != null) {
+                monitoringUri = URI.create(cse.getMonitoringExtMonitoringQueryUrl());
+            } else if (cse.getMonitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
+                monitoringUri = URI.create("http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429");
+            }
         }
         Log.info("Monitoring URI: " + monitoringUri);
         return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri);
