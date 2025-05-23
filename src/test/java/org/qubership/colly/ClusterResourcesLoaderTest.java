@@ -20,7 +20,6 @@ import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.*;
 import org.qubership.colly.storage.EnvironmentRepository;
 import org.qubership.colly.storage.NamespaceRepository;
-import wiremock.com.fasterxml.jackson.databind.JsonNode;
 
 import java.net.URI;
 import java.util.List;
@@ -73,7 +72,7 @@ class ClusterResourcesLoaderTest {
     void loadClusterResources_from_cloud_passport() throws ApiException {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 List.of(new CloudPassportEnvironment("env-test", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), URI.create("http://localhost:"+port));
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), URI.create("http://localhost:" + port));
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
 
 
@@ -227,7 +226,6 @@ class ClusterResourcesLoaderTest {
         when(coreV1Api.listNamespacedConfigMap(any())).thenReturn(configMapRequest);
         when(configMapRequest.execute()).thenReturn(new V1ConfigMapList());
     }
-
 
 
     @Test
