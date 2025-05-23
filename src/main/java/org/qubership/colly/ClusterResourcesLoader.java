@@ -75,8 +75,8 @@ public class ClusterResourcesLoader {
             CoreV1Api coreV1Api = new CoreV1Api(client);
             AppsV1Api appsV1Api = new AppsV1Api(client);
             loadClusterResources(coreV1Api, appsV1Api, cloudPassport);
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to create client for cluster - " + cloudPassport, e);
+        } catch (RuntimeException | IOException e) {
+            Log.error("Can't load resources from cluster " + cloudPassport.name(), e);
         }
     }
 
@@ -115,6 +115,7 @@ public class ClusterResourcesLoader {
         //it is required to set links to cluster only if it was saved to db. so need to invoke persist two
         cluster.environments = loadEnvironments(coreV1Api, appsV1Api, cluster, cloudPassport.environments(), cloudPassport.monitoringUrl());
         clusterRepository.persist(cluster);
+        Log.info("Cluster " + cloudPassport.name() + " loaded successfully.");
     }
 
     private List<Environment> loadEnvironments(CoreV1Api coreV1Api, AppsV1Api appsV1Api, Cluster cluster, List<CloudPassportEnvironment> environments, URI monitoringUri) {

@@ -9,9 +9,9 @@ The tool is designed to track the usage of environments within clusters. This pr
 - Support Cloud Passport concept
 - ability to group several namespaces into one environment
 - show additional custom UI parameters for the environment (owner, description, status)
+- collect metrics from monitoring related to environments
 - (todo) ability to show information (name, version) about deployed helm packages
     - (optional) support argo packages
-- (todo) collect resources and metrics from kubernetes and monitoring
 
 
 ## Environment visualization details

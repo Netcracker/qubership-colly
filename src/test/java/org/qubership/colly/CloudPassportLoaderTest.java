@@ -1,7 +1,8 @@
 package org.qubership.colly;
 
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.component.QuarkusComponentTest;
+import io.quarkus.test.component.TestConfigProperty;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
-@QuarkusTest
+@QuarkusComponentTest
 class CloudPassportLoaderTest {
 
     private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT = new CloudPassport("test-cluster",
@@ -35,6 +36,15 @@ class CloudPassportLoaderTest {
                     "some env for tests",
                     List.of(new CloudPassportNamespace("demo-k8s")))),
             URI.create("http://localhost:8428"));
+    private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
+            "1234567890",
+            "https://some.unreachable.url:8443",
+            List.of(new CloudPassportEnvironment(
+                    "env-1",
+                    "some env for tests",
+                    List.of(new CloudPassportNamespace("namespace-1"), new CloudPassportNamespace("namespace-2")))),
+            URI.create("http://vmsingle-k8s.victoria:8429")
+    );
     @Inject
     CloudPassportLoader loader;
 
@@ -48,20 +58,32 @@ class CloudPassportLoaderTest {
 
 
     @Test
+    @TestConfigProperty(key = "cloud.passport.folder", value = "src/test/resources/gitrepo_with_cloudpassports")
     void load_cloud_passports_from_test_folder() {
         List<CloudPassport> result = loader.loadCloudPassports();
-        assertThat(result, hasItem(TEST_CLUSTER_CLOUD_PASSPORT));
+        assertThat(result, hasItems(TEST_CLUSTER_CLOUD_PASSPORT, TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER));
+    }
+
+    @Test
+    @TestConfigProperty(key = "cloud.passport.folder", value = "/nonexistent/path")
+    void load_cloud_passports_from_test_folder_with_empty_folder() {
+        List<CloudPassport> result = loader.loadCloudPassports();
+        assertTrue(result.isEmpty());
     }
 
 
     @Test
-    void test_read_cloud_passport_data_file(@TempDir Path tempDir) throws IOException {
+    void test_read_cloud_passport_data(@TempDir Path tempDir) throws IOException {
         String yaml = """
                 cloud:
                   CLOUD_API_HOST: "api.example.com"
                   CLOUD_API_PORT: 443
                   CLOUD_PROTOCOL: "https"
                   CLOUD_DEPLOY_TOKEN: "tokenKey"
+                cse:
+                  MONITORING_NAMESPACE: "monitoring"
+                  MONITORING_TYPE: "VictoriaDB"
+                  MONITORING_EXT_MONITORING_QUERY_URL: "http://monitoring.example.com"
                 """;
         Path file = tempDir.resolve("data.yml");
         Files.writeString(file, yaml);
@@ -73,6 +95,11 @@ class CloudPassportLoaderTest {
                         hasProperty("cloudApiHost", equalTo("api.example.com")),
                         hasProperty("cloudApiPort", equalTo("443")),
                         hasProperty("cloudProtocol", equalTo("https"))));
+        assertThat(result.getCse(),
+                allOf(
+                        hasProperty("monitoringNamespace", equalTo("monitoring")),
+                        hasProperty("monitoringType", equalTo("VictoriaDB")),
+                        hasProperty("monitoringExtMonitoringQueryUrl", equalTo("http://monitoring.example.com"))));
     }
 
     @Test

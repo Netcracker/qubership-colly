@@ -1,0 +1,7 @@
+---
+cloud-deploy-sa-token:
+  type: "secret"
+  data:
+    secret: "1234567890"
+
+
