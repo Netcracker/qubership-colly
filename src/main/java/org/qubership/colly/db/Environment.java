@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Entity(name = "environments")
 @JsonInclude(JsonInclude.Include.ALWAYS)
@@ -27,6 +28,12 @@ public class Environment extends PanacheEntity {
     @ManyToOne
     @JoinColumn(referencedColumnName = "name")
     public Cluster cluster;
+
+    @ElementCollection
+    @CollectionTable(name = "monitoring_data_content", joinColumns = @JoinColumn(name = "id"))
+    @MapKeyColumn(name = "key")
+    @Column(name = "value", columnDefinition = "TEXT")
+    public Map<String, String> monitoringData;
 
     @ElementCollection
     @CollectionTable(name = "environments_labels", joinColumns = @JoinColumn(name = "environment_id"))

@@ -17,6 +17,7 @@ import org.qubership.colly.cloudpassport.envgen.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,6 +33,7 @@ public class CloudPassportLoader {
     public static final String ENV_DEFINITION_YML_FILENAME = "env_definition.yml";
     public static final String NAMESPACE_YML_FILENAME = "namespace.yml";
     private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
+    public static final String MONITORING_TYPE_VICTORIA_DB = "VictoriaDB";
     @Inject
     GitService gitService;
 
@@ -113,7 +115,14 @@ public class CloudPassportLoader {
         }
         CloudData cloud = cloudPassportData.getCloud();
         String cloudApiHost = cloud.getCloudProtocol() + "://" + cloud.getCloudApiHost() + ":" + cloud.getCloudApiPort();
-        return new CloudPassport(clusterName, token, cloudApiHost, environments);
+        Log.info("Cloud API Host: " + cloudApiHost);
+        CSEData cse = cloudPassportData.getCse();
+        URI monitoringUri = null;
+        if (cse != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
+            monitoringUri = URI.create("http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429");
+        }
+        Log.info("Monitoring URI: " + monitoringUri);
+        return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri);
     }
 
     private List<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {

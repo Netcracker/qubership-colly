@@ -17,9 +17,11 @@ import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.*;
+import org.qubership.colly.monitoring.MonitoringService;
 import org.qubership.colly.storage.*;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -49,6 +51,8 @@ public class ClusterResourcesLoader {
     PodRepository podRepository;
     @Inject
     EnvironmentResolverStrategy environmentResolverStrategy;
+    @Inject
+    MonitoringService monitoringService;
 
 
     public static String parseClusterName(KubeConfig kubeConfig) {
@@ -70,7 +74,7 @@ public class ClusterResourcesLoader {
                     .build();
             CoreV1Api coreV1Api = new CoreV1Api(client);
             AppsV1Api appsV1Api = new AppsV1Api(client);
-            loadClusterResources(coreV1Api, appsV1Api, cloudPassport.name(), cloudPassport.environments());
+            loadClusterResources(coreV1Api, appsV1Api, cloudPassport);
         } catch (IOException e) {
             throw new RuntimeException("Unable to create client for cluster - " + cloudPassport, e);
         }
@@ -99,20 +103,21 @@ public class ClusterResourcesLoader {
         }
     }
 
-    void loadClusterResources(CoreV1Api coreV1Api, AppsV1Api appsV1Api, String clusterName, List<CloudPassportEnvironment> environments) {
-        Cluster cluster = clusterRepository.findByName(clusterName);
+    //for testing purposes
+    void loadClusterResources(CoreV1Api coreV1Api, AppsV1Api appsV1Api, CloudPassport cloudPassport) {
+        Cluster cluster = clusterRepository.findByName(cloudPassport.name());
         if (cluster == null) {
-            cluster = new Cluster(clusterName);
-            Log.info("Cluster " + clusterName + " not found in db. Creating new one.");
+            cluster = new Cluster(cloudPassport.name());
+            Log.info("Cluster " + cloudPassport.name() + " not found in db. Creating new one.");
             clusterRepository.persist(cluster);
         }
 
         //it is required to set links to cluster only if it was saved to db. so need to invoke persist two
-        cluster.environments = loadEnvironments(coreV1Api, appsV1Api, cluster, environments);
+        cluster.environments = loadEnvironments(coreV1Api, appsV1Api, cluster, cloudPassport.environments(), cloudPassport.monitoringUrl());
         clusterRepository.persist(cluster);
     }
 
-    private List<Environment> loadEnvironments(CoreV1Api coreV1Api, AppsV1Api appsV1Api, Cluster cluster, List<CloudPassportEnvironment> environments) {
+    private List<Environment> loadEnvironments(CoreV1Api coreV1Api, AppsV1Api appsV1Api, Cluster cluster, List<CloudPassportEnvironment> environments, URI monitoringUri) {
 
         CoreV1Api.APIlistNamespaceRequest apilistNamespaceRequest = coreV1Api.listNamespace();
         Map<String, V1Namespace> k8sNamespaces;
@@ -155,6 +160,7 @@ public class ClusterResourcesLoader {
                 environmentType = calculateEnvironmentType(v1Namespace);
                 namespaceRepository.persist(namespace);
             }
+            environment.monitoringData = monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(namespace -> namespace.name).toList());
             environment.type = environmentType;
             environmentRepository.persist(environment);
 
