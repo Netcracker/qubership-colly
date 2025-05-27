@@ -25,24 +25,31 @@ public class MonitoringService {
         if (monitoringUri == null) {
             return emptyMap();
         }
-        MonitoringClient monitoringClient = RestClientBuilder.newBuilder().baseUri(monitoringUri).build(MonitoringClient.class);
-
-        Collection<MonitoringParam> monitoringParams = this.monitoringParams.allMonitoringParams().values();
-        if (monitoringParams.isEmpty()) {
-            return emptyMap();
-        }
+        MonitoringClient monitoringClient = null;
         HashMap<String, String> result = new HashMap<>();
-        for (MonitoringParam monitoringParam : monitoringParams) {
-            String monitoringQuery = monitoringParam.query().replace("{namespace}", String.join("|", namespaceNames));
-            Log.info("Executing query: " + monitoringQuery + " on " + monitoringUri + " for namespaces: " + namespaceNames);
-            MonitoringResponse monitoringResponse = monitoringClient.executeQuery(monitoringQuery);
-            if (monitoringResponse == null || monitoringResponse.data == null || monitoringResponse.data.result == null || monitoringResponse.data.result.isEmpty()) {
-                continue;
+        try {
+            monitoringClient = RestClientBuilder.newBuilder().baseUri(monitoringUri).build(MonitoringClient.class);
+
+            Collection<MonitoringParam> monitoringParams = this.monitoringParams.allMonitoringParams().values();
+            if (monitoringParams.isEmpty()) {
+                return emptyMap();
             }
 
-            String monitoringData = monitoringResponse.data.result.getFirst().value.getLast();
-            Log.info("Monitoring data for " + monitoringParam.name() + " is " + monitoringData);
-            result.put(monitoringParam.name(), monitoringData);
+            for (MonitoringParam monitoringParam : monitoringParams) {
+                String monitoringQuery = monitoringParam.query().replace("{namespace}", String.join("|", namespaceNames));
+                Log.info("Executing query: " + monitoringQuery + " on " + monitoringUri + " for namespaces: " + namespaceNames);
+                MonitoringResponse monitoringResponse = monitoringClient.executeQuery(monitoringQuery);
+                if (monitoringResponse == null || monitoringResponse.data == null || monitoringResponse.data.result == null || monitoringResponse.data.result.isEmpty()) {
+                    continue;
+                }
+
+                String monitoringData = monitoringResponse.data.result.getFirst().value.getLast();
+                Log.info("Monitoring data for " + monitoringParam.name() + " is " + monitoringData);
+                result.put(monitoringParam.name(), monitoringData);
+            }
+        } catch (Exception e) {
+            Log.error("Unable to load monitoring data from " + monitoringUri);
+            return emptyMap();
         }
         return result;
     }

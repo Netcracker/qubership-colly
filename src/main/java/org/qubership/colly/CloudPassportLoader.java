@@ -119,7 +119,7 @@ public class CloudPassportLoader {
         CSEData cse = cloudPassportData.getCse();
         URI monitoringUri = null;
         if (cse != null) {
-            if (cse.getMonitoringExtMonitoringQueryUrl() != null) {
+            if (cse.getMonitoringExtMonitoringQueryUrl() != null && !cse.getMonitoringExtMonitoringQueryUrl().isEmpty()) {
                 monitoringUri = URI.create(cse.getMonitoringExtMonitoringQueryUrl());
             } else if (cse.getMonitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
                 monitoringUri = URI.create("http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429");

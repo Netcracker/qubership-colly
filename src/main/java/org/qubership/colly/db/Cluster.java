@@ -12,7 +12,7 @@ public class Cluster extends PanacheEntityBase {
     @Id
     public String name;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "cluster", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     public List<Environment> environments;
 
