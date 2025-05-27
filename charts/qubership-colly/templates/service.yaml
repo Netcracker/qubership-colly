@@ -7,14 +7,14 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ .Values.colly.serviceName }}
     app.kubernetes.io/version: {{ .Chart.Version }}
-  name: {{ .Values.colly.serviceName }}-service
+    name: {{ .Values.colly.serviceName }}
+  name: {{ .Values.colly.serviceName }}
 spec:
   ports:
-    - name: http
-      port: 80
+    - name: web
+      port: 8080
       protocol: TCP
       targetPort: {{ .Values.colly.ports.http }}
   selector:
-    app.kubernetes.io/name: {{ .Values.colly.serviceName }}
-    app.kubernetes.io/version: {{ .Chart.Version }}
+    name: {{ .Values.colly.serviceName }}
   type: ClusterIP
