@@ -41,6 +41,8 @@ spec:
                   name: {{ .Values.colly.serviceName }}-secret
             - name: ENV_INSTANCES_REPO
               value: {{ .Values.colly.instancesRepo }}
+            - name: CRON_SCHEDULE
+              value: {{ .Values.colly.cronSchedule }}
           image: {{ .Values.colly.image }}
           imagePullPolicy: Always
           name: qubership-colly

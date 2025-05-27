@@ -2,7 +2,8 @@
 colly:
   image: ghcr.io/netcracker/qubership-colly:latest
   serviceName: qubership-colly
-  instancesRepo: https://github.com/ormig/cloud-passport-samples.git
+  instancesRepo:
+  cronSchedule: 0 0/20 * * * ?
   db:
     host:
     username: postgres
