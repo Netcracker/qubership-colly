@@ -125,18 +125,24 @@ public class ClusterResourcesLoader {
         try {
             V1NamespaceList list = apilistNamespaceRequest.execute();
             k8sNamespaces = list.getItems().stream().collect(Collectors.toMap(v1Namespace -> getNameSafely(v1Namespace.getMetadata()), Function.identity()));
+
         } catch (ApiException e) {
-            throw new RuntimeException("Can't load resources from cluster " + cluster.name, e);
+            throw new RuntimeException("Can't load namespaces from cluster " + cluster.name, e);
         }
 
         List<Environment> envs = new ArrayList<>();
+        Log.info("Namespaces are loaded for " + cluster.name + ". Count is " + k8sNamespaces.size() + ". Environments count = " + environments.size());
         for (CloudPassportEnvironment cloudPassportEnvironment : environments) {
             Environment environment = environmentRepository.findByNameAndCluster(cloudPassportEnvironment.name(), cluster.name);
+            Log.info("Start working with env = " + cloudPassportEnvironment.name());
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.name());
                 environment.description = cloudPassportEnvironment.description();
                 environment.cluster = cluster;
                 environmentRepository.persist(environment);
+                Log.info("env created in db: " + environment.name);
+            } else {
+                Log.info("environment " + environment.name + " exists");
             }
             EnvironmentType environmentType = EnvironmentType.UNDEFINED;
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaceDtos()) {
@@ -155,9 +161,9 @@ public class ClusterResourcesLoader {
                     environment.addNamespace(namespace);
                 }
                 namespace.name = cloudPassportNamespace.name();
-                namespace.updateDeployments(loadDeployments(appsV1Api, v1Namespace.getMetadata().getName()));
-                namespace.updateConfigMaps(loadConfigMaps(coreV1Api, v1Namespace.getMetadata().getName()));
-                namespace.updatePods(loadPods(coreV1Api, v1Namespace.getMetadata().getName()));
+//                namespace.updateDeployments(loadDeployments(appsV1Api, v1Namespace.getMetadata().getName()));
+//                namespace.updateConfigMaps(loadConfigMaps(coreV1Api, v1Namespace.getMetadata().getName()));
+//                namespace.updatePods(loadPods(coreV1Api, v1Namespace.getMetadata().getName()));
                 environmentType = calculateEnvironmentType(v1Namespace);
                 namespaceRepository.persist(namespace);
             }
