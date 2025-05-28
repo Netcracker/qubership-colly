@@ -2,6 +2,7 @@ package org.qubership;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.monitoring.MonitoringService;
 
@@ -14,6 +15,7 @@ class ClusterResourcesRestTest {
     MonitoringService monitoringService;
 
     @Test
+    @TestSecurity(user = "test")
     void testHelloEndpoint() {
         given()
                 .when().post("/colly/tick")
