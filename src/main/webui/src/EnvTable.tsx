@@ -4,17 +4,40 @@ import EditIcon from '@mui/icons-material/Edit';
 import {DataGrid, GridColDef} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./components/EditEnvironmentDialog";
 import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "./entities/environments";
+import LogoutButton from "./LogoutButton";
 
+interface UserInfo {
+    authenticated: boolean;
+    username?: string;
+    roles?: string[];
+    isAdmin?: boolean;
+    email?: string;
+    name?: string;
+}
 
 export default function EnvironmentsOverview() {
     const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null);
     const [environments, setEnvironments] = useState<Environment[]>([]);
+    const [userInfo, setUserInfo] = useState<UserInfo>({ authenticated: false });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch("/colly/environments")
-            .then(res => res.json())
-            .then(data => setEnvironments(data))
-            .catch(err => console.error("Failed to fetch environments:", err));
+        Promise.all([
+            fetch("/colly/auth-status").then(res => res.json()),
+            fetch("/colly/environments").then(res => res.json())
+        ])
+        .then(([authData, envData]) => {
+            setUserInfo(authData);
+            setEnvironments(envData);
+        })
+        .catch(err => {
+            console.error("Failed to fetch data:", err);
+            fetch("/colly/environments")
+                .then(res => res.json())
+                .then(data => setEnvironments(data))
+                .catch(envErr => console.error("Failed to fetch environments:", envErr));
+        })
+        .finally(() => setLoading(false));
     }, []);
 
 
@@ -102,11 +125,21 @@ export default function EnvironmentsOverview() {
             </IconButton>
         ),
         flex: 0.5
+    };
+
+    const columns: GridColDef[] = [
+        ...baseColumns,
+        ...monitoringColumns,
+        ...(userInfo.authenticated && userInfo.isAdmin ? [actionsColumn] : [])
+    ];
+
+    if (loading) {
+        return <Box sx={{p: 4}}>Loading...</Box>;
     }
-    const columns: GridColDef[] = [...baseColumns, ...monitoringColumns, actionsColumn];
 
     return (
         <Box sx={{p: 4}}>
+            {userInfo.authenticated && (<LogoutButton/>)}
             <Box>
                 <DataGrid
                     rows={rows}
@@ -116,10 +149,14 @@ export default function EnvironmentsOverview() {
                 />
             </Box>
 
-            {selectedEnv && <EditEnvironmentDialog environment={selectedEnv}
-                                                   allLabels={Array.from(new Set(environments.flatMap(env => env.labels)))}
-                                                   onSave={handleSave}
-                                                   onClose={() => setSelectedEnv(null)}/>}
+            {selectedEnv && userInfo.authenticated && userInfo.isAdmin && (
+                <EditEnvironmentDialog
+                    environment={selectedEnv}
+                    allLabels={Array.from(new Set(environments.flatMap(env => env.labels)))}
+                    onSave={handleSave}
+                    onClose={() => setSelectedEnv(null)}
+                />
+            )}
         </Box>
     );
 }
