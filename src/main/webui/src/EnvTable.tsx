@@ -139,7 +139,11 @@ export default function EnvironmentsOverview() {
 
     return (
         <Box sx={{p: 4}}>
-            {userInfo.authenticated && (<LogoutButton/>)}
+            {userInfo.authenticated && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                    <LogoutButton displayedName={userInfo.username} />
+                </Box>
+            )}
             <Box>
                 <DataGrid
                     rows={rows}

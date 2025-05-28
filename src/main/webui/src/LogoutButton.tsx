@@ -1,32 +1,25 @@
 import React from "react";
+import {Box, IconButton, Typography} from "@mui/material";
+import LogoutIcon from '@mui/icons-material/Logout';
 
-const LogoutButton = () => {
-    const handleLogout = async () => {
-        try {
-            const response = await fetch("/colly/logout", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-            if (response.ok) {
-                const data = await response.json();
-                if (data.logoutUrl) {
-                    window.location.href = data.logoutUrl;
-                } else {
-                    window.location.reload();
-                }
-            } else {
-                console.error("Logout failed");
-                window.location.reload();
-            }
-        } catch (error) {
-            console.error("Error during logout:", error);
-            window.location.reload();
-        }
-    };
-
-    return <button onClick={handleLogout}>Logout</button>;
+type Props = {
+    displayedName?: string;
 };
 
-export default LogoutButton;
+export default function LogoutButton({displayedName}: Props) {
+    const handleLogout = () => {
+        window.location.href = "/q/oidc/logout";
+    };
+
+    return (
+        <Box sx={{display: 'flex', alignItems: 'center', gap: 2}}>
+            <Typography variant="body2" color="text.secondary">
+                {displayedName}
+            </Typography>
+            <IconButton size={"small"} onClick={handleLogout}>
+                <LogoutIcon fontSize="inherit"/>
+            </IconButton>
+        </Box>
+    );
+};
+
