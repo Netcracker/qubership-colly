@@ -43,6 +43,18 @@ spec:
               value: {{ .Values.colly.instancesRepo }}
             - name: CRON_SCHEDULE
               value: {{ .Values.colly.cronSchedule }}
+            - name: QUARKUS_OIDC_AUTH_SERVER_URL
+              value: {{ .Values.colly.idp.url }}
+            - name: QUARKUS_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: idpClientId
+                  name: {{ .Values.colly.serviceName }}-secret
+            - name: QUARKUS_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: idpClientSecret
+                  name: {{ .Values.colly.serviceName }}-secret
           image: {{ .Values.colly.image }}
           imagePullPolicy: Always
           name: qubership-colly

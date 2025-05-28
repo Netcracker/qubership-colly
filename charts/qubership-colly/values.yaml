@@ -4,6 +4,10 @@ colly:
   serviceName: qubership-colly
   instancesRepo:
   cronSchedule: 0 0/20 * * * ?
+  idp:
+    url:
+    clientId: colly
+    clientSecret:
   db:
     host:
     username: postgres
