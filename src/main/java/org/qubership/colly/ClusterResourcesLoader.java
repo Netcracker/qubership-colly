@@ -147,6 +147,7 @@ public class ClusterResourcesLoader {
                 environmentType = environment.type;
                 Log.info("environment " + environment.name + " exists");
             }
+            StringBuilder deploymentVersions = new StringBuilder();
 
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaceDtos()) {
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
@@ -165,6 +166,7 @@ public class ClusterResourcesLoader {
                     environmentType = calculateEnvironmentType(v1Namespace, environmentType);
                 }
                 namespace.name = cloudPassportNamespace.name();
+                deploymentVersions.append(loadInformationAboutDeploymentVersion(coreV1Api, cloudPassportNamespace.name(), "sd-versions"));
 //                namespace.updateDeployments(loadDeployments(appsV1Api, v1Namespace.getMetadata().getName()));
 //                namespace.updateConfigMaps(loadConfigMaps(coreV1Api, v1Namespace.getMetadata().getName()));
 //                namespace.updatePods(loadPods(coreV1Api, v1Namespace.getMetadata().getName()));
@@ -172,6 +174,7 @@ public class ClusterResourcesLoader {
             }
             environment.monitoringData = monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(namespace -> namespace.name).toList());
             environment.type = environmentType;
+            environment.deploymentVersions = deploymentVersions.toString();
             environmentRepository.persist(environment);
 
             envs.add(environment);
@@ -260,6 +263,22 @@ public class ClusterResourcesLoader {
         pod.status = v1Pod.getStatus().getPhase();
         pod.configuration = v1Pod.toJson();
         return pod;
+    }
+
+    private String loadInformationAboutDeploymentVersion(CoreV1Api coreV1Api, String namespaceName, String configMapName) {
+        CoreV1Api.APIlistNamespacedConfigMapRequest request = coreV1Api.listNamespacedConfigMap(namespaceName).fieldSelector("metadata.name=" + configMapName);
+        V1ConfigMapList configMapList;
+        try {
+            configMapList = request.execute();
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+        if (configMapList.getItems().isEmpty()) {
+            Log.warn("No config map with name=" + configMapName + " found in namespace " + namespaceName);
+            return "";
+        }
+        V1ConfigMap configMap = configMapList.getItems().getFirst();
+        return configMap.getData().get("solution-descriptors-summary");
     }
 
     private List<ConfigMap> loadConfigMaps(CoreV1Api coreV1Api, String namespaceName) {
