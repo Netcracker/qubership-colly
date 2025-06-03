@@ -70,7 +70,6 @@ public class CollyStorage {
             throw new RuntimeException("Environment with id " + id + " not found");
         }
         Log.info("Saving environment with id " + id + " name " + name + " owner " + owner + " description " + description + " status " + status + " labels " + labels);
-        environment.name = name;
         environment.owner = owner;
         environment.description = description;
         environment.status = EnvironmentStatus.fromString(status);
