@@ -4,7 +4,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import {DataGrid, GridColDef} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./components/EditEnvironmentDialog";
 import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "./entities/environments";
-import LogoutButton from "./LogoutButton";
+import LogoutButton from "./components/LogoutButton";
 
 interface UserInfo {
     authenticated: boolean;
@@ -18,7 +18,7 @@ interface UserInfo {
 export default function EnvironmentsOverview() {
     const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null);
     const [environments, setEnvironments] = useState<Environment[]>([]);
-    const [userInfo, setUserInfo] = useState<UserInfo>({ authenticated: false });
+    const [userInfo, setUserInfo] = useState<UserInfo>({authenticated: false});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,18 +26,18 @@ export default function EnvironmentsOverview() {
             fetch("/colly/auth-status").then(res => res.json()),
             fetch("/colly/environments").then(res => res.json())
         ])
-        .then(([authData, envData]) => {
-            setUserInfo(authData);
-            setEnvironments(envData);
-        })
-        .catch(err => {
-            console.error("Failed to fetch data:", err);
-            fetch("/colly/environments")
-                .then(res => res.json())
-                .then(data => setEnvironments(data))
-                .catch(envErr => console.error("Failed to fetch environments:", envErr));
-        })
-        .finally(() => setLoading(false));
+            .then(([authData, envData]) => {
+                setUserInfo(authData);
+                setEnvironments(envData);
+            })
+            .catch(err => {
+                console.error("Failed to fetch data:", err);
+                fetch("/colly/environments")
+                    .then(res => res.json())
+                    .then(data => setEnvironments(data))
+                    .catch(envErr => console.error("Failed to fetch environments:", envErr));
+            })
+            .finally(() => setLoading(false));
     }, []);
 
 
@@ -145,8 +145,8 @@ export default function EnvironmentsOverview() {
     return (
         <Box sx={{p: 4}}>
             {userInfo.authenticated && (
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                    <LogoutButton displayedName={userInfo.username} />
+                <Box sx={{display: 'flex', justifyContent: 'flex-end', mb: 2}}>
+                    <LogoutButton displayedName={userInfo.username}/>
                 </Box>
             )}
             <Box>
