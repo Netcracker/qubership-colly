@@ -174,7 +174,7 @@ public class ClusterResourcesLoader {
             }
             environment.monitoringData = monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(namespace -> namespace.name).toList());
             environment.type = environmentType;
-            environment.deploymentVersions = deploymentVersions.toString();
+            environment.deploymentVersion = deploymentVersions.toString();
             environmentRepository.persist(environment);
 
             envs.add(environment);
