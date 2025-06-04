@@ -13,6 +13,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.apache.commons.compress.utils.Lists;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
@@ -53,6 +54,12 @@ public class ClusterResourcesLoader {
     EnvironmentResolverStrategy environmentResolverStrategy;
     @Inject
     MonitoringService monitoringService;
+
+    @ConfigProperty(name = "colly.config-map.versions.name")
+    String versionsConfigMapName;
+
+    @ConfigProperty(name = "colly.config-map.versions.data-field-name")
+    String versionsConfigMapDataFieldName;
 
 
     public static String parseClusterName(KubeConfig kubeConfig) {
@@ -166,7 +173,7 @@ public class ClusterResourcesLoader {
                     environmentType = calculateEnvironmentType(v1Namespace, environmentType);
                 }
                 namespace.name = cloudPassportNamespace.name();
-                deploymentVersions.append(loadInformationAboutDeploymentVersion(coreV1Api, cloudPassportNamespace.name(), "sd-versions"));
+                deploymentVersions.append(loadInformationAboutDeploymentVersion(coreV1Api, cloudPassportNamespace.name()));
 //                namespace.updateDeployments(loadDeployments(appsV1Api, v1Namespace.getMetadata().getName()));
 //                namespace.updateConfigMaps(loadConfigMaps(coreV1Api, v1Namespace.getMetadata().getName()));
 //                namespace.updatePods(loadPods(coreV1Api, v1Namespace.getMetadata().getName()));
@@ -265,8 +272,8 @@ public class ClusterResourcesLoader {
         return pod;
     }
 
-    private String loadInformationAboutDeploymentVersion(CoreV1Api coreV1Api, String namespaceName, String configMapName) {
-        CoreV1Api.APIlistNamespacedConfigMapRequest request = coreV1Api.listNamespacedConfigMap(namespaceName).fieldSelector("metadata.name=" + configMapName);
+    private String loadInformationAboutDeploymentVersion(CoreV1Api coreV1Api, String namespaceName) {
+        CoreV1Api.APIlistNamespacedConfigMapRequest request = coreV1Api.listNamespacedConfigMap(namespaceName).fieldSelector("metadata.name=" + versionsConfigMapName);
         V1ConfigMapList configMapList;
         try {
             configMapList = request.execute();
@@ -274,11 +281,11 @@ public class ClusterResourcesLoader {
             throw new RuntimeException(e);
         }
         if (configMapList.getItems().isEmpty()) {
-            Log.warn("No config map with name=" + configMapName + " found in namespace " + namespaceName);
+            Log.warn("No config map with name=" + versionsConfigMapName + " found in namespace " + namespaceName);
             return "";
         }
         V1ConfigMap configMap = configMapList.getItems().getFirst();
-        return configMap.getData().get("solution-descriptors-summary");
+        return configMap.getData().get(versionsConfigMapDataFieldName) + "\n";
     }
 
     private List<ConfigMap> loadConfigMaps(CoreV1Api coreV1Api, String namespaceName) {
