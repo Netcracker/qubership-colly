@@ -87,6 +87,7 @@ export default function EnvironmentsOverview() {
         type: ENVIRONMENT_TYPES_MAPPING[env.type] || env.type,
         labels: env.labels,
         description: env.description,
+        deploymentVersion: env.deploymentVersion,
         ...(env.monitoringData || {}),
         raw: env
     }));
@@ -117,7 +118,8 @@ export default function EnvironmentsOverview() {
                     {params.row.labels.map(label => <Chip label={label}/>)}
                 </>
         },
-        {field: "description", headerName: "Description", flex: 2}
+        {field: "description", headerName: "Description", flex: 2},
+        {field: "deploymentVersions", headerName: "Version", flex: 2}
     ];
     const actionsColumn: GridColDef = {
         field: "actions",

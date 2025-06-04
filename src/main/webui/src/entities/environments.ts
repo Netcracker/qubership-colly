@@ -9,6 +9,7 @@ export type Environment = {
     type: EnvironmentType;
     labels: string[];
     description: string;
+    deploymentVersion: string;
     monitoringData: Record<string, number>;
 };
 export type EnvironmentStatus = "IN_USE" | "RESERVED" | "FREE" | "MIGRATING";
