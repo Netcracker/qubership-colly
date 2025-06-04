@@ -119,7 +119,7 @@ export default function EnvironmentsOverview() {
                 </>
         },
         {field: "description", headerName: "Description", flex: 2},
-        {field: "deploymentVersions", headerName: "Version", flex: 2}
+        {field: "deploymentVersion", headerName: "Version", flex: 2}
     ];
     const actionsColumn: GridColDef = {
         field: "actions",
