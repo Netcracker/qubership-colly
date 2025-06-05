@@ -134,7 +134,8 @@ public class ClusterResourcesLoader {
             k8sNamespaces = list.getItems().stream().collect(Collectors.toMap(v1Namespace -> getNameSafely(v1Namespace.getMetadata()), Function.identity()));
 
         } catch (ApiException e) {
-            throw new RuntimeException("Can't load namespaces from cluster " + cluster.name, e);
+            k8sNamespaces = new HashMap<>();
+            Log.error("Can't load namespaces from cluster " + cluster.name + ". " + e.getMessage());
         }
 
         List<Environment> envs = new ArrayList<>();
@@ -159,7 +160,7 @@ public class ClusterResourcesLoader {
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaceDtos()) {
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
                 if (v1Namespace == null) {
-                    Log.info("Namespace with name=" + cloudPassportNamespace.name() + " not found in cluster " + cluster.name + ". Skipping it.");
+                    Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " not found in cluster " + cluster.name + ". Skipping it.");
                     continue;
                 }
                 String namespaceUid = v1Namespace.getMetadata().getUid();

@@ -175,6 +175,22 @@ class ClusterResourcesLoaderTest {
 
     //todo add test to check changes in pods, configmaps and deployments between two loads
 
+    @Test
+    @TestTransaction
+    void try_to_load_resources_from_unreachable_cluster() throws ApiException {
+        CloudPassport cloudPassport = new CloudPassport("unreachable-cluster", "42", "https://some.unreachable.url",
+                List.of(new CloudPassportEnvironment("env-unreachable", "some env for tests",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), URI.create("http://localhost:" + port));
+
+        CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
+        when(coreV1Api.listNamespace()).thenReturn(nsRequest);
+        when(nsRequest.execute()).thenThrow(new ApiException());
+
+        clusterResourcesLoader.loadClusterResources(coreV1Api, appsV1Api, cloudPassport);
+        Environment testEnv = environmentRepository.findByNameAndCluster("env-unreachable", "unreachable-cluster");
+        assertThat(testEnv, hasProperty("name", equalTo("env-unreachable")));
+        assertThat(testEnv.getNamespaces(), hasSize(0));
+    }
 
     private void mockConfigMaps(List<V1ConfigMap> configMap1, String targetNamespace) throws ApiException {
         V1ConfigMapList configMapList = new V1ConfigMapList().items(configMap1);
