@@ -88,8 +88,8 @@ class ClusterResourcesLoaderTest {
         mockPodsLoading(List.of(pod), NAMESPACE_NAME);
 
         V1ConfigMap configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("configmap-1").uid("configmap-uid"))
-                .data(Map.of("key1", "value1"));
+                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid"))
+                .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
 
@@ -99,6 +99,7 @@ class ClusterResourcesLoaderTest {
         assertThat(testEnv, allOf(
                 hasProperty("name", equalTo("env-test")),
                 hasProperty("description", equalTo("some env for tests")),
+                hasProperty("deploymentVersion", equalTo("MyVersion 1.0.0\n")),
                 hasProperty("type", equalTo(EnvironmentType.ENVIRONMENT))));
 
         assertThat(testEnv.cluster, hasProperty("name", equalTo(CLUSTER_NAME)));
@@ -178,7 +179,7 @@ class ClusterResourcesLoaderTest {
     private void mockConfigMaps(List<V1ConfigMap> configMap1, String targetNamespace) throws ApiException {
         V1ConfigMapList configMapList = new V1ConfigMapList().items(configMap1);
         CoreV1Api.APIlistNamespacedConfigMapRequest configMapRequest = mock(CoreV1Api.APIlistNamespacedConfigMapRequest.class);
-        when(coreV1Api.listNamespacedConfigMap(targetNamespace)).thenReturn(configMapRequest);
+        when(coreV1Api.listNamespacedConfigMap(targetNamespace).fieldSelector("metadata.name=" + "sd-versions")).thenReturn(configMapRequest);
         when(configMapRequest.execute()).thenReturn(configMapList);
     }
 
@@ -224,6 +225,7 @@ class ClusterResourcesLoaderTest {
 
         CoreV1Api.APIlistNamespacedConfigMapRequest configMapRequest = mock(CoreV1Api.APIlistNamespacedConfigMapRequest.class);
         when(coreV1Api.listNamespacedConfigMap(any())).thenReturn(configMapRequest);
+        when(configMapRequest.fieldSelector(any())).thenReturn(configMapRequest);
         when(configMapRequest.execute()).thenReturn(new V1ConfigMapList());
     }
 
