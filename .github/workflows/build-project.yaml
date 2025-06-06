@@ -24,6 +24,8 @@ jobs:
         -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
         -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
       upload-artifact: true
+      server-id: github
+      java-version: 21
       artifact-id: ${{ github.event.repository.name }}
       ref: ${{ github.head_ref }}
     secrets:
