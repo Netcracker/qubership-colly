@@ -20,6 +20,7 @@
         <org.eclipse.jgit.version>7.0.0.202409031743-r</org.eclipse.jgit.version>
         <quarkus-quinoa.version>2.5.4</quarkus-quinoa.version>
         <quarkus-wiremock-test.version>1.4.1</quarkus-wiremock-test.version>
+        <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -175,6 +176,19 @@
                         <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
