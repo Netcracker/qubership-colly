@@ -17,7 +17,7 @@ jobs:
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
       maven-command: >
-        --batch-mode clean package
+        --batch-mode clean install
         -Dgpg.skip=true
         org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
         -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
