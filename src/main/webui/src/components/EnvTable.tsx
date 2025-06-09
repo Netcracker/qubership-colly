@@ -96,8 +96,8 @@ export default function EnvironmentsOverview() {
     }));
 
     const baseColumns: GridColDef[] = [
-        {field: "name", headerName: "Environment", flex: 1},
-        {field: "type", headerName: "Environment Type", flex: 1},
+        {field: "name", headerName: "Name", flex: 1},
+        {field: "type", headerName: "Type", flex: 1},
         {field: "namespaces", headerName: "Namespace(s)", flex: 1},
         {field: "cluster", headerName: "Cluster", flex: 1},
         {field: "owner", headerName: "Owner", flex: 1},
