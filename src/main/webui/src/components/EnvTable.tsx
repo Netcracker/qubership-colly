@@ -2,18 +2,10 @@ import React, {useEffect, useState} from "react";
 import {Box, Chip, IconButton} from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
 import {DataGrid, GridColDef} from '@mui/x-data-grid';
-import EditEnvironmentDialog from "./components/EditEnvironmentDialog";
-import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "./entities/environments";
-import LogoutButton from "./components/LogoutButton";
-
-interface UserInfo {
-    authenticated: boolean;
-    username?: string;
-    roles?: string[];
-    isAdmin?: boolean;
-    email?: string;
-    name?: string;
-}
+import EditEnvironmentDialog from "./EditEnvironmentDialog";
+import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "../entities/environments";
+import LogoutButton from "./LogoutButton";
+import {UserInfo} from "../entities/users";
 
 export default function EnvironmentsOverview() {
     const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null);
