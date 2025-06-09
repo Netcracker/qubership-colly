@@ -1,26 +1,5 @@
-import {
-    Autocomplete,
-    Button,
-    Chip,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Select,
-    TextField
-} from "@mui/material";
+import {Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
 import React from "react";
-import {
-    ALL_STATUSES,
-    ALL_TYPES,
-    Environment, ENVIRONMENT_TYPES_MAPPING,
-    EnvironmentStatus,
-    EnvironmentType,
-    STATUS_MAPPING
-} from "../entities/environments";
 import {Cluster} from "../entities/clusters";
 
 type Props = {
