@@ -41,7 +41,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
 
             if (response.ok) {
                 setSelectedCluster(null);
-                setClusters(prev => prev.map(cluster => cluster.name === cluster.name ? changedCluster : cluster));
+                setClusters(prev => prev.map(cluster => cluster.name === changedCluster.name ? changedCluster : cluster));
             } else {
                 console.error("Failed to save changes", await response.text());
             }
