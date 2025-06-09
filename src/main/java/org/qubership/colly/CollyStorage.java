@@ -71,4 +71,16 @@ public class CollyStorage {
         environment.setLabels(labels);
         environmentRepository.persist(environment);
     }
+
+    @Transactional
+    public void saveCluster(String clusterName, String description) {
+        Cluster cluster = clusterRepository.findByName(clusterName);
+        if (cluster == null) {
+            throw new RuntimeException("Cluster with name " + clusterName + " not found");
+        }
+        Log.info("Saving cluster with name " + clusterName + " description " + description);
+        cluster.description = description;
+
+        clusterRepository.persist(cluster);
+    }
 }

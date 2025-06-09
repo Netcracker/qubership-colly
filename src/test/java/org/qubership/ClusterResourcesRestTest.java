@@ -61,7 +61,6 @@ class ClusterResourcesRestTest {
     @Test
     @TestSecurity(user = "test")
     void save_environment_without_admin_role() {
-
         given()
                 .formParam("name", "test-env")
                 .formParam("owner", "test-owner")
@@ -75,4 +74,33 @@ class ClusterResourcesRestTest {
                 .statusCode(403);
     }
 
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void save_cluster_with_auth() {
+        given()
+                .when().post("/colly/tick")
+                .then()
+                .statusCode(204);
+
+        given()
+                .formParam("description", "test-cluster-description")
+                .when().post("/colly/clusters/test-cluster")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/clusters")
+                .then()
+                .statusCode(200)
+                .body("description", hasItem("test-cluster-description"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void save_cluster_without_admin_role() {
+        given()
+                .formParam("description", "test-cluster-description")
+                .when().post("/colly/clusters/test-cluster")
+                .then()
+                .statusCode(403);
+    }
 }

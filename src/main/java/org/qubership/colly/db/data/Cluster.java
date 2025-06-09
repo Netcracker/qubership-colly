@@ -18,6 +18,7 @@ public class Cluster extends PanacheEntityBase {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     public List<Namespace> namespaces;
+    public String description;
 
 
     public Cluster(String name) {
