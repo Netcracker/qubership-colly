@@ -1,36 +1,71 @@
 import React, {useEffect, useState} from "react";
-import {Box} from "@mui/material";
+import {Box, IconButton} from "@mui/material";
 import {DataGrid, GridColDef} from '@mui/x-data-grid';
-import LogoutButton from "./LogoutButton";
 import {UserInfo} from "../entities/users";
 import {Cluster} from "../entities/clusters";
+import EditIcon from "@mui/icons-material/Edit";
+import EditClusterDialog from "./EditClusterDialog";
 
+interface ClusterTableProps {
+    userInfo: UserInfo;
+}
 
-export default function ClustersTable() {
+export default function ClustersTable({userInfo}: ClusterTableProps) {
+    const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
     const [clusters, setClusters] = useState<Cluster[]>([]);
-    const [userInfo, setUserInfo] = useState<UserInfo>({authenticated: false});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([
-            fetch("/colly/auth-status").then(res => res.json()),
-            fetch("/colly/clusters").then(res => res.json())
-        ])
-            .then(([authData, clustersData]) => {
-                setUserInfo(authData);
-                setClusters(clustersData);
-            })
-            .catch(err => {
-                console.error("Failed to fetch data:", err);
-                fetch("/colly/clusters")
-                    .then(res => res.json())
-                    .then(data => setClusters(data))
-                    .catch(clustersErr => console.error("Failed to fetch clusters:", clustersErr));
-            })
+        fetch("/colly/clusters")
+            .then(res => res.json())
+            .then(clustersData => setClusters(clustersData))
+            .catch(err => console.error("Failed to fetch clusters:", err))
             .finally(() => setLoading(false));
     }, []);
 
-    const columns: GridColDef[] = [
+
+    const handleSave = async (changedCluster: Cluster) => {
+        if (!changedCluster) return;
+
+        try {
+            const formData = new FormData();
+            if (changedCluster.description) {
+                formData.append("description", changedCluster.description);
+            }
+            formData.append("name", changedCluster.name);
+
+            const response = await fetch(`/colly/clusters/${changedCluster.name}`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.ok) {
+                setSelectedCluster(null);
+                setClusters(prev => prev.map(cluster => cluster.name === cluster.name ? changedCluster : cluster));
+            } else {
+                console.error("Failed to save changes", await response.text());
+            }
+        } catch (error) {
+            console.error("Error during save:", error);
+        }
+    };
+
+    const actionsColumn: GridColDef = {
+        field: "actions",
+        headerName: "Actions",
+        sortable: false,
+        filterable: false,
+        renderCell: (params: { row: { raw: React.SetStateAction<Cluster | null>; }; }) => (
+            <IconButton size={"small"} onClick={() => {
+                console.log("ffff");
+                setSelectedCluster(params.row.raw)
+            }}>
+                <EditIcon fontSize="inherit"/>
+            </IconButton>
+        ),
+        flex: 0.5
+    };
+    const baseColumns: GridColDef[] = [
         {
             field: "name",
             headerName: "Name",
@@ -43,10 +78,17 @@ export default function ClustersTable() {
         }
     ];
 
+    const columns: GridColDef[] = [
+        ...baseColumns,
+        ...(userInfo.authenticated && userInfo.isAdmin ? [actionsColumn] : [])
+    ];
+
+
     const rows = clusters.map(cluster => ({
         id: cluster.name,
         name: cluster.name,
-        description: cluster.description || ''
+        description: cluster.description || '',
+        raw: cluster
     }));
 
     if (loading) {
@@ -54,12 +96,7 @@ export default function ClustersTable() {
     }
 
     return (
-        <Box sx={{p: 4}}>
-            {userInfo.authenticated && (
-                <Box sx={{display: 'flex', justifyContent: 'flex-end', mb: 2}}>
-                    <LogoutButton displayedName={userInfo.username}/>
-                </Box>
-            )}
+        <Box>
             <Box>
                 <DataGrid
                     rows={rows}
@@ -68,6 +105,13 @@ export default function ClustersTable() {
                     showToolbar
                 />
             </Box>
+            {selectedCluster && userInfo.authenticated && userInfo.isAdmin && (
+                <EditClusterDialog
+                    cluster={selectedCluster}
+                    onSave={handleSave}
+                    onClose={() => setSelectedCluster(null)}
+                />
+            )}
         </Box>
     );
 }
