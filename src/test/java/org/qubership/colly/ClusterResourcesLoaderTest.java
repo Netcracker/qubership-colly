@@ -41,7 +41,7 @@ class ClusterResourcesLoaderTest {
     private static final String NAMESPACE_NAME = "namespace1";
     private static final String NAMESPACE_NAME_2 = "namespace2";
     private static final String NAMESPACE_NAME_3 = "namespace3";
-    private static final String CLUSTER_NAME = "test-cluster";
+    private static final String CLUSTER_NAME = "cluster";
     private static final CloudPassport CLOUD_PASSPORT = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
             List.of(new CloudPassportEnvironment(ENV_1, "some env for tests",
                     List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), null);
