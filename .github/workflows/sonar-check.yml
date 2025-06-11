@@ -1,0 +1,26 @@
+name: Build Project
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+permissions:
+  packages: write
+
+jobs:
+  mvn-build:
+    uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
+    with:
+      maven-command: >
+        --batch-mode clean verify
+        org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
+        -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+        -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+        -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
+      upload-artifact: true
+      server-id: github
+      java-version: 21
+      artifact-id: ${{ github.event.repository.name }}
+      ref: ${{ github.head_ref }}
+    secrets:
+      maven-token: ${{ secrets.GITHUB_TOKEN }}
+      sonar-token: ${{ secrets.SONAR_TOKEN }}
