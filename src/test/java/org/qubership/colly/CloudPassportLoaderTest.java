@@ -42,7 +42,7 @@ class CloudPassportLoaderTest {
             List.of(new CloudPassportEnvironment(
                     "env-1",
                     "some env for tests",
-                    List.of(new CloudPassportNamespace("namespace-1"), new CloudPassportNamespace("namespace-2")))),
+                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")))),
             URI.create("http://vmsingle-k8s.victoria:8429")
     );
     @Inject
