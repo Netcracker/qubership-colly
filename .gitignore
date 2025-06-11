@@ -39,6 +39,7 @@ nb-configuration.xml
 
 # Local environment
 .env
+src/test/resources/temp_cloud_passports/
 
 # Plugin directory
 /.quarkus/cli/plugins/
