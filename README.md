@@ -37,9 +37,16 @@ docker run -v ~/.kube:/kubeconfigs -e ENV_INSTANCES_REPO=https://github.com/ormi
 ```
 
 ## Run using helm 
+1. Install Keycloak
+   ```shell script
+   helm repo add bitnami https://charts.bitnami.com/bitnami
+   helm repo update
+   helm install keycloak bitnami/keycloak --namespace keycloak --create-namespace
+   ```
+2. Install Colly
 ```shell script
 
-helm install qubership-colly netcracker/qubership-colly --set colly.db.password=<DB_PASSWORD> --set colly.db.user=<DB_USERNAMER> --set colly.db.host=<DB_HOST>  
+helm install qubership-colly netcracker/qubership-colly --set colly.db.password=<DB_PASSWORD> --set colly.db.user=<DB_USERNAMER> --set colly.db.host=<DB_HOST> --set colly.keycloak.url=http://<KEYCLOAK_HOST>:<KEYCLOAK_PORT>/realms/colly-realm 
 ```
 ## Clusters configuration
 There are two ways to specify clusters:
