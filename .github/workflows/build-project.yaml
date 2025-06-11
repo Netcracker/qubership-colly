@@ -2,13 +2,8 @@ name: Build Project
 
 on:
   push:
-  workflow_dispatch:
-    inputs:
-      version:
-        required: true
-        default: '1.0.0'
-        type: string
-        description: 'Release version (e.g., 1.0.0)'
+  pull_request:
+    types: [ opened, synchronize, reopened ]
 permissions:
   packages: write
 
