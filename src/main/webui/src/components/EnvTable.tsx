@@ -97,7 +97,7 @@ export default function EnvTable({userInfo}: EnvTableProps) {
             field: "labels", headerName: "Labels", flex: 1,
             renderCell: (params: { row: { labels: string[]; }; }) =>
                 <>
-                    {params.row.labels.map(label => <Chip label={label}/>)}
+                    {params.row.labels.map(label => <Chip label={label} key={label}/>)}
                 </>
         },
         {field: "description", headerName: "Description", flex: 2},

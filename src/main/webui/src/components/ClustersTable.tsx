@@ -102,7 +102,13 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
                     rows={rows}
                     columns={columns}
                     disableRowSelectionOnClick
-                    showToolbar
+                    hideFooter={false}
+                    disableColumnMenu
+                    disableColumnSelector
+                    disableDensitySelector
+                    slots={{
+                        toolbar: () => null,
+                    }}
                 />
             </Box>
             {selectedCluster && userInfo.authenticated && userInfo.isAdmin && (
