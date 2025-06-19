@@ -1,19 +1,15 @@
 package org.qubership;
 
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
-import org.qubership.colly.monitoring.MonitoringService;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 
 @QuarkusTest
 class ClusterResourcesRestTest {
-
-    @InjectMock
-    MonitoringService monitoringService;
 
     @Test
     void load_environments_without_auth() {
@@ -103,5 +99,23 @@ class ClusterResourcesRestTest {
                 .when().post("/colly/clusters/test-cluster")
                 .then()
                 .statusCode(403);
+    }
+
+    @Test
+    void load_metadata_without_auth() {
+        given()
+                .when().get("/colly/metadata")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void load_metadata() {
+        given()
+                .when().get("/colly/metadata")
+                .then()
+                .statusCode(200)
+                .body("monitoringColumns", contains("Failed Deployments", "Running Pods"));
     }
 }

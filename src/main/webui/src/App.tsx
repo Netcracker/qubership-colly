@@ -5,25 +5,50 @@ import ClustersTable from "./components/ClustersTable";
 import LogoutButton from "./components/LogoutButton";
 import {UserInfo} from "./entities/users";
 import TabPanel from "./components/TabPanel";
+import {AppMetadata} from "./entities/metadata";
+
 
 function App() {
     const [value, setValue] = useState(0);
     const [userInfo, setUserInfo] = useState<UserInfo>({authenticated: false});
+    const [metadata, setMetadata] = useState<AppMetadata | null>(null);
+    const [metadataLoading, setMetadataLoading] = useState(true);
 
     useEffect(() => {
-        fetch("/colly/auth-status")
+        const fetchAuthStatus = fetch("/colly/auth-status")
             .then(res => res.json())
             .then(authData => {
                 setUserInfo(authData);
             })
             .catch(err => {
                 console.error("Failed to fetch auth status:", err);
-            })
+            });
+
+        const fetchMetadata = fetch("/colly/metadata")
+            .then(res => res.json())
+            .then((metaData: AppMetadata) => setMetadata(metaData))
+            .catch(err => {
+                console.error("Failed to fetch app metadata:", err);
+                setMetadata({
+                    monitoringColumns: []
+                });
+            });
+
+        Promise.all([fetchAuthStatus, fetchMetadata])
+            .finally(() => setMetadataLoading(false));
     }, []);
 
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
     };
+
+    if (metadataLoading) {
+        return (
+            <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>
+                <Typography>Loading application...</Typography>
+            </Box>
+        );
+    }
 
     return (
         <div className="App">
@@ -44,7 +69,10 @@ function App() {
             </Box>
 
             <TabPanel value={value} index={0}>
-                <EnvTable userInfo={userInfo}/>
+                <EnvTable
+                    userInfo={userInfo}
+                    monitoringColumns={metadata?.monitoringColumns || []}
+                />
             </TabPanel>
 
             <TabPanel value={value} index={1}>
