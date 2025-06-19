@@ -25,7 +25,7 @@ public class MonitoringService {
         if (monitoringUri == null) {
             return emptyMap();
         }
-        MonitoringClient monitoringClient = null;
+        MonitoringClient monitoringClient;
         HashMap<String, String> result = new HashMap<>();
         try {
             monitoringClient = RestClientBuilder.newBuilder().baseUri(monitoringUri).build(MonitoringClient.class);
@@ -52,6 +52,15 @@ public class MonitoringService {
             return emptyMap();
         }
         return result;
+    }
+
+    public List<String> getParameters() {
+        return monitoringParams.allMonitoringParams()
+                .values()
+                .stream()
+                .map(MonitoringParam::name)
+                .sorted()
+                .toList();
     }
 
     @ConfigMapping(prefix = "colly.monitoring")

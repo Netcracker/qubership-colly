@@ -8,6 +8,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.dto.ApplicationMetadata;
+import org.qubership.colly.monitoring.MonitoringService;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -21,6 +23,8 @@ public class ClusterResourcesRest {
 
     @Inject
     SecurityIdentity securityIdentity;
+    @Inject
+    MonitoringService monitoringService;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -94,5 +98,12 @@ public class ClusterResourcesRest {
         }
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/metadata")
+    public ApplicationMetadata getMetadata() {
+        List<String> parameters = monitoringService.getParameters();
+        return new ApplicationMetadata(parameters);
+    }
 }
 
