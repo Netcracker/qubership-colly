@@ -1,12 +1,7 @@
-import React, {useCallback, useEffect, useMemo, useState, useRef} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Box, Chip, IconButton} from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
-import {
-    DataGrid,
-    GridColDef,
-    GridApi,
-    useGridApiRef
-} from '@mui/x-data-grid';
+import {DataGrid, GridColDef, useGridApiRef} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./EditEnvironmentDialog";
 import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "../entities/environments";
 import {UserInfo} from "../entities/users";
@@ -16,6 +11,7 @@ interface EnvTableProps {
     userInfo: UserInfo;
     monitoringColumns: string[];
 }
+
 const STORAGE_KEY = 'env-table-state';
 
 export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
@@ -157,14 +153,16 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
             {field: "cluster", headerName: "Cluster", flex: 1},
             {field: "owner", headerName: "Owner", flex: 1},
             {field: "team", headerName: "Team", flex: 1},
-            {field: "expirationDate", headerName: "Expiration Date",
+            {
+                field: "expirationDate", headerName: "Expiration Date",
                 valueFormatter: (value?: string) => {
                     if (value == null) {
                         return '';
                     }
                     return new Date(value).toLocaleDateString();
                 },
-                flex: 1},
+                flex: 1
+            },
             {field: "status", headerName: "Status", flex: 1},
             {
                 field: "labels", headerName: "Labels", flex: 1,
