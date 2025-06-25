@@ -1,7 +1,12 @@
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState, useRef} from "react";
 import {Box, Chip, IconButton} from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
-import {DataGrid, GridColDef} from '@mui/x-data-grid';
+import {
+    DataGrid,
+    GridColDef,
+    GridApi,
+    useGridApiRef
+} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./EditEnvironmentDialog";
 import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "../entities/environments";
 import {UserInfo} from "../entities/users";
@@ -11,11 +16,15 @@ interface EnvTableProps {
     userInfo: UserInfo;
     monitoringColumns: string[];
 }
+const STORAGE_KEY = 'env-table-state';
 
 export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null);
     const [environments, setEnvironments] = useState<Environment[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const apiRef = useGridApiRef();
+    const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
         fetch("/colly/environments").then(res => res.json())
@@ -23,6 +32,54 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
             .catch(err => console.error("Failed to fetch environments:", err))
             .finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        if (!loading && apiRef.current && environments.length > 0) {
+            try {
+                const savedState = localStorage.getItem(STORAGE_KEY);
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    apiRef.current.restoreState(state);
+                }
+            } catch (error) {
+                console.error("Failed to load DataGrid state:", error);
+            } finally {
+                setTimeout(() => setIsInitialized(true), 100);
+            }
+        }
+    }, [loading, environments, apiRef]);
+
+    const saveState = useCallback(() => {
+        if (!isInitialized || !apiRef.current) return;
+        try {
+            const state = apiRef.current.exportState();
+            const stateToSave = {
+                ...state,
+                rowSelection: undefined,
+                focus: undefined
+            };
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        } catch (error) {
+            console.error("Failed to save DataGrid state:", error);
+        }
+    }, [isInitialized, apiRef]);
+
+    useEffect(() => {
+        if (!apiRef.current || !isInitialized) return;
+
+        const unsubscribers = [
+            apiRef.current.subscribeEvent('columnVisibilityModelChange', saveState),
+            apiRef.current.subscribeEvent('columnWidthChange', saveState),
+            apiRef.current.subscribeEvent('filterModelChange', saveState),
+            apiRef.current.subscribeEvent('sortModelChange', saveState),
+            apiRef.current.subscribeEvent('paginationModelChange', saveState),
+        ];
+
+        return () => {
+            unsubscribers.forEach(unsubscribe => unsubscribe());
+        };
+    }, [saveState, apiRef, isInitialized]);
 
     const handleEditClick = useCallback((env: Environment) => {
         setSelectedEnv(env);
@@ -148,6 +205,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         <Box>
             <Box>
                 <DataGrid
+                    apiRef={apiRef}
                     rows={rows}
                     columns={columns}
                     disableRowSelectionOnClick
