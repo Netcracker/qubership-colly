@@ -98,13 +98,13 @@ public class ClusterResourcesLoader {
 
         } catch (ApiException e) {
             k8sNamespaces = new HashMap<>();
-            Log.error("Can't load namespaces from cluster " + cluster.name + ". " + e.getMessage());
+            Log.error("Can't load namespaces from cluster " + cluster.getName() + ". " + e.getMessage());
         }
 
         List<Environment> envs = new ArrayList<>();
-        Log.info("Namespaces are loaded for " + cluster.name + ". Count is " + k8sNamespaces.size() + ". Environments count = " + environments.size());
+        Log.info("Namespaces are loaded for " + cluster.getName() + ". Count is " + k8sNamespaces.size() + ". Environments count = " + environments.size());
         for (CloudPassportEnvironment cloudPassportEnvironment : environments) {
-            Environment environment = environmentRepository.findByNameAndCluster(cloudPassportEnvironment.name(), cluster.name);
+            Environment environment = environmentRepository.findByNameAndCluster(cloudPassportEnvironment.name(), cluster.getName());
             Log.info("Start working with env = " + cloudPassportEnvironment.name());
             EnvironmentType environmentType;
             if (environment == null) {
@@ -123,7 +123,7 @@ public class ClusterResourcesLoader {
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaceDtos()) {
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
                 if (v1Namespace == null) {
-                    Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " not found in cluster " + cluster.name + ". Skipping it.");
+                    Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " not found in cluster " + cluster.getName() + ". Skipping it.");
                     continue;
                 }
                 String namespaceUid = v1Namespace.getMetadata().getUid();

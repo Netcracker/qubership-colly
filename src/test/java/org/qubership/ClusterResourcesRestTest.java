@@ -5,8 +5,7 @@ import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class ClusterResourcesRestTest {
@@ -30,7 +29,7 @@ class ClusterResourcesRestTest {
                 .when().get("/colly/environments")
                 .then()
                 .statusCode(200)
-                .body("name", hasItem("env-test"));
+                .body("name", contains("env-test", "env-1"));
     }
 
 
@@ -118,4 +117,27 @@ class ClusterResourcesRestTest {
                 .statusCode(200)
                 .body("monitoringColumns", contains("Failed Deployments", "Running Pods"));
     }
+
+    @Test
+    void load_clusters_without_auth() {
+        given()
+                .when().get("/colly/clusters")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void load_clusters() {
+        given()
+                .when().post("/colly/tick")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/clusters")
+                .then()
+                .statusCode(200)
+                .body("name", contains("test-cluster", "unreachable-cluster"));
+    }
+
 }

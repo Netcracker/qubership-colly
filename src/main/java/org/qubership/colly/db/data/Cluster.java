@@ -10,7 +10,7 @@ import java.util.List;
 @Entity(name = "clusters")
 public class Cluster extends PanacheEntityBase {
     @Id
-    public String name;
+    private String name;
 
     @OneToMany(mappedBy = "cluster", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
@@ -28,5 +28,13 @@ public class Cluster extends PanacheEntityBase {
     }
 
     public Cluster() {
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

@@ -49,11 +49,14 @@ public class CollyStorage {
     }
 
     public List<Environment> getEnvironments() {
-        return environmentRepository.findAll().stream().sorted(Comparator.comparing(Environment::getName)).toList();
+        return environmentRepository.findAll().stream()
+                .sorted(Comparator.comparing((Environment e) -> e.getCluster().getName())
+                        .thenComparing(Environment::getName))
+                .toList();
     }
 
     public List<Cluster> getClusters() {
-        return clusterRepository.findAll().list();
+        return clusterRepository.findAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
     }
 
 
