@@ -12,6 +12,7 @@ export type Environment = {
     deploymentVersion: string;
     monitoringData: Record<string, number>;
     expirationDate?: Date;
+    cleanInstallationDate: Date;
 };
 export type EnvironmentStatus = "IN_USE" | "RESERVED" | "FREE" | "MIGRATING";
 

@@ -25,6 +25,7 @@ import org.qubership.colly.db.NamespaceRepository;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -136,8 +137,18 @@ public class ClusterResourcesLoader {
                     environmentType = calculateEnvironmentType(v1Namespace, environmentType);
                 }
                 namespace.name = cloudPassportNamespace.name();
-                deploymentVersions.append(loadInformationAboutDeploymentVersion(coreV1Api, cloudPassportNamespace.name()));
                 namespaceRepository.persist(namespace);
+                V1ConfigMap versionsConfigMap = loadVersionsConfigMap(coreV1Api, cloudPassportNamespace.name());
+                if (versionsConfigMap == null) {
+                    Log.warn("Versions config map not found in namespace " + cloudPassportNamespace.name() + ". Skipping it.");
+                    continue;
+                }
+                Instant configMapCreationTime = versionsConfigMap.getMetadata().getCreationTimestamp().toInstant();
+                if (environment.getCleanInstallationDate() == null || environment.getCleanInstallationDate().isBefore(configMapCreationTime)) {
+                    Log.info("Setting clean installation date for environment " + environment.getName() + " to " + configMapCreationTime);
+                    environment.setCleanInstallationDate(configMapCreationTime);
+                }
+                deploymentVersions.append(versionsConfigMap.getData().get(versionsConfigMapDataFieldName)).append("\n");
             }
             environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(namespace -> namespace.name).toList()));
             environment.setType(environmentType);
@@ -150,7 +161,7 @@ public class ClusterResourcesLoader {
         return envs;
     }
 
-    private String loadInformationAboutDeploymentVersion(CoreV1Api coreV1Api, String namespaceName) {
+    private V1ConfigMap loadVersionsConfigMap(CoreV1Api coreV1Api, String namespaceName) {
         CoreV1Api.APIlistNamespacedConfigMapRequest request = coreV1Api.listNamespacedConfigMap(namespaceName).fieldSelector("metadata.name=" + versionsConfigMapName);
         V1ConfigMapList configMapList;
         try {
@@ -160,10 +171,9 @@ public class ClusterResourcesLoader {
         }
         if (configMapList.getItems().isEmpty()) {
             Log.warn("No config map with name=" + versionsConfigMapName + " found in namespace " + namespaceName);
-            return "";
+            return null;
         }
-        V1ConfigMap configMap = configMapList.getItems().getFirst();
-        return configMap.getData().get(versionsConfigMapDataFieldName) + "\n";
+        return configMapList.getItems().getFirst();
     }
 
 

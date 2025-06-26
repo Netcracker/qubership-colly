@@ -134,6 +134,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         labels: env.labels,
         description: env.description,
         deploymentVersion: env.deploymentVersion,
+        cleanInstallationDate: env.cleanInstallationDate,
         ...(env.monitoringData || {}),
         raw: env
     })), [environments]);
@@ -172,7 +173,14 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     </>
             },
             {field: "description", headerName: "Description", flex: 2},
-            {field: "deploymentVersion", headerName: "Version", flex: 2}
+            {field: "deploymentVersion", headerName: "Version", flex: 2},
+            {field: "cleanInstallationDate", headerName: "Clean Installation Date",
+                valueFormatter: (value?: string) => {
+                    if (value == null) {
+                        return '';
+                    }
+                    return new Date(value).toLocaleString();
+                },}
         ];
 
         const actionsColumn: GridColDef = {

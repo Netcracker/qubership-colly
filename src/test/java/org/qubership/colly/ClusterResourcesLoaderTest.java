@@ -23,6 +23,8 @@ import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.NamespaceRepository;
 
 import java.net.URI;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +48,8 @@ class ClusterResourcesLoaderTest {
     private static final CloudPassport CLOUD_PASSPORT = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
             Set.of(new CloudPassportEnvironment(ENV_1, "some env for tests",
                     List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), null);
+    public static final OffsetDateTime DATE_2024 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    public static final OffsetDateTime DATE_2025 = OffsetDateTime.of(2025, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
     @Inject
     ClusterResourcesLoader clusterResourcesLoader;
 
@@ -80,7 +84,10 @@ class ClusterResourcesLoaderTest {
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
 
         V1ConfigMap configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid"))
+                .metadata(new V1ObjectMeta()
+                        .name("sd-versions")
+                        .uid("configmap-uid")
+                        .creationTimestamp(DATE_2024))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
@@ -92,6 +99,7 @@ class ClusterResourcesLoaderTest {
                 hasProperty("name", equalTo("env-test")),
                 hasProperty("description", equalTo("some env for tests")),
                 hasProperty("deploymentVersion", equalTo("MyVersion 1.0.0\n")),
+                hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant())),
                 hasProperty("type", equalTo(EnvironmentType.ENVIRONMENT))));
 
         assertThat(testEnv.getCluster(), hasProperty("name", equalTo(CLUSTER_NAME)));
@@ -182,25 +190,27 @@ class ClusterResourcesLoaderTest {
 
     @Test
     @TestTransaction
-    void load_resources_for_env_with_changed_version() throws ApiException {
+    void load_resources_for_env_after_update() throws ApiException {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         V1ConfigMap configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid"))
+                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2024))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         Environment testEnv = environmentRepository.findByNameAndCluster(ENV_1, CLUSTER_NAME);
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\n"));
+        assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2024.toInstant()));
 
         configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid"))
+                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 2.0.0\n"));
+        assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
 
     @Test
@@ -213,13 +223,13 @@ class ClusterResourcesLoaderTest {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2));
 
         V1ConfigMap configMap1 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid"))
+                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
 
         mockConfigMaps(List.of(configMap1), NAMESPACE_NAME);
 
         V1ConfigMap configMap2 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid"))
+                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2024))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
 
         mockConfigMaps(List.of(configMap2), NAMESPACE_NAME_2);
@@ -227,6 +237,7 @@ class ClusterResourcesLoaderTest {
         clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
         Environment testEnv = environmentRepository.findByNameAndCluster("env-3-namespaces", CLUSTER_NAME);
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\nMyVersion 2.0.0\n"));
+        assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -16,6 +17,7 @@ public class Environment extends PanacheEntity {
     private String team;
     private String description;
     private LocalDate expirationDate;
+    private Instant cleanInstallationDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -152,6 +154,14 @@ public class Environment extends PanacheEntity {
 
     public void setMonitoringData(Map<String, String> monitoringData) {
         this.monitoringData = monitoringData;
+    }
+
+    public Instant getCleanInstallationDate() {
+        return cleanInstallationDate;
+    }
+
+    public void setCleanInstallationDate(Instant cleanInstallationDate) {
+        this.cleanInstallationDate = cleanInstallationDate;
     }
 }
 
