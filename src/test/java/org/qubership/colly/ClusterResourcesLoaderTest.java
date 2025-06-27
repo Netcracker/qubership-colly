@@ -38,6 +38,7 @@ import static org.qubership.colly.ClusterResourcesLoader.*;
 
 @QuarkusTest
 @ConnectWireMock
+@TestTransaction
 class ClusterResourcesLoaderTest {
 
     private static final String ENV_1 = "env-1";
@@ -48,8 +49,8 @@ class ClusterResourcesLoaderTest {
     private static final CloudPassport CLOUD_PASSPORT = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
             Set.of(new CloudPassportEnvironment(ENV_1, "some env for tests",
                     List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), null);
-    public static final OffsetDateTime DATE_2024 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-    public static final OffsetDateTime DATE_2025 = OffsetDateTime.of(2025, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
+    private static final OffsetDateTime DATE_2024 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    private static final OffsetDateTime DATE_2025 = OffsetDateTime.of(2025, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
     @Inject
     ClusterResourcesLoader clusterResourcesLoader;
 
@@ -76,7 +77,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void loadClusterResources_from_cloud_passport() throws ApiException {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-test", "some env for tests",
@@ -110,7 +110,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void load_resources_one_env_several_namespaces() throws ApiException {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-3-namespaces", "some env for tests",
@@ -131,7 +130,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void load_resources_twice() throws ApiException {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-3-namespaces", "some env for tests",
@@ -148,7 +146,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void load_env_with_infrastructure_type() throws ApiException {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME), Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_INFRA));
 
@@ -158,7 +155,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void load_env_with_cse_toolset_type() throws ApiException {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME),
                 Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
@@ -170,7 +166,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void type_should_not_be_changed_if_it_was_manually_set() throws ApiException {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME),
                 Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
@@ -189,7 +184,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void load_resources_for_env_after_update() throws ApiException {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
@@ -214,7 +208,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void combine_deployment_version_for_namespaces() throws ApiException {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-3-namespaces", "some env for tests",
@@ -241,7 +234,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void try_to_load_namespace_from_cloud_passport_that_does_not_exist_in_k8s() throws ApiException {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-2-namespaces", "some env for tests",
@@ -256,7 +248,6 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
-    @TestTransaction
     void load_resources_from_unreachable_cluster() throws ApiException {
         CloudPassport cloudPassport = new CloudPassport("unreachable-cluster", "42", "https://some.unreachable.url",
                 Set.of(new CloudPassportEnvironment("env-unreachable", "some env for tests",

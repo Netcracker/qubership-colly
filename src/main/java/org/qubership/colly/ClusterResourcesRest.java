@@ -78,24 +78,17 @@ public class ClusterResourcesRest {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
     public Response getAuthStatus() {
-        try {
-            if (securityIdentity.isAnonymous()) {
-                return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(Map.of("authenticated", false))
-                        .build();
-            }
-
-            Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("authenticated", true);
-            userInfo.put("username", securityIdentity.getPrincipal().getName());
-            userInfo.put("isAdmin", securityIdentity.hasRole("admin"));
-
-            return Response.ok(userInfo).build();
-        } catch (Exception e) {
+        if (securityIdentity.isAnonymous()) {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("authenticated", false))
                     .build();
         }
+
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("authenticated", true);
+        userInfo.put("username", securityIdentity.getPrincipal().getName());
+        userInfo.put("isAdmin", securityIdentity.hasRole("admin"));
+        return Response.ok(userInfo).build();
     }
 
     @GET

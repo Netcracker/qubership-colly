@@ -1,5 +1,6 @@
 package org.qubership;
 
+import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
+@TestTransaction
 class ClusterResourcesRestTest {
 
     @Test
@@ -138,6 +140,61 @@ class ClusterResourcesRestTest {
                 .then()
                 .statusCode(200)
                 .body("name", contains("test-cluster", "unreachable-cluster"));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void try_to_save_non_existing_environment() {
+        given()
+                .formParam("owner", "test-owner")
+                .formParam("description", "test-description")
+                .when().post("/colly/environments/42") // Non-existing environment ID
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void try_to_save_non_existing_cluster() {
+        given()
+                .formParam("description", "test-cluster-description")
+                .when().post("/colly/clusters/non-existing-cluster")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_authStatus_for_regular_user() {
+        given()
+                .when().get("/colly/auth-status")
+                .then()
+                .statusCode(200)
+                .body("username", equalTo("test"))
+                .body("isAdmin", equalTo(false))
+                .body("authenticated", equalTo(true));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void get_authStatus_for_admin() {
+        given()
+                .when().get("/colly/auth-status")
+                .then()
+                .statusCode(200)
+                .body("username", equalTo("admin"))
+                .body("isAdmin", equalTo(true))
+                .body("authenticated", equalTo(true));
+    }
+
+
+    @Test
+    void get_authStatus_without_auth() {
+        given()
+                .when().get("/colly/auth-status")
+                .then()
+                .statusCode(401)
+                .body("authenticated", equalTo(false));
     }
 
 }
