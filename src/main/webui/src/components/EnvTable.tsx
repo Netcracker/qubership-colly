@@ -3,7 +3,7 @@ import {Box, Chip, IconButton} from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
 import {DataGrid, GridColDef, useGridApiRef} from '@mui/x-data-grid';
 import EditEnvironmentDialog from "./EditEnvironmentDialog";
-import {Environment, ENVIRONMENT_TYPES_MAPPING, STATUS_MAPPING} from "../entities/environments";
+import {Environment, ENVIRONMENT_TYPES_MAPPING, EnvironmentStatus, STATUS_MAPPING} from "../entities/environments";
 import {UserInfo} from "../entities/users";
 import dayjs from "dayjs";
 
@@ -128,7 +128,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         cluster: env.cluster?.name,
         owner: env.owner,
         team: env.team,
-        status: STATUS_MAPPING[env.status] || env.status,
+        status: env.status,
         expirationDate: env.expirationDate,
         type: ENVIRONMENT_TYPES_MAPPING[env.type] || env.type,
         labels: env.labels,
@@ -164,23 +164,30 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 },
                 flex: 1
             },
-            {field: "status", headerName: "Status", flex: 1},
+            {
+                field: "status", headerName: "Status", flex: 1,
+                renderCell: (params: { row: { status: EnvironmentStatus; }; }) =>
+                    <Chip label={STATUS_MAPPING[params.row.status]} size={"small"} color={calculateStatusColor(params.row.status)}
+                    />
+            },
             {
                 field: "labels", headerName: "Labels", flex: 1,
                 renderCell: (params: { row: { labels: string[]; }; }) =>
                     <>
-                        {params.row.labels.map(label => <Chip label={label} key={label}/>)}
+                        {params.row.labels.map(label => <Chip size={"small"} label={label} key={label}/>)}
                     </>
             },
             {field: "description", headerName: "Description", flex: 2},
             {field: "deploymentVersion", headerName: "Version", flex: 2},
-            {field: "cleanInstallationDate", headerName: "Clean Installation Date",
+            {
+                field: "cleanInstallationDate", headerName: "Clean Installation Date",
                 valueFormatter: (value?: string) => {
                     if (value == null) {
                         return '';
                     }
                     return new Date(value).toLocaleString();
-                },}
+                },
+            }
         ];
 
         const actionsColumn: GridColDef = {
@@ -230,3 +237,18 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         </Box>
     );
 }
+function calculateStatusColor(status: EnvironmentStatus): "success" | "primary" | "warning" | "error" | "default" {
+    switch (status) {
+        case "IN_USE":
+            return "success";
+        case "FREE":
+            return "primary";
+        case "MIGRATING":
+            return "warning";
+        case "RESERVED":
+            return "error";
+        default:
+            return "default";
+    }
+}
+
