@@ -197,4 +197,45 @@ class ClusterResourcesRestTest {
                 .body("authenticated", equalTo(false));
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void unable_to_delete_environment_without_admin_role() {
+        given()
+                .when().delete("/colly/environments/1")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void delete_environment_with_auth() {
+        given()
+                .when().post("/colly/tick")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/environments")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("env-1"));
+        given()
+                .when().delete("/colly/environments/2")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/environments")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("env-1")));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void delete_environment_with_non_existing_id() {
+        given()
+                .when().delete("/colly/environments/9999") // Non-existing environment ID
+                .then()
+                .statusCode(400);
+    }
+
 }

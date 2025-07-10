@@ -88,4 +88,12 @@ public class CollyStorage {
 
         clusterRepository.persist(cluster);
     }
+
+    @Transactional
+    public void deleteEnvironment(String id) {
+        boolean found = environmentRepository.deleteById(Long.valueOf(id));
+        if (!found) {
+            throw new IllegalArgumentException("Environment with id " + id + " not found");
+        }
+    }
 }

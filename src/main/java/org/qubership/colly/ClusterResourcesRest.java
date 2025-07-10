@@ -66,6 +66,13 @@ public class ClusterResourcesRest {
         collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, team, date);
     }
 
+    @DELETE
+    @Path("/environments/{envId}")
+    @RolesAllowed("admin")
+    public void deleteEnvironment(@PathParam("envId") String id) {
+        collyStorage.deleteEnvironment(id);
+    }
+
     @POST
     @Path("/clusters/{clusterName}")
     @RolesAllowed("admin")
