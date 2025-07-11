@@ -3,7 +3,10 @@ package org.qubership;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.data.Environment;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -11,6 +14,8 @@ import static org.hamcrest.Matchers.*;
 @QuarkusTest
 @TestTransaction
 class ClusterResourcesRestTest {
+    @Inject
+    EnvironmentRepository environmentRepository;
 
     @Test
     void load_environments_without_auth() {
@@ -42,7 +47,7 @@ class ClusterResourcesRestTest {
                 .when().post("/colly/tick")
                 .then()
                 .statusCode(204);
-
+        Environment env = environmentRepository.findByNameAndCluster("env-test", "test-cluster");
         given()
                 .formParam("owner", "test-owner")
                 .formParam("description", "test-description")
@@ -51,7 +56,7 @@ class ClusterResourcesRestTest {
                 .formParam("type", "development")
                 .formParam("team", "test-team")
                 .formParam("expirationDate", "2024-12-31")
-                .when().post("/colly/environments/1")
+                .when().post("/colly/environments/" + env.id.toString())
                 .then()
                 .statusCode(204);
     }
@@ -217,16 +222,18 @@ class ClusterResourcesRestTest {
                 .when().get("/colly/environments")
                 .then()
                 .statusCode(200)
-                .body("name", hasItem("env-1"));
+                .body("name", hasItem("env-test"));
+        Environment env = environmentRepository.findByNameAndCluster("env-test", "test-cluster");
+
         given()
-                .when().delete("/colly/environments/2")
+                .when().delete("/colly/environments/" + env.id.toString())
                 .then()
                 .statusCode(204);
         given()
                 .when().get("/colly/environments")
                 .then()
                 .statusCode(200)
-                .body("name", not(hasItem("env-1")));
+                .body("name", not(hasItem("env-test")));
     }
 
     @Test
