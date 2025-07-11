@@ -5,6 +5,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CancelIcon from '@mui/icons-material/Cancel';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
     ColumnsPanelTrigger,
     DataGrid,
@@ -99,6 +100,23 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
 
     const handleEditClick = useCallback((env: Environment) => {
         setSelectedEnv(env);
+    }, []);
+
+    const handleDeleteClick = useCallback(async (deletedEnv: Environment) => {
+        try {
+            const response = await fetch(`/colly/environments/${deletedEnv.id}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                setSelectedEnv(null);
+                setEnvironments(prev => prev.filter(env => env.id !== deletedEnv.id));
+            } else {
+                console.error("Failed to delete environment", await response.text());
+            }
+        } catch (error) {
+            console.error("Error during delete environment:", error);
+        }
     }, []);
 
     const allLabels = useMemo(() => {
@@ -235,6 +253,21 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                         </ToolbarButton>
                     </Tooltip>
                 )}
+                {userInfo.authenticated && userInfo.isAdmin && (
+                    <Tooltip title="Delete">
+                        <ToolbarButton
+                            size="medium"
+                            onClick={() => {
+                                const env = environments.find(e => e.id === selectedRowId);
+                                if (env) handleDeleteClick(env);
+                            }}
+                            disabled={!selectedRowId}
+                        >
+                            <DeleteIcon fontSize="small"/>
+                        </ToolbarButton>
+                    </Tooltip>
+                )}
+
                 <Tooltip title="Columns">
                     <ColumnsPanelTrigger render={<ToolbarButton/>}>
                         <ViewColumnIcon fontSize="small"/>
