@@ -28,20 +28,21 @@ import {DatePicker} from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 
 type Props = {
+    show: boolean
     environment: Environment;
     allLabels: string[];
     onClose: () => void;
     onSave: (env: Environment) => void;
 };
 
-export default function EditEnvironmentDialog({environment, allLabels, onClose, onSave}: Props) {
+export default function EditEnvironmentDialog({show, environment, allLabels, onClose, onSave}: Props) {
 
     const [localEnv, setLocalEnv] = React.useState<Environment>(environment);
     const handleSubmit = () => {
         onSave(localEnv);
     };
 
-    return <Dialog open={!!localEnv} onClose={onClose} fullWidth={true} maxWidth="sm">
+    return <Dialog open={show} onClose={onClose} fullWidth={true} maxWidth="sm">
         <DialogTitle>Edit Environment</DialogTitle>
         <DialogContent>
             <TextField
