@@ -1,5 +1,5 @@
 ---
-# Copied from https://github.com/Netcracker/.github/blob/main/workflow-templates/helm-charts-release.yaml
+# Copied from https://github.com/Netcracker/.github/blob/main/workflow-templates/helm-charts-release.yaml and updated
 
 # This workflow is used to release Helm charts and Docker images.
 # It has a dry run stage to check the build process without actually publishing the artifacts.
@@ -9,11 +9,8 @@
 # The workflow requires the following inputs:
 # - `release`: The release version to publish.
 # - configuration file used for the release process: `.github/helm-charts-release-config.yaml`
-#   Example: config/examples/helm-charts-release-config.yaml
 # - Assets configuration file: `.github/assets-config.yml`
-#   Example: config/examples/assets-config.yml
 # - GitHub release drafter configuration file: `.github/release-drafter-config.yml`
-#   Example: config/examples/release-drafter-config.yml
 
 name: Create Release
 on:
@@ -119,16 +116,13 @@ jobs:
           fetch-depth: 0
           ref: release-${{ inputs.release }}
 
-#      - name: Configure Git
-#        run: |
-#          git config user.name "$GITHUB_ACTOR"
-#          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Configure Git
+        run: |
+         git config user.name "$GITHUB_ACTOR"
+         git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Run chart-releaser
         uses: netcracker/chart-releaser-action@main
-#        with:
-#          charts_dir: charts/
-#          release_name_template: "v{{ .Version }}"
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
