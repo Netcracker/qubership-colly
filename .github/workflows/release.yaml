@@ -55,7 +55,7 @@ jobs:
     secrets:
       maven-token: ${{ secrets.GITHUB_TOKEN }}
 
-  chart-release:
+  prepare-chart-release:
     needs: [mvn-check-build, check-tag]
     runs-on: ubuntu-latest
     steps:
@@ -72,7 +72,7 @@ jobs:
           ${{ insert }}: ${{ vars }}
 
   tag:
-    needs: [chart-release]
+    needs: [prepare-chart-release]
     runs-on: ubuntu-latest
     steps:
       - name: Create release tag
@@ -83,7 +83,7 @@ jobs:
           create-tag: true
           check-tag: false
   mvn-build:
-    needs: [tag, chart-release]
+    needs: [tag, prepare-chart-release]
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
       maven-command: "--batch-mode clean package"
@@ -94,7 +94,7 @@ jobs:
       maven-token: ${{ secrets.GITHUB_TOKEN }}
 
   docker-build:
-    needs: [tag, mvn-build, chart-release]
+    needs: [tag, mvn-build, prepare-chart-release]
     runs-on: ubuntu-latest
     steps:
       - name: Docker build
@@ -107,13 +107,37 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+
+  charts-release:
+    needs: [tag, docker-build]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: release-${{ inputs.release }}
+
+#      - name: Configure Git
+#        run: |
+#          git config user.name "$GITHUB_ACTOR"
+#          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Run chart-releaser
+        uses: netcracker/chart-releaser-action@main
+#        with:
+#          charts_dir: charts/
+#          release_name_template: "v{{ .Version }}"
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
   github-release:
-    needs: [docker-build]
+    needs: [charts-release]
     uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@main
     with:
       version: ${{ inputs.release }}
       publish: true
-
   upload-assets:
     needs: [github-release]
     runs-on: ubuntu-latest
