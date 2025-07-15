@@ -12,7 +12,7 @@ import {
     Select,
     TextField
 } from "@mui/material";
-import React from "react";
+import React, {useEffect} from "react";
 import {
     ALL_STATUSES,
     ALL_TYPES,
@@ -38,6 +38,11 @@ type Props = {
 export default function EditEnvironmentDialog({show, environment, allLabels, onClose, onSave}: Props) {
 
     const [localEnv, setLocalEnv] = React.useState<Environment>(environment);
+
+    useEffect(() => {
+        setLocalEnv(environment);
+    }, [environment]);
+
     const handleSubmit = () => {
         onSave(localEnv);
     };
