@@ -9,6 +9,10 @@ import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.ApplicationMetadata;
+import org.qubership.colly.dto.EnvironmentDTO;
+import org.qubership.colly.dto.ClusterDTO;
+import org.qubership.colly.mapper.EnvironmentMapper;
+import org.qubership.colly.mapper.ClusterMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
 import java.time.LocalDate;
@@ -25,19 +29,25 @@ public class ClusterResourcesRest {
     SecurityIdentity securityIdentity;
     @Inject
     MonitoringService monitoringService;
+    @Inject
+    EnvironmentMapper environmentMapper;
+    @Inject
+    ClusterMapper clusterMapper;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters")
-    public List<Cluster> getClusters() {
-        return collyStorage.getClusters();
+    public List<ClusterDTO> getClusters() {
+        List<Cluster> clusters = collyStorage.getClusters();
+        return clusterMapper.toDTOs(clusters);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
-    public List<Environment> getEnvironments() {
-        return collyStorage.getEnvironments();
+    public List<EnvironmentDTO> getEnvironments() {
+        List<Environment> environments = collyStorage.getEnvironments();
+        return environmentMapper.toDTOs(environments);
     }
 
     @POST

@@ -108,7 +108,7 @@ public class CollyStorage {
             throw new IllegalArgumentException("Cluster with name " + clusterName + " not found");
         }
         Log.info("Saving cluster with name " + clusterName + " description " + description);
-        cluster.description = description;
+        cluster.setDescription(description);
 
         clusterRepository.persist(cluster);
     }
