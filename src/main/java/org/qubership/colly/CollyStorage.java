@@ -17,6 +17,9 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 @ApplicationScoped
 public class CollyStorage {
@@ -33,14 +36,35 @@ public class CollyStorage {
     @Inject
     CloudPassportLoader cloudPassportLoader;
 
+    private final Executor executor;
+
+    public CollyStorage() {
+        executor = Executors.newCachedThreadPool();
+    }
+
     @Scheduled(cron = "{cron.schedule}")
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports();
-        cloudPassports.forEach(cloudPassport -> clusterResourcesLoader.loadClusterResources(cloudPassport));
         List<String> clusterNames = cloudPassports.stream().map(CloudPassport::name).toList();
         Log.info("Cloud passports loaded for clusters: " + clusterNames);
+
+        List<CompletableFuture<Void>> futures = cloudPassports.stream()
+                .map(cloudPassport -> CompletableFuture.runAsync(
+                        () -> {
+                            Log.info("Starting to load resources for cluster: " + cloudPassport.name());
+                            clusterResourcesLoader.loadClusterResources(cloudPassport);
+                            Log.info("Completed loading resources for cluster: " + cloudPassport.name());
+                        }, executor))
+                .toList();
+
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        try {
+            allFutures.join(); // Wait for all to complete
+        } catch (Exception e) {
+            Log.error("Error occurred while loading cluster resources in parallel", e);
+        }
 
         Date loadCompleteTime = new Date();
         long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
