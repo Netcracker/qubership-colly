@@ -12,8 +12,12 @@ import java.util.List;
 @ApplicationScoped
 public class EnvironmentMapper {
 
+    private final ClusterMapper clusterMapper;
+
     @Inject
-    ClusterMapper clusterMapper;
+    public EnvironmentMapper(ClusterMapper clusterMapper) {
+        this.clusterMapper = clusterMapper;
+    }
 
     /**
      * Convert Environment entity to DTO

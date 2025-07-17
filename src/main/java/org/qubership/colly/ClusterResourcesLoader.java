@@ -41,20 +41,27 @@ public class ClusterResourcesLoader {
     static final String LABEL_TYPE_CORE = "core";
     static final String LABEL_TYPE_CSE_TOOLSET = "cse-toolset";
 
-    @Inject
-    NamespaceRepository namespaceRepository;
-    @Inject
-    ClusterRepository clusterRepository;
-    @Inject
-    EnvironmentRepository environmentRepository;
-    @Inject
-    MonitoringService monitoringService;
+    private final NamespaceRepository namespaceRepository;
+    private final ClusterRepository clusterRepository;
+    private final EnvironmentRepository environmentRepository;
+    private final MonitoringService monitoringService;
 
     @ConfigProperty(name = "colly.config-map.versions.name")
     String versionsConfigMapName;
 
     @ConfigProperty(name = "colly.config-map.versions.data-field-name")
     String versionsConfigMapDataFieldName;
+
+    @Inject
+    public ClusterResourcesLoader(NamespaceRepository namespaceRepository,
+                                  ClusterRepository clusterRepository,
+                                  EnvironmentRepository environmentRepository,
+                                  MonitoringService monitoringService) {
+        this.namespaceRepository = namespaceRepository;
+        this.clusterRepository = clusterRepository;
+        this.environmentRepository = environmentRepository;
+        this.monitoringService = monitoringService;
+    }
 
 
     @Transactional

@@ -24,22 +24,22 @@ import java.util.concurrent.Executors;
 @ApplicationScoped
 public class CollyStorage {
 
-    @Inject
-    ClusterResourcesLoader clusterResourcesLoader;
-
-    @Inject
-    ClusterRepository clusterRepository;
-
-    @Inject
-    EnvironmentRepository environmentRepository;
-
-    @Inject
-    CloudPassportLoader cloudPassportLoader;
-
+    private final ClusterResourcesLoader clusterResourcesLoader;
+    private final ClusterRepository clusterRepository;
+    private final EnvironmentRepository environmentRepository;
+    private final CloudPassportLoader cloudPassportLoader;
     private final Executor executor;
 
-    public CollyStorage() {
-        executor = Executors.newCachedThreadPool();
+    @Inject
+    public CollyStorage(ClusterResourcesLoader clusterResourcesLoader,
+                       ClusterRepository clusterRepository,
+                       EnvironmentRepository environmentRepository,
+                       CloudPassportLoader cloudPassportLoader) {
+        this.clusterResourcesLoader = clusterResourcesLoader;
+        this.clusterRepository = clusterRepository;
+        this.environmentRepository = environmentRepository;
+        this.cloudPassportLoader = cloudPassportLoader;
+        this.executor = Executors.newCachedThreadPool();
     }
 
     @Scheduled(cron = "{cron.schedule}")

@@ -22,17 +22,25 @@ import java.util.Map;
 
 @Path("/colly")
 public class ClusterResourcesRest {
-    @Inject
-    CollyStorage collyStorage;
+    
+    private final CollyStorage collyStorage;
+    private final SecurityIdentity securityIdentity;
+    private final MonitoringService monitoringService;
+    private final EnvironmentMapper environmentMapper;
+    private final ClusterMapper clusterMapper;
 
     @Inject
-    SecurityIdentity securityIdentity;
-    @Inject
-    MonitoringService monitoringService;
-    @Inject
-    EnvironmentMapper environmentMapper;
-    @Inject
-    ClusterMapper clusterMapper;
+    public ClusterResourcesRest(CollyStorage collyStorage,
+                               SecurityIdentity securityIdentity,
+                               MonitoringService monitoringService,
+                               EnvironmentMapper environmentMapper,
+                               ClusterMapper clusterMapper) {
+        this.collyStorage = collyStorage;
+        this.securityIdentity = securityIdentity;
+        this.monitoringService = monitoringService;
+        this.environmentMapper = environmentMapper;
+        this.clusterMapper = clusterMapper;
+    }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
