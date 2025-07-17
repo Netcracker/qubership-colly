@@ -1,15 +1,16 @@
 package org.qubership.colly.db.data;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Entity(name = "environments")
-@JsonInclude(JsonInclude.Include.ALWAYS)
 public class Environment extends PanacheEntity {
 
     private String name;
