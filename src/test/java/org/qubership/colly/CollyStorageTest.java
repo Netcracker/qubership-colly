@@ -13,6 +13,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -53,7 +54,7 @@ class CollyStorageTest {
             maxConcurrentExecutions.updateAndGet(max -> Math.max(max, current));
 
             // Simulate some work
-            Thread.sleep(100);
+            await().atMost(100, TimeUnit.MILLISECONDS);
 
             concurrentExecutions.decrementAndGet();
             completeLatch.countDown();
@@ -65,7 +66,7 @@ class CollyStorageTest {
         executionThread.start();
 
         // Wait a bit to ensure all threads are created and waiting
-        Thread.sleep(50);
+        await().atMost(50, TimeUnit.MILLISECONDS);
 
         // Release all threads to start executing
         startLatch.countDown();
@@ -154,7 +155,7 @@ class CollyStorageTest {
         doAnswer(invocation -> {
             loadStartLatch.countDown();
             // Simulate work
-            Thread.sleep(50);
+            await().atMost(50, TimeUnit.MILLISECONDS);
             loadCompleteLatch.countDown();
             return null;
         }).when(clusterResourcesLoader).loadClusterResources(any(CloudPassport.class));
