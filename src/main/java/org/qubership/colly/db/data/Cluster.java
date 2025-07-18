@@ -1,6 +1,5 @@
 package org.qubership.colly.db.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
@@ -13,13 +12,11 @@ public class Cluster extends PanacheEntityBase {
     private String name;
 
     @OneToMany(mappedBy = "cluster", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
     public List<Environment> environments;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     public List<Namespace> namespaces;
-    public String description;
-
+    private String description;
 
     public Cluster(String name) {
         this.name = name;
@@ -36,5 +33,13 @@ public class Cluster extends PanacheEntityBase {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

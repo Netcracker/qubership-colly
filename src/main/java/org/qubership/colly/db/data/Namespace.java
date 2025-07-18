@@ -1,6 +1,5 @@
 package org.qubership.colly.db.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -10,16 +9,46 @@ import jakarta.persistence.ManyToOne;
 @Entity(name = "namespaces")
 public class Namespace extends PanacheEntityBase {
     @Id
-    public String uid;
+    private String uid;
 
-    public String name;
+    private String name;
     @ManyToOne()
     @JoinColumn(referencedColumnName = "name")
-    public Cluster cluster;
+    private Cluster cluster;
 
     @ManyToOne()
     @JoinColumn(referencedColumnName = "id")
-    @JsonIgnore
-    public Environment environment;
+    private Environment environment;
 
+    public String getUid() {
+        return uid;
+    }
+
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
+    public Environment getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
+    }
 }

@@ -17,30 +17,54 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 @ApplicationScoped
 public class CollyStorage {
 
-    @Inject
-    ClusterResourcesLoader clusterResourcesLoader;
+    private final ClusterResourcesLoader clusterResourcesLoader;
+    private final ClusterRepository clusterRepository;
+    private final EnvironmentRepository environmentRepository;
+    private final CloudPassportLoader cloudPassportLoader;
+    private final Executor executor;
 
     @Inject
-    ClusterRepository clusterRepository;
-
-    @Inject
-    EnvironmentRepository environmentRepository;
-
-    @Inject
-    CloudPassportLoader cloudPassportLoader;
+    public CollyStorage(ClusterResourcesLoader clusterResourcesLoader,
+                       ClusterRepository clusterRepository,
+                       EnvironmentRepository environmentRepository,
+                       CloudPassportLoader cloudPassportLoader) {
+        this.clusterResourcesLoader = clusterResourcesLoader;
+        this.clusterRepository = clusterRepository;
+        this.environmentRepository = environmentRepository;
+        this.cloudPassportLoader = cloudPassportLoader;
+        this.executor = Executors.newCachedThreadPool();
+    }
 
     @Scheduled(cron = "{cron.schedule}")
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports();
-        cloudPassports.forEach(cloudPassport -> clusterResourcesLoader.loadClusterResources(cloudPassport));
         List<String> clusterNames = cloudPassports.stream().map(CloudPassport::name).toList();
         Log.info("Cloud passports loaded for clusters: " + clusterNames);
+
+        List<CompletableFuture<Void>> futures = cloudPassports.stream()
+                .map(cloudPassport -> CompletableFuture.runAsync(
+                        () -> {
+                            Log.info("Starting to load resources for cluster: " + cloudPassport.name());
+                            clusterResourcesLoader.loadClusterResources(cloudPassport);
+                            Log.info("Completed loading resources for cluster: " + cloudPassport.name());
+                        }, executor))
+                .toList();
+
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        try {
+            allFutures.join(); // Wait for all to complete
+        } catch (Exception e) {
+            Log.error("Error occurred while loading cluster resources in parallel", e);
+        }
 
         Date loadCompleteTime = new Date();
         long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
@@ -84,7 +108,7 @@ public class CollyStorage {
             throw new IllegalArgumentException("Cluster with name " + clusterName + " not found");
         }
         Log.info("Saving cluster with name " + clusterName + " description " + description);
-        cluster.description = description;
+        cluster.setDescription(description);
 
         clusterRepository.persist(cluster);
     }

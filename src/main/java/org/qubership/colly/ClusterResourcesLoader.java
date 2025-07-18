@@ -14,14 +14,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
+import org.qubership.colly.db.ClusterRepository;
+import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.NamespaceRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.monitoring.MonitoringService;
-import org.qubership.colly.db.ClusterRepository;
-import org.qubership.colly.db.EnvironmentRepository;
-import org.qubership.colly.db.NamespaceRepository;
 
 import java.io.IOException;
 import java.net.URI;
@@ -41,20 +41,27 @@ public class ClusterResourcesLoader {
     static final String LABEL_TYPE_CORE = "core";
     static final String LABEL_TYPE_CSE_TOOLSET = "cse-toolset";
 
-    @Inject
-    NamespaceRepository namespaceRepository;
-    @Inject
-    ClusterRepository clusterRepository;
-    @Inject
-    EnvironmentRepository environmentRepository;
-    @Inject
-    MonitoringService monitoringService;
+    private final NamespaceRepository namespaceRepository;
+    private final ClusterRepository clusterRepository;
+    private final EnvironmentRepository environmentRepository;
+    private final MonitoringService monitoringService;
 
     @ConfigProperty(name = "colly.config-map.versions.name")
     String versionsConfigMapName;
 
     @ConfigProperty(name = "colly.config-map.versions.data-field-name")
     String versionsConfigMapDataFieldName;
+
+    @Inject
+    public ClusterResourcesLoader(NamespaceRepository namespaceRepository,
+                                  ClusterRepository clusterRepository,
+                                  EnvironmentRepository environmentRepository,
+                                  MonitoringService monitoringService) {
+        this.namespaceRepository = namespaceRepository;
+        this.clusterRepository = clusterRepository;
+        this.environmentRepository = environmentRepository;
+        this.monitoringService = monitoringService;
+    }
 
 
     @Transactional
@@ -130,13 +137,13 @@ public class ClusterResourcesLoader {
                 Namespace namespace = namespaceRepository.findByUid(namespaceUid);
                 if (namespace == null) {
                     namespace = new Namespace();
-                    namespace.uid = namespaceUid;
-                    namespace.cluster = cluster;
-                    namespace.environment = environment;
+                    namespace.setUid(namespaceUid);
+                    namespace.setCluster(cluster);
+                    namespace.setEnvironment(environment);
                     environment.addNamespace(namespace);
                     environmentType = calculateEnvironmentType(v1Namespace, environmentType);
                 }
-                namespace.name = cloudPassportNamespace.name();
+                namespace.setName(cloudPassportNamespace.name());
                 namespaceRepository.persist(namespace);
                 V1ConfigMap versionsConfigMap = loadVersionsConfigMap(coreV1Api, cloudPassportNamespace.name());
                 if (versionsConfigMap == null) {
@@ -150,7 +157,7 @@ public class ClusterResourcesLoader {
                 }
                 deploymentVersions.append(versionsConfigMap.getData().get(versionsConfigMapDataFieldName)).append("\n");
             }
-            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(namespace -> namespace.name).toList()));
+            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(Namespace::getName).toList()));
             environment.setType(environmentType);
             environment.setDeploymentVersion(deploymentVersions.toString());
             environmentRepository.persist(environment);
