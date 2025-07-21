@@ -14,8 +14,6 @@ public class CSEData {
     @JsonProperty("MONITORING_EXT_MONITORING_QUERY_URL")
     private String monitoringExtMonitoringQueryUrl;
 
-    public CSEData() {
-    }
 
     public String getMonitoringExtMonitoringQueryUrl() {
         return monitoringExtMonitoringQueryUrl;

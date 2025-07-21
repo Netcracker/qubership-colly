@@ -7,8 +7,6 @@ public class CloudPassportData {
     private CloudData cloud;
     private CSEData cse;
 
-    public CloudPassportData() {
-    }
 
     public CloudData getCloud() {
         return cloud;

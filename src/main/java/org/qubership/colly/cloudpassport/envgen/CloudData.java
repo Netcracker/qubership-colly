@@ -15,8 +15,6 @@ public class CloudData {
     @JsonProperty("CLOUD_PROTOCOL")
     private String cloudProtocol;
 
-    public CloudData() {
-    }
 
     public String getCloudApiHost() {
         return cloudApiHost;
