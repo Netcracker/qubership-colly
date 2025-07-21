@@ -5,6 +5,7 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
@@ -34,12 +35,13 @@ public class CollyStorage {
     public CollyStorage(ClusterResourcesLoader clusterResourcesLoader,
                        ClusterRepository clusterRepository,
                        EnvironmentRepository environmentRepository,
-                       CloudPassportLoader cloudPassportLoader) {
+                       CloudPassportLoader cloudPassportLoader,
+                       @ConfigProperty(name = "colly.cluster-resource-loader.thread-pool-size") int threadPoolSize) {
         this.clusterResourcesLoader = clusterResourcesLoader;
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.cloudPassportLoader = cloudPassportLoader;
-        this.executor = Executors.newCachedThreadPool();
+        this.executor = Executors.newFixedThreadPool(threadPoolSize);
     }
 
     @Scheduled(cron = "{cron.schedule}")

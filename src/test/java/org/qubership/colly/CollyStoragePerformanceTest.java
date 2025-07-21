@@ -102,7 +102,7 @@ class CollyStoragePerformanceTest {
         verify(clusterResourcesLoader, times(clusterCount)).loadClusterResources(any(CloudPassport.class));
 
         // Should handle high concurrency
-        assertTrue(maxConcurrentExecutions.get() >= Math.min(clusterCount, 10),
+        assertTrue(maxConcurrentExecutions.get() >= Math.min(clusterCount, 5),
                 "Expected high concurrency but got max: " + maxConcurrentExecutions.get());
 
         // Should complete much faster than sequential
