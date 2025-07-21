@@ -60,7 +60,7 @@ public class EnvironmentMapper {
             return List.of();
         }
         return namespaces.stream()
-                .map(ns -> new NamespaceDTO(ns.getName()))
+                .map(ns -> new NamespaceDTO(ns.getUid(), ns.getName()))
                 .toList();
     }
 }
