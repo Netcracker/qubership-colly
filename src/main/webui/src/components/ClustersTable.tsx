@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from "react";
-import {Box, InputAdornment, TextField, Tooltip} from "@mui/material";
+import {Box, Chip, InputAdornment, TextField, Tooltip} from "@mui/material";
 import {
     DataGrid,
     GridColDef,
@@ -76,6 +76,15 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
             field: "description",
             headerName: "Description",
             flex: 2
+        },
+        {
+            field: "synced",
+            headerName: "Sync Status",
+            flex: 1,
+            renderCell: (params: { row: { synced: boolean; }; }) =>
+                <Chip label={params.row.synced ? "Synced" : "Not Synced"} size={"small"}
+                      color={params.row.synced ? "success" : "error"}
+                />
         }
     ];
 
@@ -83,6 +92,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
         id: cluster.name,
         name: cluster.name,
         description: cluster.description || '',
+        synced: cluster.synced,
         raw: cluster
     }));
     const CustomToolbar = () => {
