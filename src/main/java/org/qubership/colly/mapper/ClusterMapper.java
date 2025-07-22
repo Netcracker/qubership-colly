@@ -16,7 +16,7 @@ public class ClusterMapper {
         if (entity == null) {
             return null;
         }
-        return new ClusterDTO(entity.getName(), entity.getDescription());
+        return new ClusterDTO(entity.getName(), entity.getDescription(), entity.isSynced());
     }
 
     /**

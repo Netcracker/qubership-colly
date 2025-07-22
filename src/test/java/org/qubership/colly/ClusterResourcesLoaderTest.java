@@ -16,11 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
+import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.NamespaceRepository;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.db.data.Namespace;
-import org.qubership.colly.db.EnvironmentRepository;
-import org.qubership.colly.db.NamespaceRepository;
 
 import java.net.URI;
 import java.time.OffsetDateTime;
@@ -102,10 +102,13 @@ class ClusterResourcesLoaderTest {
                 hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant())),
                 hasProperty("type", equalTo(EnvironmentType.ENVIRONMENT))));
 
-        assertThat(testEnv.getCluster(), hasProperty("name", equalTo(CLUSTER_NAME)));
+        assertThat(testEnv.getCluster(), allOf(
+                hasProperty("name", equalTo(CLUSTER_NAME)),
+                hasProperty("synced", equalTo(true))));
 
         Namespace testNamespace = namespaceRepository.findByNameAndCluster(NAMESPACE_NAME, CLUSTER_NAME);
         assertThat(testNamespace, hasProperty("name", equalTo(NAMESPACE_NAME)));
+
 
     }
 
@@ -261,6 +264,9 @@ class ClusterResourcesLoaderTest {
         Environment testEnv = environmentRepository.findByNameAndCluster("env-unreachable", "unreachable-cluster");
         assertThat(testEnv, hasProperty("name", equalTo("env-unreachable")));
         assertThat(testEnv.getNamespaces(), hasSize(0));
+        assertThat(testEnv.getCluster(), allOf(
+                hasProperty("name", equalTo("unreachable-cluster")),
+                hasProperty("synced", equalTo(false))));
     }
 
     @Test
