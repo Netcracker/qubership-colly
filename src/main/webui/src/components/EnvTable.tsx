@@ -164,7 +164,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const rows = useMemo(() => environments.map(env => ({
         id: env.id,
         name: env.name,
-        namespaces: env.namespaces.map(ns => ns.name).join(", "),
+        namespaces: env.namespaces,
         cluster: env.cluster?.name,
         owner: env.owner,
         team: env.team,
@@ -190,7 +190,16 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         const baseColumns: GridColDef[] = [
             {field: "name", headerName: "Name", width: 150},
             {field: "type", headerName: "Type", width: 120},
-            {field: "namespaces", headerName: "Namespace(s)", width: 200},
+            {
+                field: "namespaces", headerName: "Namespace(s)", width: 200,
+                renderCell: (params) => (
+                    <Box sx={{display: 'flex', flexDirection: 'column'}}>
+                        {params.row.namespaces.map((namespace: { name: string }) => (
+                            <span key={namespace.name}>{namespace.name}</span>
+                        ))}
+                    </Box>
+                )
+            },
             {field: "cluster", headerName: "Cluster", width: 150},
             {field: "owner", headerName: "Owner", width: 120},
             {field: "team", headerName: "Team", width: 120},
@@ -331,10 +340,15 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     rows={rows}
                     columns={columns}
                     rowSelection={true}
+                    getRowHeight={() => 'auto'}
                     sx={{
                         minWidth: 800,
                         '& .MuiDataGrid-columnHeaderTitle': {
                             fontWeight: 'bold'
+                        },
+                        '& .MuiDataGrid-cell': {
+                            display: 'flex',
+                            alignItems: 'center'
                         }
                     }}
                     slots={{
