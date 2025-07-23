@@ -1,110 +1,6 @@
 # Qubership Colly Configuration Guide
 
-## Overview
-
-This guide provides comprehensive configuration options for Qubership Colly, including application properties, environment variables, and Helm chart parameters.
-
-## Application Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ENV_INSTANCES_REPO` | Git repository URL(s) for Cloud Passport configs | - |
-| `CRON_SCHEDULE` | Cluster synchronization schedule | `0 * * * * ?` |
-| `COLLY_CLUSTER_RESOURCE_LOADER_THREAD_POOL_SIZE` | Parallel processing threads | 5 |
-
-### Application Properties
-
-```properties
-# Scheduler configuration
-cron.schedule=0 * * * * ?
-
-# Cloud Passport repository
-cloud.passport.folder=./git-repo
-
-# Config map settings
-colly.config-map.versions.name=sd-versions
-colly.config-map.versions.data-field-name=solution-descriptors-summary
-
-# Parallel processing
-colly.cluster-resource-loader.thread-pool-size=5
-
-# Monitoring queries
-colly.monitoring."running-pods".name=Running Pods
-colly.monitoring."running-pods".query=count(kube_pod_status_phase{namespace=~"{namespace}",phase="Running"})
-colly.monitoring."failed-deployments".name=Failed Deployments
-colly.monitoring."failed-deployments".query=count(kube_deployment_status_replicas_unavailable{namespace=~"{namespace}"})
-
-# OIDC Authentication
-quarkus.oidc.auth-server-url=<KEYCLOAK_URL>
-quarkus.oidc.client-id=colly
-quarkus.oidc.credentials.secret=<CLIENT_SECRET>
-
-# Database configuration
-quarkus.datasource.db-kind=postgresql
-quarkus.datasource.jdbc.url=jdbc:postgresql://<HOST>:5432/<DATABASE>
-quarkus.datasource.username=<USERNAME>
-quarkus.datasource.password=<PASSWORD>
-quarkus.hibernate-orm.database.default-schema=colly
-```
-
-## Cluster Configuration
-
-### Cloud Passport Method (Recommended)
-Configure clusters using Git repositories containing Cloud Passport files:
-
-```bash
-# Single repository
-ENV_INSTANCES_REPO=https://github.com/your-org/cloud-passports.git
-
-# Multiple repositories
-ENV_INSTANCES_REPO=https://github.com/repo1.git,https://github.com/repo2.git
-
-# With authentication
-ENV_INSTANCES_REPO=https://username:token@github.com/private/repo.git
-```
-
-### Cloud Passport Structure
-```yaml
-# cluster-config.yaml
-apiVersion: v1
-kind: CloudPassport
-metadata:
-  name: production-cluster
-spec:
-  cloudApiHost: https://k8s-api.example.com
-  token: <k8s-token>
-  environments:
-    - name: production-env
-      description: "Production environment"
-      namespaces:
-        - name: prod-api
-        - name: prod-web
-    - name: staging-env
-      description: "Staging environment"
-      namespaces:
-        - name: staging-api
-        - name: staging-web
-```
-
-## Monitoring Integration
-
-Qubership Colly supports custom monitoring queries that are executed against your monitoring system:
-
-```properties
-# Define custom metrics
-colly.monitoring."custom-metric".name=Custom Metric Name
-colly.monitoring."custom-metric".query=your_prometheus_query{namespace=~"{namespace}"}
-```
-
-The `{namespace}` placeholder is automatically replaced with the actual namespace names for each environment.
-
----
-
-# Helm Chart Configuration Guide
-
-## Overview
+## Helm Charts Overview
 
 The Qubership Colly Helm chart provides a complete deployment solution for Kubernetes environments with support for OIDC authentication, PostgreSQL database integration, and AWS ALB ingress.
 
@@ -118,10 +14,10 @@ The Qubership Colly Helm chart provides a complete deployment solution for Kuber
 
 ### Global Configuration
 
-| Parameter | Description | Default | Required |
-|-----------|-------------|---------|----------|
+| Parameter | Description | Default        | Required |
+|-----------|-------------|----------------|----------|
 | `NAMESPACE` | Kubernetes namespace for deployment | `my-namespace` | Yes |
-| `CLOUD_PUBLIC_HOST` | Public host for ingress configuration | `us-east-1.elb.amazonaws.com` | No |
+| `CLOUD_PUBLIC_HOST` | Public host for ingress configuration | `my.host.com`  | No |
 
 ### Application Configuration (`colly`)
 
@@ -129,7 +25,7 @@ The Qubership Colly Helm chart provides a complete deployment solution for Kuber
 |-----------|-------------|---------|----------|
 | `colly.image` | Container image | `ghcr.io/netcracker/qubership-colly:latest` | Yes |
 | `colly.serviceName` | Service name | `qubership-colly` | Yes |
-| `colly.instancesRepo` | Git repository for Cloud Passport configs | `https://github.com/ormig/cloud-passport-samples.git` | Yes |
+| `colly.instancesRepo` | Git repository for Cloud Passports | `https://github.com/my-org/cloud-passport-samples.git` | Yes |
 | `colly.cronSchedule` | Synchronization schedule | `0 0/1 * * * ?` | Yes |
 
 ### Identity Provider Configuration (`colly.idp`)
@@ -143,21 +39,17 @@ The Qubership Colly Helm chart provides a complete deployment solution for Kuber
 ### Database Configuration (`colly.db`)
 
 | Parameter | Description | Default | Required |
-|-----------|-------------|---------|----------|
+|-----------|-------------|------|----------|
 | `colly.db.host` | PostgreSQL JDBC URL | `jdbc:postgresql://postgres.../postgres` | Yes |
-| `colly.db.username` | Database username | `postgres` | Yes |
-| `colly.db.password` | Database password | `UuFciyKFWa` | Yes |
+| `colly.db.username` | Database username | `no` | Yes |
+| `colly.db.password` | Database password | `no` | Yes |
 
-### Network Configuration (`colly.ports`)
-
-| Parameter | Description | Default | Required |
-|-----------|-------------|---------|----------|
-| `colly.ports.http` | HTTP port | `8080` | Yes |
 
 ### Ingress Configuration (`colly.ingress`)
 
 | Parameter | Description | Default | Required |
 |-----------|-------------|---------|----------|
+| `colly.ports.http` | HTTP port | `8080` | Yes |
 | `colly.ingress.className` | Ingress class | `alb` | No |
 | `colly.ingress.http.annotations` | Ingress annotations | See below | No |
 
@@ -256,19 +148,19 @@ helm uninstall qubership-colly
 ### Common Issues
 
 1. **Database Connection Issues**
-   - Verify database credentials in secret
-   - Check network policies and security groups
-   - Ensure PostgreSQL is accessible from cluster
+    - Verify database credentials in secret
+    - Check network policies and security groups
+    - Ensure PostgreSQL is accessible from cluster
 
 2. **OIDC Authentication Issues**
-   - Verify client ID and secret configuration
-   - Check OIDC provider URL accessibility
-   - Ensure realm and client are properly configured
+    - Verify client ID and secret configuration
+    - Check OIDC provider URL accessibility
+    - Ensure realm and client are properly configured
 
 3. **Git Repository Access Issues**
-   - Verify repository URL and credentials
-   - Check network egress policies
-   - Ensure proper authentication tokens
+    - Verify repository URL and credentials
+    - Check network egress policies
+    - Ensure proper authentication tokens
 
 ### Debugging
 
@@ -286,28 +178,72 @@ kubectl get secrets -n <namespace>
 kubectl get ingress -n <namespace>
 ```
 
-## Configuration Best Practices
+## Application Configuration
 
-### Security
-- Always use secrets for sensitive data (passwords, tokens)
-- Use TLS for all external communications
-- Implement proper RBAC for cluster access
-- Regularly rotate credentials
+### Environment Variables
 
-### Performance
-- Adjust thread pool size based on cluster count
-- Configure appropriate cron schedules to avoid resource conflicts
-- Monitor database connection pool settings
-- Set proper resource limits in Kubernetes
+| Variable                                         | Description                                                                        | Default                        |
+|--------------------------------------------------|------------------------------------------------------------------------------------|--------------------------------|
+| `ENV_INSTANCES_REPO`                             | Git repository URL(s) for Cloud Passport configs                                   | -                              |
+| `CRON_SCHEDULE`                                  | Cluster synchronization schedule                                                   | `0 * * * * ?`                  |
+| `COLLY_MONITORING_CUSTOM_METRIC_NAME`            | Define the column name in the environments table with monitoring metric            | -                              |
+| `COLLY_MONITORING_CUSTOM_METRIC_QUERY`           | Query that calcultes metric for environment                                        | -                              |
+| `COLLY_CLUSTER_RESOURCE_LOADER_THREAD_POOL_SIZE` | Parallel processing threads                                                        | 5                              |
+| `COLLY_CONFIG_MAP_VERSIONS_NAME`                 | Name of the config map in namespace that has information about installation status | `sd-versions`                  |
+| `COLLY_CONFIG_MAP_VERSIONS_DATA_FIELD_NAME`      | Data Field Name in config map that has information about installed component       | `solution-descriptors-summary` |
+| `CLOUD_PASSPORT_FOLDER`     | Folder with clonned git-repositories                                               | `./git-repo`                   |
 
-### Monitoring
-- Configure custom monitoring queries for your specific metrics
-- Set up alerting for failed synchronizations
-- Monitor resource usage and adjust limits accordingly
-- Track application logs for troubleshooting
 
-### High Availability
-- Use external PostgreSQL with replication
-- Configure multiple replicas for the application
-- Implement proper health checks
-- Use persistent volumes for data storage
+## ENV_INSTANCES_REPO
+Configure clusters using Git repositories containing Cloud Passport files:
+
+```bash
+# Single repository
+ENV_INSTANCES_REPO=https://github.com/your-org/cloud-passports.git
+
+# Multiple repositories
+ENV_INSTANCES_REPO=https://github.com/repo1.git,https://github.com/repo2.git
+
+# With authentication
+ENV_INSTANCES_REPO=https://username:token@github.com/private/repo.git
+```
+
+### Cloud Passport Structure
+```yaml
+# cluster-config.yaml
+apiVersion: v1
+kind: CloudPassport
+metadata:
+  name: production-cluster
+spec:
+  cloudApiHost: https://k8s-api.example.com
+  token: <k8s-token>
+  environments:
+    - name: production-env
+      description: "Production environment"
+      namespaces:
+        - name: prod-api
+        - name: prod-web
+    - name: staging-env
+      description: "Staging environment"
+      namespaces:
+        - name: staging-api
+        - name: staging-web
+```
+
+## Monitoring Integration
+
+Qubership Colly supports custom monitoring queries that are executed against your monitoring system:
+
+```properties
+# Define custom metrics
+colly.monitoring."custom-metric".name=Custom Metric Name
+colly.monitoring."custom-metric".query=your_prometheus_query{namespace=~"{namespace}"}
+colly.monitoring."custom-metric-2".name=Custom Metric Name2
+colly.monitoring."custom-metric-2".query=your_prometheus_query2{namespace=~"{namespace}"}
+```
+
+The `{namespace}` placeholder is automatically replaced with the actual namespace names for each environment.
+
+---
+
