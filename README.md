@@ -1,79 +1,142 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-colly&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Netcracker_qubership-colly)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-colly&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Netcracker_qubership-colly)
 
-# qubership-colly
+# Qubership Colly
 
-The tool is designed to track the usage of environments within clusters. This project uses Quarkus, the Supersonic Subatomic Java Framework and React.
+A modern cluster environment tracking tool. Qubership Colly provides comprehensive visibility into Kubernetes environments across multiple clusters, helping teams track resource usage, manage environment lifecycles, and monitor common environment metrics.
 
 ## Features
 
-- The tool is designed to track the usage of environments within clusters.
-- Support several clusters
-- Support Cloud Passport concept
-- ability to group several namespaces into one environment
-- show additional custom UI parameters for the environment (owner, description, status)
-- collect metrics from monitoring related to environments
-- (todo) ability to show information (name, version) about deployed helm packages
-    - (optional) support argo packages
+- **Multi-cluster Support** - Monitor environments across multiple Kubernetes clusters
+- **Cloud Passport Integration** - Native support for Cloud Passport configuration management
+- **Environment Grouping** - Group multiple namespaces into logical environments
+- **Environment Lifecycle Management** - Track environment creation, expiration, and cleanup
+- **Rich Metadata Management** - Track owners, teams, descriptions, and custom labels for Environments
+- **Deployment Version Tracking** - Monitor version information across environments
+- **Monitoring Integration** - Collect and display metrics from Prometheus/monitoring systems
+- **OIDC Authentication** - Secure access with Keycloak or other OIDC providers
+- **Automated Discovery** - Scheduled synchronization with cluster resources
+- Advanced filtering and search capabilities
+
+## User Interface
+
+### Environment Table
+![environments.png](docs/environments.png)
+The main interface displays environments in a comprehensive table with the following columns:
+
+- **Name** - Environment name from Cloud Passport configuration
+- **Namespace(s)** - Associated Kubernetes namespaces
+- **Type** - Environment type (ENVIRONMENT, INFRASTRUCTURE, CSE_TOOLSET, UNDEFINED) calculated from namespace labels (editable by admins)
+- **Cluster** - Source cluster name
+- **Owner** - Environment owner (editable by admins)
+- **Team** - Associated team (editable by admins)
+- **Expiration Date** - Environment expiration date for lifecycle management
+- **Status** - Current status (IN_USE, FREE, MIGRATING, RESERVED) with color coding
+- **Labels** - Custom labels as chips (editable by admins)
+- **Description** - Environment description from Cloud Passport or manual entry
+- **Version** - Deployment version information from config maps
+- **Clean Installation Date** - Last clean installation timestamp from config maps
+- **Monitoring Columns** - Dynamic columns for custom monitoring metrics
+
+### Cluster Table
+![clusters.png](docs/clusters.png)
+
+- View cluster synchronization status
+- Monitor cluster connectivity
+- Track cluster-specific configurations
+
+### Administrative Features
+- Edit environment metadata (type, owner, team, description, status, labels, expiration)
+- Edit cluster metadata (description)
+- Delete environments with confirmation
+
+## Architecture Overview
+
+Key Points:
+- **Frontend**: React-based web interface with Material-UI components
+- **Backend**: Quarkus-based REST API with PostgreSQL database
+- **Scheduler**: Configurable cron jobs for cluster synchronization
+- **Authentication**: OIDC integration for secure access control
 
 
-## Environment visualization details
-![img.png](img.png)
-Columns:
-- **Environment** - Name of the environment. Information is taken from the cloud passport configuration.
-- **Environment Type** - Type of the environment. Type is calculated based on namespace labels. 
-- **Namespace(s)** - Name of the namespace(s). Information is taken from the cloud passport configuration.
-- **Cluster** - Name of the cluster. Information is taken from the cloud passport configuration.
-- **Owner** - Owner of the environment. Owner can be specified in Colly and persisted in the database. 
-- **Status** - Status of the environment. Status can be specified in Colly and persisted in the database.
-- **Labels** - Labels of the environment. Labels can be specified in Colly and persisted in the database.
-- **Description** - Description of the environment. Information is taken from the cloud passport configuration and also can be specified in Colly.
+## Quick Start
 
+### Run with Docker
+```bash
+# Start PostgreSQL database
+docker run -d --rm --name colly-db -p 5432:5432 \
+  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres postgres:17
 
-
-## Run latest version in Docker
-```shell script
-docker run -d --rm --name colly-db -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres postgres:17
-docker run -v ~/.kube:/kubeconfigs -e ENV_INSTANCES_REPO=https://github.com/ormig/cloud-passport-samples.git -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
+# Run Qubership Colly
+docker run -v ~/.kube:/kubeconfigs \
+  -e ENV_INSTANCES_REPO=https://github.com/ormig/cloud-passport-samples.git \
+  -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
 ```
 
-## Run using helm 
-1. Install Keycloak
-   ```shell script
-   helm repo add bitnami https://charts.bitnami.com/bitnami
-   helm repo update
-   helm install keycloak bitnami/keycloak --namespace keycloak --create-namespace
-   ```
-2. Install Colly
-```shell script
+### Deploy with Helm
+```bash
+# Add helm repository
+helm repo add netcracker https://netcracker.github.io/helm-charts
+helm repo update
 
-helm install qubership-colly netcracker/qubership-colly --set colly.db.password=<DB_PASSWORD> --set colly.db.user=<DB_USERNAMER> --set colly.db.host=<DB_HOST> --set colly.keycloak.url=http://<KEYCLOAK_HOST>:<KEYCLOAK_PORT>/realms/colly-realm 
+# Install with basic configuration
+helm install qubership-colly netcracker/qubership-colly \
+  --set colly.db.password=<DB_PASSWORD> \
+  --set colly.db.username=<DB_USERNAME> \
+  --set colly.db.host=<DB_HOST> \
+  --set colly.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm
 ```
-## Clusters configuration
-There are two ways to specify clusters:
-1. (!!! deprecated for now) Specify folder with kubeconfig files in `/kubeconfigs` and run the application. The application will read all kubeconfig files and connect to clusters. Example:
-   ```shell
-   docker run -v ~/.kube:/kubeconfigs -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
-   ```
-   The application will read all kubeconfig files in `~/.kube` folder and connect to clusters.
-2. Specify `ENV_INSTANCES_REPO` environment variable with URL to git repository with Cloud Passports files. The application will clone the repository and read all cloud passports for each cluster. In this option application read all cloud passports, environments and namespaces from the repository. Based on this information, it will create clusters, environments and namespaces in the database. Then using information from the cloud passport application will connect to each cluster and read all namespaces, deployments, pods, configmaps. Example:
-    ```shell
-   docker run -e ENV_INSTANCES_REPO=https://github.com/ormig/cloud-passport-samples.git -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
-    ```
-   multiple repositories can be specified using comma-separated values. For example:
-    ```shell
-   docker run -e ENV_INSTANCES_REPO=https://github.com/repo1.git,https://github.com/repo2.git -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
-    ```
-   The application will clone the repository `https://github.com/ormig/cloud-passport-samples.git` and read all cloud passports for each cluster. If authentication is required to clone a repository, you can specify it in URL:
-    ```shell
-      docker run -e ENV_INSTANCES_REPO=https://myusername:mypassword@github.com/ormig/cloud-passport-samples.git -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
-    ```
-    
-## Environment Resolver Strategy
-You can configure how to resolve an environment by namespace using two strategies:
-1. **ByName** - Uses the first part of the namespace name as the environment name if suffix is in the scope of values: oss, bss, data-management, core. For example, `dev-bss` becomes `dev`.
-2. **ByLabel** - Uses the `environmentName` label from the namespace. For example, if the namespace is `dev-namespace` and the label is `environmentName=dev`, the environment name will be `dev`.
-Example:
-    ```shell
-    docker run -e ENVIRONMENT_RESOLVER_STRATEGY=byName -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
-    ```
+
+## Configuration
+
+For detailed configuration options including application properties, environment variables, Helm chart parameters, and deployment examples, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
+## Development
+
+### Prerequisites
+- Java 21+
+- Node.js 18+
+- PostgreSQL 12+
+- Docker (optional)
+
+### Build and Run
+```bash
+# Build the application
+./mvnw clean package
+
+# Run in development mode
+./mvnw quarkus:dev
+
+# Build frontend separately
+cd src/main/webui
+npm install
+npm run build
+```
+
+### Testing
+```bash
+# Run all tests
+./mvnw test
+
+# Run with coverage
+./mvnw test jacoco:report
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+
+## Support
+
+For issues and questions:
+- Create an issue in the GitHub repository
+- Check the [Configuration Guide](docs/CONFIGURATION.md) for detailed setup instructions
+- Review troubleshooting steps in the configuration documentation
