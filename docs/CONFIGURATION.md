@@ -2,13 +2,7 @@
 
 ## Helm Charts Overview
 
-The Qubership Colly Helm chart provides a complete deployment solution for Kubernetes environments with support for OIDC authentication, PostgreSQL database integration, and AWS ALB ingress.
-
-## Chart Information
-
-- **Chart Name**: qubership-colly
-- **Chart Version**: 0.0.0
-- **API Version**: v2
+The Qubership Colly Helm chart provides a complete deployment solution for Kubernetes environments with support for OIDC authentication, PostgreSQL database integration.
 
 ## Configuration Parameters
 
@@ -64,9 +58,7 @@ colly.ingress.http.annotations:
 
 ### Basic Installation
 ```bash
-helm install qubership-colly netcracker/qubership-colly \
-  --set colly.db.password=mypassword \
-  --set colly.idp.clientSecret=myclientsecret
+helm install qubership-colly netcracker/qubership-colly -n my-namespace
 ```
 
 ### Production Installation
