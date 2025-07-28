@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import {Badge, Box, Chip, InputAdornment, TextField, Tooltip} from "@mui/material";
+import {Badge, Box, Checkbox, Chip, FormControlLabel, InputAdornment, TextField, Tooltip} from "@mui/material";
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -38,6 +38,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const [selectedEnvironment, setSelectedEnvironment] = useState<Environment | null>(null);
     const [showConfirmPopup, setShowConfirmPopup] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
+    const [showAllNamespaces, setShowAllNamespaces] = useState(false);
 
 
     const apiRef = useGridApiRef();
@@ -165,7 +166,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const rows = useMemo(() => environments.map(env => ({
         id: env.id,
         name: env.name,
-        namespaces: env.namespaces,
+        namespaces: env.namespaces.filter((namespace: Namespace) => showAllNamespaces || namespace.existsInK8s),
         cluster: env.cluster?.name,
         owner: env.owner,
         team: env.team,
@@ -178,7 +179,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         cleanInstallationDate: env.cleanInstallationDate,
         ...(env.monitoringData || {}),
         raw: env
-    })), [environments]);
+    })), [environments, showAllNamespaces]);
 
     const columns = useMemo(() => {
         const monitoringCols: GridColDef[] = monitoringColumns.map(key => ({
@@ -196,7 +197,6 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 renderCell: (params) => (
                     <Box sx={{display: 'flex', flexDirection: 'column'}}>
                         {params.row.namespaces
-                            // .filter((namespace: Namespace) => namespace.existsInK8s)
                             .map((namespace: Namespace) => (
                                 <span key={namespace.name}>{namespace.name}</span>
                             ))}
@@ -290,6 +290,17 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                             </ToolbarButton>
                         )}
                     />
+                </Tooltip>
+                <Tooltip title="Show/Hide Unexisting Namespaces">
+                    <FormControlLabel
+                        control={<Checkbox
+                            checked={showAllNamespaces}
+                            onChange={(event) => {
+                                setShowAllNamespaces(event.target.checked);
+                            }}/>}
+                        label={"Show All Namespaces"}
+                    />
+
                 </Tooltip>
 
                 <QuickFilter>
