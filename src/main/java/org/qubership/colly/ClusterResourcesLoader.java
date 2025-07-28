@@ -130,22 +130,26 @@ public class ClusterResourcesLoader {
 
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaceDtos()) {
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
+                Namespace namespace = namespaceRepository.findByNameAndCluster(cloudPassportNamespace.name(), cluster.getName());
+
                 if (v1Namespace == null) {
-                    Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " not found in cluster " + cluster.getName() + ". Skipping it.");
-                    continue;
-                }
-                String namespaceUid = v1Namespace.getMetadata().getUid();
-                Namespace namespace = namespaceRepository.findByUid(namespaceUid);
-                if (namespace == null) {
-                    namespace = new Namespace();
-                    namespace.setUid(namespaceUid);
-                    namespace.setCluster(cluster);
-                    namespace.setEnvironment(environment);
-                    environment.addNamespace(namespace);
-                    environmentType = calculateEnvironmentType(v1Namespace, environmentType);
+                    Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " is not found in cluster " + cluster.getName());
+                    if (namespace == null) {
+                        namespace = createNamespace(UUID.randomUUID().toString(), cluster, environment);
+                    }
+                    namespace.setExistsInK8s(false);
+                } else {
+                    if (namespace == null) {
+                        namespace = createNamespace(v1Namespace.getMetadata().getUid(), cluster, environment);
+                        environmentType = calculateEnvironmentType(v1Namespace, environmentType);
+                    }
+                    namespace.setExistsInK8s(true);
                 }
                 namespace.setName(cloudPassportNamespace.name());
                 namespaceRepository.persist(namespace);
+                if (!namespace.isExistsInK8s()) {
+                    continue;
+                }
                 V1ConfigMap versionsConfigMap = loadVersionsConfigMap(coreV1Api, cloudPassportNamespace.name());
                 if (versionsConfigMap == null) {
                     Log.warn("Versions config map not found in namespace " + cloudPassportNamespace.name() + ". Skipping it.");
@@ -167,6 +171,16 @@ public class ClusterResourcesLoader {
 
         }
         return envs;
+    }
+
+    private Namespace createNamespace(String uuid, Cluster cluster, Environment environment) {
+        Namespace namespace;
+        namespace = new Namespace();
+        namespace.setUid(uuid);
+        namespace.setCluster(cluster);
+        namespace.setEnvironment(environment);
+        environment.addNamespace(namespace);
+        return namespace;
     }
 
     private V1ConfigMap loadVersionsConfigMap(CoreV1Api coreV1Api, String namespaceName) {
@@ -193,6 +207,9 @@ public class ClusterResourcesLoader {
     }
 
     private EnvironmentType calculateEnvironmentType(V1Namespace v1Namespace, EnvironmentType defaultEnvType) {
+        if (v1Namespace == null) {
+            return defaultEnvType;
+        }
         Map<String, String> labels = Objects.requireNonNull(v1Namespace.getMetadata()).getLabels();
         String levelValue = labels.get(LABEL_DISCOVERY_CLI_IO_LEVEL);
         if (LABEL_LEVEL_APPS.equals(levelValue)) {

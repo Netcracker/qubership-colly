@@ -246,8 +246,10 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
         Environment testEnv = environmentRepository.findByNameAndCluster("env-2-namespaces", CLUSTER_NAME);
-        assertThat(testEnv.getNamespaces(), hasSize(1));
-        assertThat(testEnv.getNamespaces(), hasItems(hasProperty("name", equalTo(NAMESPACE_NAME))));
+        assertThat(testEnv.getNamespaces(), hasSize(2));
+        assertThat(testEnv.getNamespaces(), hasItems(
+                allOf(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("existsInK8s", equalTo(true))),
+                allOf(hasProperty("name", equalTo("non-existing-namespace")), hasProperty("existsInK8s", equalTo(false)))));
     }
 
     @Test
@@ -263,10 +265,40 @@ class ClusterResourcesLoaderTest {
         clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
         Environment testEnv = environmentRepository.findByNameAndCluster("env-unreachable", "unreachable-cluster");
         assertThat(testEnv, hasProperty("name", equalTo("env-unreachable")));
-        assertThat(testEnv.getNamespaces(), hasSize(0));
+        assertThat(testEnv.getNamespaces(), hasSize(1));
+        assertThat(testEnv.getNamespaces(), hasItems(allOf(
+                hasProperty("existsInK8s", equalTo(false)),
+                hasProperty("name", equalTo(NAMESPACE_NAME)))));
         assertThat(testEnv.getCluster(), allOf(
                 hasProperty("name", equalTo("unreachable-cluster")),
                 hasProperty("synced", equalTo(false))));
+    }
+
+    @Test
+    void load_namespace_that_created_after_first_loading() throws ApiException {
+        CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
+                Set.of(new CloudPassportEnvironment("env-with-new-namespace", "some env for tests",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME), new CloudPassportNamespace("new-namespace")))), null);
+        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
+
+        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        Environment testEnv = environmentRepository.findByNameAndCluster("env-with-new-namespace", CLUSTER_NAME);
+        assertThat(testEnv.getNamespaces(), hasSize(2));
+
+        assertThat(testEnv.getNamespaces(), hasItems(
+                allOf(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("existsInK8s", equalTo(true))),
+                allOf(hasProperty("name", equalTo("new-namespace")), hasProperty("existsInK8s", equalTo(false)))));
+
+        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, "new-namespace"));
+        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        Environment testEnv2 = environmentRepository.findByNameAndCluster("env-with-new-namespace", CLUSTER_NAME);
+
+        assertThat(testEnv2.getNamespaces(), hasSize(2));
+
+        assertThat(testEnv2.getNamespaces(), hasItems(
+                allOf(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("existsInK8s", equalTo(true))),
+                allOf(hasProperty("name", equalTo("new-namespace")), hasProperty("existsInK8s", equalTo(true)))));
+
     }
 
     @Test
