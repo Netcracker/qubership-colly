@@ -23,6 +23,7 @@ import {UserInfo} from "../entities/users";
 import dayjs from "dayjs";
 import ConfirmationDialog from "./ConfirmDialog";
 import EditEnvironmentDialog from "./EditEnvironmentDialog";
+import {Namespace} from "../entities/namespaces";
 
 interface EnvTableProps {
     userInfo: UserInfo;
@@ -194,9 +195,11 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 field: "namespaces", headerName: "Namespace(s)", width: 200,
                 renderCell: (params) => (
                     <Box sx={{display: 'flex', flexDirection: 'column'}}>
-                        {params.row.namespaces.map((namespace: { name: string }) => (
-                            <span key={namespace.name}>{namespace.name}</span>
-                        ))}
+                        {params.row.namespaces
+                            // .filter((namespace: Namespace) => namespace.existsInK8s)
+                            .map((namespace: Namespace) => (
+                                <span key={namespace.name}>{namespace.name}</span>
+                            ))}
                     </Box>
                 )
             },

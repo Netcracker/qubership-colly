@@ -1,7 +1,9 @@
+import {Namespace} from "./namespaces";
+
 export type Environment = {
     id: number;
     name: string;
-    namespaces: { name: string }[];
+    namespaces: Namespace[];
     cluster: { name: string };
     owner: string;
     team: string;
