@@ -1,10 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Box, Chip} from "@mui/material";
-import {
-    DataGrid,
-    GridColDef,
-    useGridApiRef
-} from '@mui/x-data-grid';
+import {DataGrid, GridColDef, useGridApiRef} from '@mui/x-data-grid';
 import {Environment, ENVIRONMENT_TYPES_MAPPING, EnvironmentStatus, STATUS_MAPPING} from "../entities/environments";
 import {UserInfo} from "../entities/users";
 import dayjs from "dayjs";
@@ -197,7 +193,8 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     <Box sx={{display: 'flex', flexDirection: 'column'}}>
                         {params.row.namespaces
                             .map((namespace: Namespace) => (
-                                <span key={namespace.name}>{namespace.name}</span>
+                                <Box key={namespace.name}
+                                     sx={{color: namespace.existsInK8s ? "default" : "error.main"}}>{namespace.name}</Box>
                             ))}
                     </Box>
                 )
