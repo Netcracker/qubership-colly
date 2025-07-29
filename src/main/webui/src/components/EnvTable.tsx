@@ -253,91 +253,95 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const CustomToolbar = () => {
         return (
             <Toolbar>
-                {userInfo.authenticated && userInfo.isAdmin && (
-                    <Tooltip title="Edit">
-                        <ToolbarButton
-                            size="medium"
-                            onClick={() => setShowEditDialog(true)}
-                            disabled={!selectedEnvironment}>
-                            <EditIcon fontSize="small"/>
-                        </ToolbarButton>
-                    </Tooltip>
-                )}
-                {userInfo.authenticated && userInfo.isAdmin && (
-                    <Tooltip title="Delete">
-                        <ToolbarButton
-                            size="medium"
-                            onClick={() => setShowConfirmPopup(true)}
-                            disabled={!selectedEnvironment}>
-                            <DeleteIcon fontSize="small"/>
-                        </ToolbarButton>
-                    </Tooltip>
-                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                    <QuickFilter>
+                        <QuickFilterControl
+                            render={({ref, ...controlProps}, state) => (
+                                <TextField
+                                    {...controlProps}
+                                    inputRef={ref}
+                                    aria-label="Search"
+                                    placeholder="Search..."
+                                    size="small"
+                                    sx={{ width: 250, minWidth: 250 }}
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchIcon fontSize="small"/>
+                                                </InputAdornment>
+                                            ),
+                                            endAdornment: state.value ? (
+                                                <InputAdornment position="end">
+                                                    <QuickFilterClear
+                                                        edge="end"
+                                                        size="small"
+                                                        aria-label="Clear search"
+                                                    >
+                                                        <CancelIcon fontSize="small"/>
+                                                    </QuickFilterClear>
+                                                </InputAdornment>
+                                            ) : null,
+                                            ...controlProps.slotProps?.input,
+                                        },
+                                        ...controlProps.slotProps,
+                                    }}
+                                />
+                            )}
+                        />
+                    </QuickFilter>
 
-                <Tooltip title="Columns">
-                    <ColumnsPanelTrigger render={<ToolbarButton/>}>
-                        <ViewColumnIcon fontSize="small"/>
-                    </ColumnsPanelTrigger>
-                </Tooltip>
-
-                <Tooltip title="Filters">
-                    <FilterPanelTrigger
-                        render={(props, state) => (
-                            <ToolbarButton {...props} color="default">
-                                <Badge badgeContent={state.filterCount} color="primary" variant="dot">
-                                    <FilterListIcon fontSize="small"/>
-                                </Badge>
-                            </ToolbarButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {userInfo.authenticated && userInfo.isAdmin && (
+                            <Tooltip title="Edit">
+                                <ToolbarButton
+                                    size="medium"
+                                    onClick={() => setShowEditDialog(true)}
+                                    disabled={!selectedEnvironment}>
+                                    <EditIcon fontSize="small"/>
+                                </ToolbarButton>
+                            </Tooltip>
                         )}
-                    />
-                </Tooltip>
-                <Tooltip title="Show/Hide Unexisting Namespaces">
-                    <FormControlLabel
-                        control={<Checkbox
-                            checked={showAllNamespaces}
-                            onChange={(event) => {
-                                setShowAllNamespaces(event.target.checked);
-                            }}/>}
-                        label={"Show All Namespaces"}
-                    />
+                        {userInfo.authenticated && userInfo.isAdmin && (
+                            <Tooltip title="Delete">
+                                <ToolbarButton
+                                    size="medium"
+                                    onClick={() => setShowConfirmPopup(true)}
+                                    disabled={!selectedEnvironment}>
+                                    <DeleteIcon fontSize="small"/>
+                                </ToolbarButton>
+                            </Tooltip>
+                        )}
 
-                </Tooltip>
+                        <Tooltip title="Columns">
+                            <ColumnsPanelTrigger render={<ToolbarButton/>}>
+                                <ViewColumnIcon fontSize="small"/>
+                            </ColumnsPanelTrigger>
+                        </Tooltip>
 
-                <QuickFilter>
-                    <QuickFilterControl
-                        render={({ref, ...controlProps}, state) => (
-                            <TextField
-                                {...controlProps}
-                                inputRef={ref}
-                                aria-label="Search"
-                                placeholder="Search..."
-                                size="small"
-                                slotProps={{
-                                    input: {
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchIcon fontSize="small"/>
-                                            </InputAdornment>
-                                        ),
-                                        endAdornment: state.value ? (
-                                            <InputAdornment position="end">
-                                                <QuickFilterClear
-                                                    edge="end"
-                                                    size="small"
-                                                    aria-label="Clear search"
-                                                >
-                                                    <CancelIcon fontSize="small"/>
-                                                </QuickFilterClear>
-                                            </InputAdornment>
-                                        ) : null,
-                                        ...controlProps.slotProps?.input,
-                                    },
-                                    ...controlProps.slotProps,
-                                }}
+                        <Tooltip title="Filters">
+                            <FilterPanelTrigger
+                                render={(props, state) => (
+                                    <ToolbarButton {...props} color="default">
+                                        <Badge badgeContent={state.filterCount} color="primary" variant="dot">
+                                            <FilterListIcon fontSize="small"/>
+                                        </Badge>
+                                    </ToolbarButton>
+                                )}
                             />
-                        )}
-                    />
-                </QuickFilter>
+                        </Tooltip>
+                        <Tooltip title="Show/Hide Unexisting Namespaces">
+                            <FormControlLabel
+                                control={<Checkbox
+                                    checked={showAllNamespaces}
+                                    onChange={(event) => {
+                                        setShowAllNamespaces(event.target.checked);
+                                    }}/>}
+                                label={"Show All Namespaces"}
+                            />
+                        </Tooltip>
+                    </Box>
+                </Box>
             </Toolbar>
         )
     };
