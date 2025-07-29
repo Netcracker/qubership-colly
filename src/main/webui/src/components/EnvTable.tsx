@@ -46,6 +46,10 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 if (savedState) {
                     const state = JSON.parse(savedState);
                     apiRef.current.restoreState(state);
+
+                    if (state.showAllNamespaces !== undefined) {
+                        setShowAllNamespaces(state.showAllNamespaces);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to load DataGrid state:", error);
@@ -66,14 +70,15 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 filterModel: {
                     filterPanelState: undefined
                 },
-                preferencePanel: undefined
+                preferencePanel: undefined,
+                showAllNamespaces: showAllNamespaces
             };
 
             localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
         } catch (error) {
             console.error("Failed to save DataGrid state:", error);
         }
-    }, [isInitialized, apiRef]);
+    }, [isInitialized, apiRef, showAllNamespaces]);
 
     useEffect(() => {
         if (!apiRef.current || !isInitialized) return;
@@ -90,6 +95,12 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
             unsubscribers.forEach(unsubscribe => unsubscribe());
         };
     }, [saveState, apiRef, isInitialized]);
+
+    useEffect(() => {
+        if (isInitialized) {
+            saveState();
+        }
+    }, [showAllNamespaces, saveState, isInitialized]);
 
     const handleDeleteAction = useCallback(async () => {
         try {
