@@ -11,7 +11,7 @@ interface ClusterTableToolbarProps {
     onEditClick: () => void;
 }
 
-export default function (props: ClusterTableToolbarProps) {
+export default function ClusterTableToolbar({userInfo, isEditEnabled, onEditClick}: ClusterTableToolbarProps) {
     return (
         <Toolbar>
             <Box sx={{display: 'flex', justifyContent: 'space-between', width: '100%'}}>
@@ -51,12 +51,12 @@ export default function (props: ClusterTableToolbarProps) {
                     />
                 </QuickFilter>
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
-                    {props.userInfo.authenticated && props.userInfo.isAdmin && (
+                    {userInfo.authenticated && userInfo.isAdmin && (
                         <Tooltip title="Edit">
                             <ToolbarButton
                                 size="medium"
-                                onClick={props.onEditClick}
-                                disabled={props.isEditEnabled}
+                                onClick={onEditClick}
+                                disabled={isEditEnabled}
                             >
                                 <EditIcon fontSize="small"/>
                             </ToolbarButton>
