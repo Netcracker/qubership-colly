@@ -1,21 +1,26 @@
 import {Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
-import React from "react";
+import React, {useEffect} from "react";
 import {Cluster} from "../entities/clusters";
 
 type Props = {
     cluster: Cluster;
     onClose: () => void;
+    show: boolean;
     onSave: (cluster: Cluster) => void;
 };
 
-export default function EditClusterDialog({cluster, onClose, onSave}: Props) {
+export default function EditClusterDialog({cluster, onClose, onSave, show}: Props) {
 
     const [localCluster, setCluster] = React.useState<Cluster>(cluster);
+
+    useEffect(() => {
+        setCluster(cluster);
+    }, [cluster]);
     const handleSubmit = () => {
         onSave(localCluster);
     };
 
-    return <Dialog open={!!localCluster} onClose={onClose} fullWidth={true} maxWidth="sm">
+    return <Dialog open={show} onClose={onClose} fullWidth={true} maxWidth="sm">
         <DialogTitle>Edit Cluster</DialogTitle>
         <DialogContent>
             <TextField

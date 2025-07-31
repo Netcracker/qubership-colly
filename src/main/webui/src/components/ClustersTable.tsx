@@ -1,20 +1,10 @@
-import React, {useCallback, useEffect, useState} from "react";
-import {Box, Chip, InputAdornment, TextField, Tooltip} from "@mui/material";
-import {
-    DataGrid,
-    GridColDef,
-    QuickFilter,
-    QuickFilterClear,
-    QuickFilterControl,
-    Toolbar,
-    ToolbarButton
-} from '@mui/x-data-grid';
+import React, {useEffect, useState} from "react";
+import {Box, Chip} from "@mui/material";
+import {DataGrid, GridColDef} from '@mui/x-data-grid';
 import {UserInfo} from "../entities/users";
 import {Cluster} from "../entities/clusters";
-import EditIcon from "@mui/icons-material/Edit";
 import EditClusterDialog from "./EditClusterDialog";
-import SearchIcon from "@mui/icons-material/Search";
-import CancelIcon from "@mui/icons-material/Cancel";
+import ClusterTableToolbar from "./ClusterTableToolbar";
 
 interface ClusterTableProps {
     userInfo: UserInfo;
@@ -24,7 +14,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
     const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
     const [clusters, setClusters] = useState<Cluster[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
+    const [showEditDialog, setShowEditDialog] = useState(false);
 
 
     useEffect(() => {
@@ -34,11 +24,6 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
             .catch(err => console.error("Failed to fetch clusters:", err))
             .finally(() => setLoading(false));
     }, []);
-
-    const handleEditClick = useCallback((cluster: Cluster) => {
-        setSelectedCluster(cluster);
-    }, []);
-
 
     const handleSave = async (changedCluster: Cluster) => {
         if (!changedCluster) return;
@@ -56,7 +41,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
             });
 
             if (response.ok) {
-                setSelectedCluster(null);
+                setShowEditDialog(false);
                 setClusters(prev => prev.map(cluster => cluster.name === changedCluster.name ? changedCluster : cluster));
             } else {
                 console.error("Failed to save changes", await response.text());
@@ -96,59 +81,11 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
         raw: cluster
     }));
     const CustomToolbar = () => {
-        return (
-            <Toolbar>
-                {userInfo.authenticated && userInfo.isAdmin && (
-                    <Tooltip title="Edit">
-                        <ToolbarButton
-                            size="medium"
-                            onClick={() => {
-                                const cluster = clusters.find(e => e.name === selectedClusterId);
-                                if (cluster) handleEditClick(cluster);
-                            }}
-                            disabled={!selectedClusterId}
-                        >
-                            <EditIcon fontSize="small"/>
-                        </ToolbarButton>
-                    </Tooltip>
-                )}
-
-                <QuickFilter>
-                    <QuickFilterControl
-                        render={({ref, ...controlProps}, state) => (
-                            <TextField
-                                {...controlProps}
-                                inputRef={ref}
-                                aria-label="Search"
-                                placeholder="Search..."
-                                size="small"
-                                slotProps={{
-                                    input: {
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchIcon fontSize="small"/>
-                                            </InputAdornment>
-                                        ),
-                                        endAdornment: state.value ? (
-                                            <InputAdornment position="end">
-                                                <QuickFilterClear
-                                                    edge="end"
-                                                    size="small"
-                                                    aria-label="Clear search"
-                                                >
-                                                    <CancelIcon fontSize="small"/>
-                                                </QuickFilterClear>
-                                            </InputAdornment>
-                                        ) : null,
-                                        ...controlProps.slotProps?.input,
-                                    },
-                                    ...controlProps.slotProps,
-                                }}
-                            />
-                        )}
-                    />
-                </QuickFilter>
-            </Toolbar>
+        return (<ClusterTableToolbar
+                userInfo={userInfo}
+                isEditEnabled={!selectedCluster}
+                onEditClick={() => setShowEditDialog(true)}
+            />
         )
     };
 
@@ -169,11 +106,13 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
                     disableColumnMenu
                     onRowSelectionModelChange={(rowSelectionModel) => {
                         if (rowSelectionModel.ids.size > 0) {
-                            console.log(rowSelectionModel)
                             const selectedClusterId = rowSelectionModel.ids.keys().next().value;
-                            setSelectedClusterId(selectedClusterId);
+                            const cluster = clusters.find(e => e.name === selectedClusterId);
+                            if (cluster) {
+                                setSelectedCluster(cluster);
+                            } else setSelectedCluster(null);
                         } else {
-                            setSelectedClusterId(null);
+                            setSelectedCluster(null);
                         }
                     }}
                     slots={{
@@ -190,8 +129,9 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
             {selectedCluster && userInfo.authenticated && userInfo.isAdmin && (
                 <EditClusterDialog
                     cluster={selectedCluster}
+                    show={showEditDialog}
                     onSave={handleSave}
-                    onClose={() => setSelectedCluster(null)}
+                    onClose={() => setShowEditDialog(false)}
                 />
             )}
         </Box>
