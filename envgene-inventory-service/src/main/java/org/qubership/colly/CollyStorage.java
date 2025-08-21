@@ -39,7 +39,7 @@ public class CollyStorage {
         this.cloudPassportLoader = cloudPassportLoader;
     }
 
-    @Scheduled(cron = "{cron.schedule}")
+    @Scheduled(cron = "{colly-eis.cron.schedule}")
     @Transactional
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
