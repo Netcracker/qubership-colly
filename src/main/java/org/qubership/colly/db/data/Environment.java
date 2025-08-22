@@ -16,6 +16,7 @@ public class Environment extends PanacheEntity {
     private String name;
     private String owner;
     private String team;
+    @Column(columnDefinition = "TEXT")
     private String description;
     private LocalDate expirationDate;
     private Instant cleanInstallationDate;
