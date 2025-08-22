@@ -83,12 +83,13 @@ class ClusterResourcesLoaderTest {
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), URI.create("http://localhost:" + port));
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
 
+        String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
         V1ConfigMap configMap = new V1ConfigMap()
                 .metadata(new V1ObjectMeta()
                         .name("sd-versions")
                         .uid("configmap-uid")
                         .creationTimestamp(DATE_2024))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
+                .data(Map.of("solution-descriptors-summary", exampleOfLongVersion));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
 
@@ -98,7 +99,7 @@ class ClusterResourcesLoaderTest {
         assertThat(testEnv, allOf(
                 hasProperty("name", equalTo("env-test")),
                 hasProperty("description", equalTo("some env for tests")),
-                hasProperty("deploymentVersion", equalTo("MyVersion 1.0.0\n")),
+                hasProperty("deploymentVersion", equalTo(exampleOfLongVersion + "\n")),
                 hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant())),
                 hasProperty("type", equalTo(EnvironmentType.ENVIRONMENT))));
 
