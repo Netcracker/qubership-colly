@@ -20,10 +20,10 @@ public class Namespace extends PanacheEntityBase {
     @JoinColumn(referencedColumnName = "id")
     private Environment environment;
 
-    private boolean existsInK8s;
+    private Boolean existsInK8s;
 
-    public boolean isExistsInK8s() {
-        return existsInK8s;
+    public boolean getExistsInK8s() {
+        return existsInK8s != null && existsInK8s;
     }
 
     public void setExistsInK8s(boolean existsInK8s) {
