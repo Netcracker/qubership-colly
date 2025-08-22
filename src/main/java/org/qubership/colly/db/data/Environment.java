@@ -39,6 +39,7 @@ public class Environment extends PanacheEntity {
     @Column(name = "value", columnDefinition = "TEXT")
     private Map<String, String> monitoringData;
 
+    @Column(columnDefinition = "TEXT")
     private String deploymentVersion;
 
     @ElementCollection
