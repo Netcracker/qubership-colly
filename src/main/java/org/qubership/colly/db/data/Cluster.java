@@ -10,7 +10,7 @@ import java.util.List;
 public class Cluster extends PanacheEntityBase {
     @Id
     private String name;
-    private boolean synced;
+    private Boolean synced;
 
     @OneToMany(mappedBy = "cluster", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     public List<Environment> environments;
@@ -45,11 +45,11 @@ public class Cluster extends PanacheEntityBase {
         this.description = description;
     }
 
-    public boolean isSynced() {
-        return synced;
+    public boolean getSynced() {
+        return synced != null && synced;
     }
 
-    public void setSynced(boolean synced) {
+    public void setSynced(Boolean synced) {
         this.synced = synced;
     }
 }

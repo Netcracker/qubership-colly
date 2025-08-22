@@ -147,7 +147,7 @@ public class ClusterResourcesLoader {
                 }
                 namespace.setName(cloudPassportNamespace.name());
                 namespaceRepository.persist(namespace);
-                if (!namespace.isExistsInK8s()) {
+                if (!namespace.getExistsInK8s()) {
                     continue;
                 }
                 V1ConfigMap versionsConfigMap = loadVersionsConfigMap(coreV1Api, cloudPassportNamespace.name());
