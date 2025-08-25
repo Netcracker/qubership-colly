@@ -113,8 +113,9 @@ public class ClusterResourcesLoader {
         List<Environment> envs = new ArrayList<>();
         Log.info("Namespaces are loaded for " + cluster.getName() + ". Count is " + k8sNamespaces.size() + ". Environments count = " + environments.size());
         for (CloudPassportEnvironment cloudPassportEnvironment : environments) {
+            Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName());
             Environment environment = environmentRepository.findByNameAndCluster(cloudPassportEnvironment.name(), cluster.getName());
-            Log.info("Start working with env = " + cloudPassportEnvironment.name());
+            Log.info("env " + cloudPassportEnvironment.name() + " exists in db? " + (environment != null));
             EnvironmentType environmentType;
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.name());
