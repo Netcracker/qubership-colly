@@ -170,7 +170,7 @@ public class ClusterResourcesLoader {
             environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(Namespace::getName).toList()));
             environment.setType(environmentType);
             Log.info("Environment " + environment.getName() + " type is set to " + environmentType);
-            environment.setDeploymentVersion(deploymentVersions.toString());
+//  todo          environment.setDeploymentVersion(deploymentVersions.toString());
             Log.info("Deployment versions for environment " + environment.getName() + " is set to " + deploymentVersions);
             environmentRepository.persist(environment);
 
