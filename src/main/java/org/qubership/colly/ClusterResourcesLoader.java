@@ -82,6 +82,7 @@ public class ClusterResourcesLoader {
 
     //for testing purposes
     void loadClusterResources(CoreV1Api coreV1Api, CloudPassport cloudPassport) {
+        Log.info("Start Loading cluster resources for: " + cloudPassport.name());
         Cluster cluster = clusterRepository.findByName(cloudPassport.name());
         if (cluster == null) {
             cluster = new Cluster(cloudPassport.name());
@@ -96,7 +97,7 @@ public class ClusterResourcesLoader {
     }
 
     private List<Environment> loadEnvironments(CoreV1Api coreV1Api, Cluster cluster, Collection<CloudPassportEnvironment> environments, URI monitoringUri) {
-
+        Log.info("Start loading environments for cluster " + cluster.getName());
         CoreV1Api.APIlistNamespaceRequest apilistNamespaceRequest = coreV1Api.listNamespace();
         Map<String, V1Namespace> k8sNamespaces;
         try {
@@ -129,6 +130,7 @@ public class ClusterResourcesLoader {
             StringBuilder deploymentVersions = new StringBuilder();
 
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaceDtos()) {
+                Log.info("Start working with namespace = " + cloudPassportNamespace.name());
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
                 Namespace namespace = namespaceRepository.findByNameAndCluster(cloudPassportNamespace.name(), cluster.getName());
 
@@ -148,6 +150,7 @@ public class ClusterResourcesLoader {
                 namespace.setName(cloudPassportNamespace.name());
                 namespaceRepository.persist(namespace);
                 if (!namespace.getExistsInK8s()) {
+                    Log.info("Namespace " + namespace.getName() + " does not exist in k8s. Skipping it.");
                     continue;
                 }
                 V1ConfigMap versionsConfigMap = loadVersionsConfigMap(coreV1Api, cloudPassportNamespace.name());
@@ -161,14 +164,17 @@ public class ClusterResourcesLoader {
                     environment.setCleanInstallationDate(configMapCreationTime);
                 }
                 deploymentVersions.append(versionsConfigMap.getData().get(versionsConfigMapDataFieldName)).append("\n");
+                Log.info("Namespace " + namespace.getName() + " is loaded successfully. Deployment versions are: " + deploymentVersions);
             }
             environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(Namespace::getName).toList()));
             environment.setType(environmentType);
+            Log.info("Environment " + environment.getName() + " type is set to " + environmentType);
             environment.setDeploymentVersion(deploymentVersions.toString());
+            Log.info("Deployment versions for environment " + environment.getName() + " is set to " + deploymentVersions);
             environmentRepository.persist(environment);
 
             envs.add(environment);
-
+            Log.info("Environment " + environment.getName() + " loaded successfully.");
         }
         return envs;
     }
