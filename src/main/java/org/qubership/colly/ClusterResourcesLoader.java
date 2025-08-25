@@ -113,9 +113,8 @@ public class ClusterResourcesLoader {
         List<Environment> envs = new ArrayList<>();
         Log.info("Namespaces are loaded for " + cluster.getName() + ". Count is " + k8sNamespaces.size() + ". Environments count = " + environments.size());
         for (CloudPassportEnvironment cloudPassportEnvironment : environments) {
-            Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName());
             Environment environment = environmentRepository.findByNameAndCluster(cloudPassportEnvironment.name(), cluster.getName());
-            Log.info("env " + cloudPassportEnvironment.name() + " exists in db? " + (environment != null));
+            Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName() + ". Env exists in db? " + (environment != null));
             EnvironmentType environmentType;
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.name());
@@ -151,7 +150,7 @@ public class ClusterResourcesLoader {
                 namespace.setName(cloudPassportNamespace.name());
                 namespaceRepository.persist(namespace);
                 if (!namespace.getExistsInK8s()) {
-                    Log.info("Namespace " + namespace.getName() + " does not exist in k8s. Skipping it.");
+                    Log.warn("Namespace " + namespace.getName() + " does not exist in k8s. Skipping it.");
                     continue;
                 }
                 V1ConfigMap versionsConfigMap = loadVersionsConfigMap(coreV1Api, cloudPassportNamespace.name());
@@ -169,9 +168,7 @@ public class ClusterResourcesLoader {
             }
             environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(Namespace::getName).toList()));
             environment.setType(environmentType);
-            Log.info("Environment " + environment.getName() + " type is set to " + environmentType);
             environment.setDeploymentVersion(deploymentVersions.toString());
-            Log.info("Deployment versions for environment " + environment.getName() + " is set to " + deploymentVersions);
             environmentRepository.persist(environment);
 
             envs.add(environment);
