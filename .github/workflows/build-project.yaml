@@ -7,17 +7,25 @@ permissions:
 
 jobs:
   mvn-build:
-    uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
-    with:
-      maven-command: >
-        --batch-mode clean install
-      upload-artifact: true
-      server-id: github
-      java-version: 21
-      artifact-id: ${{ github.event.repository.name }}
-      ref: ${{ github.head_ref }}
-    secrets:
-      maven-token: ${{ secrets.GITHUB_TOKEN }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - envgene-inventory-service
+          - environment-operational-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build java
+        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
+        with:
+          java-version: 21
+          maven-command: clean install
+          working-directory: ${{ matrix.component }}
+          upload-artifact: 'true'
+          artifact-id: ${{ matrix.component }}
+          maven-token: ${{ secrets.GITHUB_TOKEN }}
   perform-version:
     runs-on: ubuntu-latest
     needs: mvn-build
