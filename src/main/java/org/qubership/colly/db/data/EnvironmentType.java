@@ -6,6 +6,7 @@ public enum EnvironmentType {
     DESIGN_TIME("Design Time"),
     APP_DEPLOYER("App Deployer"),
     INFRASTRUCTURE("Infrastructure"),
+    PORTAL("Portal"),
     UNDEFINED("Undefined")
     ;
 
