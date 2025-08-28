@@ -1,22 +1,25 @@
 package org.qubership.colly.db.data;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.*;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Entity(name = "environments")
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public class Environment extends PanacheEntity {
 
     private String name;
     private String owner;
     private String team;
     private String description;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expirationDate;
 
     @Enumerated(EnumType.STRING)
@@ -29,6 +32,7 @@ public class Environment extends PanacheEntity {
 
     @ManyToOne
     @JoinColumn(referencedColumnName = "name")
+    @JsonIgnore
     private Cluster cluster;
 
 

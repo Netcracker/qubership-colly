@@ -1,13 +1,11 @@
 package org.qubership.colly.db.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Entity(name = "clusters")
 public class Cluster extends PanacheEntityBase {
@@ -23,6 +21,7 @@ public class Cluster extends PanacheEntityBase {
     public List<Environment> environments;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     public List<Namespace> namespaces;
     private String description;
 
@@ -64,5 +63,21 @@ public class Cluster extends PanacheEntityBase {
 
     public void setMonitoringUrl(URI monitoringUrl) {
         this.monitoringUrl = monitoringUrl;
+    }
+
+    public List<Environment> getEnvironments() {
+        return environments;
+    }
+
+    public void setEnvironments(List<Environment> environments) {
+        this.environments = environments;
+    }
+
+    public List<Namespace> getNamespaces() {
+        return namespaces;
+    }
+
+    public void setNamespaces(List<Namespace> namespaces) {
+        this.namespaces = namespaces;
     }
 }
