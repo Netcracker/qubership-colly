@@ -29,15 +29,17 @@ export const STATUS_MAPPING = {
 
 export type EnvironmentType =
     "ENVIRONMENT"
+    | "PORTAL"
     | "CSE_TOOLSET"
     | "DESIGN_TIME"
     | "APP_DEPLOYER"
     | "INFRASTRUCTURE"
     | "UNDEFINED"
 
-export const ALL_TYPES: EnvironmentType[] = ["ENVIRONMENT", "CSE_TOOLSET", "DESIGN_TIME", "APP_DEPLOYER", "INFRASTRUCTURE", "UNDEFINED"];
+export const ALL_TYPES: EnvironmentType[] = ["ENVIRONMENT", "PORTAL", "CSE_TOOLSET", "DESIGN_TIME", "APP_DEPLOYER", "INFRASTRUCTURE", "UNDEFINED"];
 export const ENVIRONMENT_TYPES_MAPPING = {
     ENVIRONMENT: "Environment",
+    PORTAL: "Portal",
     CSE_TOOLSET: "CSE Toolset",
     DESIGN_TIME: "Design Time",
     APP_DEPLOYER: "App Deployer",
