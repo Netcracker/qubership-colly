@@ -41,7 +41,9 @@ public class EnvironmentMapper {
                 entity.getDescription(),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),
-                entity.getMonitoringData()
+                entity.getMonitoringData(),
+                entity.getDeploymentStatus(),
+                entity.getTicketLinks()
         );
     }
 

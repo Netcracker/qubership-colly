@@ -10,7 +10,7 @@ export type Environment = {
     status: EnvironmentStatus;
     type: EnvironmentType;
     deploymentStatus: DeploymentStatus;
-    tickets: string;
+    ticketLinks: string;
     labels: string[];
     description: string;
     deploymentVersion: string;

@@ -146,7 +146,7 @@ export default function EditEnvironmentDialog({show, environment, allLabels, onC
             <FormControl sx={{mt: 1, mb: 1}} fullWidth>
                 <InputLabel>Deployment Status</InputLabel>
                 <Select
-                    value={localEnv.status || ''}
+                    value={localEnv.deploymentStatus || ''}
                     onChange={e => setLocalEnv(prev => ({...prev, deploymentStatus: e.target.value as DeploymentStatus}))}
                     fullWidth
                     label="Deployment Status"
@@ -158,8 +158,8 @@ export default function EditEnvironmentDialog({show, environment, allLabels, onC
             </FormControl>
             <TextField
                 label="Linked Tickets"
-                value={localEnv.tickets || ''}
-                onChange={e => setLocalEnv(prev => ({...prev, tickets: e.target.value}))}
+                value={localEnv.ticketLinks || ''}
+                onChange={e => setLocalEnv(prev => ({...prev, ticketLinks: e.target.value}))}
                 fullWidth
                 margin="dense"
             />
