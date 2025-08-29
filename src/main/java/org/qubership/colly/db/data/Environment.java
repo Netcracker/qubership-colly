@@ -50,6 +50,11 @@ public class Environment extends PanacheEntity {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Namespace> namespaces;
 
+    @Enumerated(EnumType.STRING)
+    private DeploymentStatus deploymentStatus;
+
+    @Column(columnDefinition = "TEXT")
+    private String ticketLinks;
 
     public Environment(String name) {
         this.setName(name);
@@ -58,6 +63,7 @@ public class Environment extends PanacheEntity {
 
     public Environment() {
     }
+
 
     public List<Namespace> getNamespaces() {
         return Collections.unmodifiableList(namespaces);
@@ -166,5 +172,20 @@ public class Environment extends PanacheEntity {
     public void setCleanInstallationDate(Instant cleanInstallationDate) {
         this.cleanInstallationDate = cleanInstallationDate;
     }
-}
 
+    public DeploymentStatus getDeploymentStatus() {
+        return deploymentStatus;
+    }
+
+    public void setDeploymentStatus(DeploymentStatus deploymentStatus) {
+        this.deploymentStatus = deploymentStatus;
+    }
+
+    public String getTicketLinks() {
+        return ticketLinks;
+    }
+
+    public void setTicketLinks(String ticketLinks) {
+        this.ticketLinks = ticketLinks;
+    }
+}
