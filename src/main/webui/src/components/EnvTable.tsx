@@ -139,6 +139,8 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
             formData.append("status", changedEnv.status);
             formData.append("type", changedEnv.type);
             formData.append("name", changedEnv.name);
+            formData.append("deploymentStatus", changedEnv.deploymentStatus);
+            formData.append("tickets", changedEnv.tickets);
             formData.append("expirationDate", changedEnv.expirationDate ? dayjs(changedEnv.expirationDate).format("YYYY-MM-DD") : "");
             changedEnv.labels.forEach(label => formData.append("labels", label));
 
@@ -172,6 +174,8 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         description: env.description,
         deploymentVersion: env.deploymentVersion,
         cleanInstallationDate: env.cleanInstallationDate,
+        deploymentStatus: env.deploymentStatus,
+        tickets: env.tickets,
         ...(env.monitoringData || {}),
         raw: env
     })), [environments, showAllNamespaces]);
@@ -227,6 +231,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     </>
             },
             {field: "description", headerName: "Description", width: 300},
+            {field: "deploymentStatus", headerName: "Deployment Status", width: 150},
             {field: "deploymentVersion", headerName: "Version", width: 150},
             {
                 field: "cleanInstallationDate", headerName: "Clean Installation Date",
@@ -237,7 +242,8 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     return new Date(value).toLocaleString();
                 },
                 width: 200
-            }
+            },
+            {field: "tickets", headerName: "Linked Tickets", width: 150},
         ];
 
         return [
