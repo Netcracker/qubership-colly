@@ -1,21 +1,15 @@
 package org.qubership;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
-import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Environment;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
 
 @QuarkusTest
 @TestTransaction
