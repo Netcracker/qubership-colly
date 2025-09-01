@@ -3,6 +3,7 @@ package org.qubership.colly;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.qubership.colly.cloudpassport.CloudPassport;
@@ -25,7 +26,8 @@ class CollyStorageExceptionHandlingTest {
     CollyStorage collyStorage;
 
     @InjectMock
-    CloudPassportLoader cloudPassportLoader;
+    @RestClient
+    EnvgeneInventoryServiceRest envgeneInventoryService;
 
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
@@ -37,7 +39,7 @@ class CollyStorageExceptionHandlingTest {
         CloudPassport cluster3 = new CloudPassport("another-stable-cluster", "token3", "host3", Set.of(), null);
         List<CloudPassport> cloudPassports = List.of(cluster1, cluster2, cluster3);
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         CountDownLatch executionLatch = new CountDownLatch(3);
         AtomicInteger successfulExecutions = new AtomicInteger(0);
@@ -80,7 +82,7 @@ class CollyStorageExceptionHandlingTest {
         CloudPassport cluster2 = new CloudPassport("failing-cluster2", "token2", "host2", Set.of(), null);
         List<CloudPassport> cloudPassports = List.of(cluster1, cluster2);
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         doThrow(new RuntimeException("Simulated failure"))
                 .when(clusterResourcesLoader).loadClusterResources(any(CloudPassport.class));
@@ -92,7 +94,7 @@ class CollyStorageExceptionHandlingTest {
     @Test
     void executeTask_shouldHandleInterruptedException() throws InterruptedException {
         CloudPassport cluster = new CloudPassport("interrupted-cluster", "token", "host", Set.of(), null);
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(List.of(cluster));
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(List.of(cluster));
 
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch interruptLatch = new CountDownLatch(1);
@@ -128,7 +130,7 @@ class CollyStorageExceptionHandlingTest {
 
     @Test
     void executeTask_shouldHandleCloudPassportLoaderException() {
-        when(cloudPassportLoader.loadCloudPassports())
+        when(envgeneInventoryService.getCloudPassports())
                 .thenThrow(new RuntimeException("Failed to load cloud passports"));
 
         assertThrows(RuntimeException.class, () -> collyStorage.executeTask());
@@ -143,7 +145,7 @@ class CollyStorageExceptionHandlingTest {
         CloudPassport cluster3 = new CloudPassport("successful-cluster", "token3", "host3", Set.of(), null);
         List<CloudPassport> cloudPassports = List.of(cluster1, cluster2, cluster3);
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         AtomicInteger successCount = new AtomicInteger(0);
 

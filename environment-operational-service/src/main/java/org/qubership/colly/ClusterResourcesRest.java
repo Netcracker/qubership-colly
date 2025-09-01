@@ -20,9 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Path("/colly")
+@Path("/colly/environment-operational-service")
 public class ClusterResourcesRest {
-    
+
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final MonitoringService monitoringService;

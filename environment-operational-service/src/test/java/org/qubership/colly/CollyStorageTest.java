@@ -3,6 +3,7 @@ package org.qubership.colly;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.qubership.colly.cloudpassport.CloudPassport;
@@ -23,7 +24,8 @@ class CollyStorageTest {
     CollyStorage collyStorage;
 
     @InjectMock
-    CloudPassportLoader cloudPassportLoader;
+    @RestClient
+    EnvgeneInventoryServiceRest envgeneInventoryService;
 
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
@@ -35,7 +37,7 @@ class CollyStorageTest {
         CloudPassport cluster3 = new CloudPassport("cluster3", "token3", "host3", Set.of(), null);
         List<CloudPassport> cloudPassports = List.of(cluster1, cluster2, cluster3);
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         // Use CountDownLatch to synchronize and verify parallel execution
         CountDownLatch startLatch = new CountDownLatch(1);
@@ -101,7 +103,7 @@ class CollyStorageTest {
         CloudPassport cluster2 = new CloudPassport("cluster2", "token2", "host2", Set.of(), null);
         List<CloudPassport> cloudPassports = List.of(cluster1, cluster2);
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         // Mock one cluster to throw exception, other to succeed
         doAnswer(invocation -> {
@@ -120,7 +122,7 @@ class CollyStorageTest {
 
     @Test
     void executeTask_shouldHandleEmptyClusterList() {
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(List.of());
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(List.of());
 
         assertDoesNotThrow(() -> collyStorage.executeTask());
 
@@ -131,11 +133,11 @@ class CollyStorageTest {
     @Test
     void executeTask_load_cloud_passports_once_and_load_cluster_resources_for_each_cluster() {
         CloudPassport cluster = new CloudPassport("test-cluster", "token", "host", Set.of(), null);
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(List.of(cluster));
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(List.of(cluster));
 
         collyStorage.executeTask();
 
-        verify(cloudPassportLoader, times(1)).loadCloudPassports();
+        verify(envgeneInventoryService, times(1)).getCloudPassports();
         verify(clusterResourcesLoader, times(1)).loadClusterResources(cluster);
 
     }
@@ -146,7 +148,7 @@ class CollyStorageTest {
         CloudPassport cluster2 = new CloudPassport("cluster2", "token2", "host2", Set.of(), null);
         List<CloudPassport> cloudPassports = List.of(cluster1, cluster2);
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         CountDownLatch loadStartLatch = new CountDownLatch(2);
         CountDownLatch loadCompleteLatch = new CountDownLatch(2);
@@ -164,7 +166,7 @@ class CollyStorageTest {
         collyStorage.executeTask();
         long endTime = System.currentTimeMillis();
 
-        verify(cloudPassportLoader, times(1)).loadCloudPassports();
+        verify(envgeneInventoryService, times(1)).getCloudPassports();
         verify(clusterResourcesLoader, times(2)).loadClusterResources(any(CloudPassport.class));
 
         // Verify execution completed (both clusters processed)

@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
@@ -28,19 +29,19 @@ public class CollyStorage {
     private final ClusterResourcesLoader clusterResourcesLoader;
     private final ClusterRepository clusterRepository;
     private final EnvironmentRepository environmentRepository;
-    private final CloudPassportLoader cloudPassportLoader;
+    private final EnvgeneInventoryServiceRest envgeneInventoryServiceRest;
     private final Executor executor;
 
     @Inject
     public CollyStorage(ClusterResourcesLoader clusterResourcesLoader,
-                       ClusterRepository clusterRepository,
-                       EnvironmentRepository environmentRepository,
-                       CloudPassportLoader cloudPassportLoader,
-                       @ConfigProperty(name = "colly.cluster-resource-loader.thread-pool-size") int threadPoolSize) {
+                        ClusterRepository clusterRepository,
+                        EnvironmentRepository environmentRepository,
+                        @RestClient EnvgeneInventoryServiceRest envgeneInventoryServiceRest,
+                        @ConfigProperty(name = "colly.cluster-resource-loader.thread-pool-size") int threadPoolSize) {
         this.clusterResourcesLoader = clusterResourcesLoader;
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
-        this.cloudPassportLoader = cloudPassportLoader;
+        this.envgeneInventoryServiceRest = envgeneInventoryServiceRest;
         this.executor = Executors.newFixedThreadPool(threadPoolSize);
     }
 
@@ -48,7 +49,7 @@ public class CollyStorage {
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();
-        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports();
+        List<CloudPassport> cloudPassports = envgeneInventoryServiceRest.getCloudPassports();
         List<String> clusterNames = cloudPassports.stream().map(CloudPassport::name).toList();
         Log.info("Cloud passports loaded for clusters: " + clusterNames);
 

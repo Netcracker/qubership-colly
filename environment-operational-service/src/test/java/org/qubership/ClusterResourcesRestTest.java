@@ -1,15 +1,21 @@
 package org.qubership;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Environment;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
 
 @QuarkusTest
 @TestTransaction
@@ -20,7 +26,7 @@ class ClusterResourcesRestTest {
     @Test
     void load_environments_without_auth() {
         given()
-                .when().get("/colly/environments")
+                .when().get("/colly/environment-operational-service/environments")
                 .then()
                 .statusCode(401);
     }
@@ -29,11 +35,11 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "test")
     void load_environments() {
         given()
-                .when().post("/colly/tick")
+                .when().post("/colly/environment-operational-service/tick")
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/environments")
+                .when().get("/colly/environment-operational-service/environments")
                 .then()
                 .statusCode(200)
                 .body("name", contains("env-test", "env-1"));
@@ -44,7 +50,7 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void save_environment_with_auth() {
         given()
-                .when().post("/colly/tick")
+                .when().post("/colly/environment-operational-service/tick")
                 .then()
                 .statusCode(204);
         Environment env = environmentRepository.findByNameAndCluster("env-test", "test-cluster");
@@ -56,7 +62,7 @@ class ClusterResourcesRestTest {
                 .formParam("type", "development")
                 .formParam("team", "test-team")
                 .formParam("expirationDate", "2024-12-31")
-                .when().post("/colly/environments/" + env.id.toString())
+                .when().post("/colly/environment-operational-service/environments/" + env.id.toString())
                 .then()
                 .statusCode(204);
     }
@@ -72,7 +78,7 @@ class ClusterResourcesRestTest {
                 .formParam("labels", "label1,label2")
                 .formParam("type", "development")
                 .formParam("team", "test-team")
-                .when().post("/colly/environments/1")
+                .when().post("/colly/environment-operational-service/environments/1")
                 .then()
                 .statusCode(403);
     }
@@ -81,17 +87,17 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void save_cluster_with_auth() {
         given()
-                .when().post("/colly/tick")
+                .when().post("/colly/environment-operational-service/tick")
                 .then()
                 .statusCode(204);
 
         given()
                 .formParam("description", "test-cluster-description")
-                .when().post("/colly/clusters/test-cluster")
+                .when().post("/colly/environment-operational-service/clusters/test-cluster")
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/clusters")
+                .when().get("/colly/environment-operational-service/clusters")
                 .then()
                 .statusCode(200)
                 .body("description", hasItem("test-cluster-description"));
@@ -102,7 +108,7 @@ class ClusterResourcesRestTest {
     void save_cluster_without_admin_role() {
         given()
                 .formParam("description", "test-cluster-description")
-                .when().post("/colly/clusters/test-cluster")
+                .when().post("/colly/environment-operational-service/clusters/test-cluster")
                 .then()
                 .statusCode(403);
     }
@@ -110,7 +116,7 @@ class ClusterResourcesRestTest {
     @Test
     void load_metadata_without_auth() {
         given()
-                .when().get("/colly/metadata")
+                .when().get("/colly/environment-operational-service/metadata")
                 .then()
                 .statusCode(401);
     }
@@ -119,7 +125,7 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "test")
     void load_metadata() {
         given()
-                .when().get("/colly/metadata")
+                .when().get("/colly/environment-operational-service/metadata")
                 .then()
                 .statusCode(200)
                 .body("monitoringColumns", contains("Failed Deployments", "Running Pods"));
@@ -128,7 +134,7 @@ class ClusterResourcesRestTest {
     @Test
     void load_clusters_without_auth() {
         given()
-                .when().get("/colly/clusters")
+                .when().get("/colly/environment-operational-service/clusters")
                 .then()
                 .statusCode(401);
     }
@@ -137,11 +143,11 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "test")
     void load_clusters() {
         given()
-                .when().post("/colly/tick")
+                .when().post("/colly/environment-operational-service/tick")
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/clusters")
+                .when().get("/colly/environment-operational-service/clusters")
                 .then()
                 .statusCode(200)
                 .body("name", contains("test-cluster", "unreachable-cluster"));
@@ -153,7 +159,7 @@ class ClusterResourcesRestTest {
         given()
                 .formParam("owner", "test-owner")
                 .formParam("description", "test-description")
-                .when().post("/colly/environments/42") // Non-existing environment ID
+                .when().post("/colly/environment-operational-service/environments/42") // Non-existing environment ID
                 .then()
                 .statusCode(400);
     }
@@ -163,7 +169,7 @@ class ClusterResourcesRestTest {
     void try_to_save_non_existing_cluster() {
         given()
                 .formParam("description", "test-cluster-description")
-                .when().post("/colly/clusters/non-existing-cluster")
+                .when().post("/colly/environment-operational-service/clusters/non-existing-cluster")
                 .then()
                 .statusCode(400);
     }
@@ -172,7 +178,7 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "test")
     void get_authStatus_for_regular_user() {
         given()
-                .when().get("/colly/auth-status")
+                .when().get("/colly/environment-operational-service/auth-status")
                 .then()
                 .statusCode(200)
                 .body("username", equalTo("test"))
@@ -184,7 +190,7 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void get_authStatus_for_admin() {
         given()
-                .when().get("/colly/auth-status")
+                .when().get("/colly/environment-operational-service/auth-status")
                 .then()
                 .statusCode(200)
                 .body("username", equalTo("admin"))
@@ -196,7 +202,7 @@ class ClusterResourcesRestTest {
     @Test
     void get_authStatus_without_auth() {
         given()
-                .when().get("/colly/auth-status")
+                .when().get("/colly/environment-operational-service/auth-status")
                 .then()
                 .statusCode(401)
                 .body("authenticated", equalTo(false));
@@ -206,7 +212,7 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "test")
     void unable_to_delete_environment_without_admin_role() {
         given()
-                .when().delete("/colly/environments/1")
+                .when().delete("/colly/environment-operational-service/environments/1")
                 .then()
                 .statusCode(403);
     }
@@ -215,22 +221,22 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void delete_environment_with_auth() {
         given()
-                .when().post("/colly/tick")
+                .when().post("/colly/environment-operational-service/tick")
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/environments")
+                .when().get("/colly/environment-operational-service/environments")
                 .then()
                 .statusCode(200)
                 .body("name", hasItem("env-test"));
         Environment env = environmentRepository.findByNameAndCluster("env-test", "test-cluster");
 
         given()
-                .when().delete("/colly/environments/" + env.id.toString())
+                .when().delete("/colly/environment-operational-service/environments/" + env.id.toString())
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/environments")
+                .when().get("/colly/environment-operational-service/environments")
                 .then()
                 .statusCode(200)
                 .body("name", not(hasItem("env-test")));
@@ -240,7 +246,7 @@ class ClusterResourcesRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void delete_environment_with_non_existing_id() {
         given()
-                .when().delete("/colly/environments/9999") // Non-existing environment ID
+                .when().delete("/colly/environment-operational-service/environments/9999") // Non-existing environment ID
                 .then()
                 .statusCode(400);
     }

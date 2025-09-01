@@ -3,6 +3,7 @@ package org.qubership.colly;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.cloudpassport.CloudPassport;
 
@@ -22,7 +23,8 @@ class CollyStoragePerformanceTest {
     CollyStorage collyStorage;
 
     @InjectMock
-    CloudPassportLoader cloudPassportLoader;
+    @RestClient
+    EnvgeneInventoryServiceRest envgeneInventoryService;
 
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
@@ -36,7 +38,7 @@ class CollyStoragePerformanceTest {
                 .mapToObj(i -> new CloudPassport("cluster" + i, "token" + i, "host" + i, Set.of(), null))
                 .toList();
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         AtomicInteger executionCount = new AtomicInteger(0);
         doAnswer(invocation -> {
@@ -79,7 +81,7 @@ class CollyStoragePerformanceTest {
                 .mapToObj(i -> new CloudPassport("stress-cluster" + i, "token" + i, "host" + i, Set.of(), null))
                 .toList();
 
-        when(cloudPassportLoader.loadCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
 
         AtomicInteger maxConcurrentExecutions = new AtomicInteger(0);
         AtomicInteger currentConcurrentExecutions = new AtomicInteger(0);
