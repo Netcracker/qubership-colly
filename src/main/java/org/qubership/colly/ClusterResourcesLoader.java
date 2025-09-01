@@ -163,7 +163,11 @@ public class ClusterResourcesLoader {
                     Log.info("Setting clean installation date for environment " + environment.getName() + " to " + configMapCreationTime);
                     environment.setCleanInstallationDate(configMapCreationTime);
                 }
-                deploymentVersions.append(versionsConfigMap.getData().get(versionsConfigMapDataFieldName)).append("\n");
+
+                String deploymentVersionForNamespace = versionsConfigMap.getData().get(versionsConfigMapDataFieldName);
+                if (deploymentVersionForNamespace != null && !deploymentVersionForNamespace.trim().isEmpty() && !deploymentVersions.toString().contains(deploymentVersionForNamespace)) {
+                    deploymentVersions.append(deploymentVersionForNamespace).append("\n");
+                }
                 Log.info("Namespace " + namespace.getName() + " is loaded successfully. Deployment versions are: " + deploymentVersions);
             }
             environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(Namespace::getName).toList()));
