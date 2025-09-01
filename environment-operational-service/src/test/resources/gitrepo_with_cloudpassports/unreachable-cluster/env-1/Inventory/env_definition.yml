@@ -1,4 +1,0 @@
-inventory:
-  environmentName: "env-1"
-  description: "some env for tests"
-  tenantName: "Applications"

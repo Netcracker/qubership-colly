@@ -1,12 +1,23 @@
 package org.qubership;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.qubership.colly.EnvgeneInventoryServiceRest;
+import org.qubership.colly.cloudpassport.CloudPassport;
+import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Environment;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Set;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -16,6 +27,20 @@ import static org.hamcrest.Matchers.*;
 class ClusterResourcesRestTest {
     @Inject
     EnvironmentRepository environmentRepository;
+
+    @InjectMock
+    @RestClient
+    EnvgeneInventoryServiceRest envgeneInventoryServiceRest;
+
+    @BeforeEach
+    void setUp() {
+        Mockito.when(envgeneInventoryServiceRest.getCloudPassports()).thenReturn(List.of(
+                new CloudPassport("test-cluster", "cloud-deploy-sa-token", "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
+                        Set.of(new CloudPassportEnvironment("env-test", "", List.of())), URI.create("http://localhost:8428")),
+                new CloudPassport("unreachable-cluster", "cloud-deploy-sa-token", "https://some.unreachable.url:8443",
+                        Set.of(new CloudPassportEnvironment("env-1", "", List.of())), URI.create("http://vmsingle-k8s.victoria:8429"))));
+
+    }
 
     @Test
     void load_environments_without_auth() {
