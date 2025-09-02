@@ -63,7 +63,7 @@ public class MonitoringService {
                 .toList();
     }
 
-    @ConfigMapping(prefix = "colly.monitoring")
+    @ConfigMapping(prefix = "colly.environment-operational-service.monitoring")
     public interface MonitoringParams {
         @WithParentName
         Map<String, MonitoringParam> allMonitoringParams();

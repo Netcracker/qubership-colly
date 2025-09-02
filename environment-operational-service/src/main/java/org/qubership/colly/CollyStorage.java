@@ -37,7 +37,7 @@ public class CollyStorage {
                         ClusterRepository clusterRepository,
                         EnvironmentRepository environmentRepository,
                         @RestClient EnvgeneInventoryServiceRest envgeneInventoryServiceRest,
-                        @ConfigProperty(name = "colly.cluster-resource-loader.thread-pool-size") int threadPoolSize) {
+                        @ConfigProperty(name = "colly.environment-operational-service.cluster-resource-loader.thread-pool-size") int threadPoolSize) {
         this.clusterResourcesLoader = clusterResourcesLoader;
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
@@ -45,7 +45,7 @@ public class CollyStorage {
         this.executor = Executors.newFixedThreadPool(threadPoolSize);
     }
 
-    @Scheduled(cron = "{cron.schedule}")
+    @Scheduled(cron = "{colly.environment-operational-service.cron.schedule}")
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();

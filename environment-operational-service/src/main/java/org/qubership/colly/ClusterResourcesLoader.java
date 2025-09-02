@@ -46,10 +46,10 @@ public class ClusterResourcesLoader {
     private final EnvironmentRepository environmentRepository;
     private final MonitoringService monitoringService;
 
-    @ConfigProperty(name = "colly.config-map.versions.name")
+    @ConfigProperty(name = "colly.environment-operational-service.config-map.versions.name")
     String versionsConfigMapName;
 
-    @ConfigProperty(name = "colly.config-map.versions.data-field-name")
+    @ConfigProperty(name = "colly.environment-operational-service.config-map.versions.data-field-name")
     String versionsConfigMapDataFieldName;
 
     @Inject
