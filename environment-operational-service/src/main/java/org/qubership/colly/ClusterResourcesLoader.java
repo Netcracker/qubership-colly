@@ -128,7 +128,7 @@ public class ClusterResourcesLoader {
             }
             StringBuilder deploymentVersions = new StringBuilder();
 
-            for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaceDtos()) {
+            for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaces()) {
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
                 Namespace namespace = namespaceRepository.findByNameAndCluster(cloudPassportNamespace.name(), cluster.getName());
 
