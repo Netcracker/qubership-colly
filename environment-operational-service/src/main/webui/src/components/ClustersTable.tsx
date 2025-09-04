@@ -18,7 +18,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
 
 
     useEffect(() => {
-        fetch("/colly/clusters")
+        fetch("/colly/environment-operational-service/clusters")
             .then(res => res.json())
             .then(clustersData => setClusters(clustersData))
             .catch(err => console.error("Failed to fetch clusters:", err))
@@ -35,7 +35,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
             }
             formData.append("name", changedCluster.name);
 
-            const response = await fetch(`/colly/clusters/${changedCluster.name}`, {
+            const response = await fetch(`/colly/environment-operational-service/clusters/${changedCluster.name}`, {
                 method: "POST",
                 body: formData
             });

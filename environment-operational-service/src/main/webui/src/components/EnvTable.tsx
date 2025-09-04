@@ -29,7 +29,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
-        fetch("/colly/environments").then(res => res.json())
+        fetch("/colly/environment-operational-service/environments").then(res => res.json())
             .then(envData => setEnvironments(envData))
             .catch(err => console.error("Failed to fetch environments:", err))
             .finally(() => setLoading(false));
@@ -104,7 +104,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 console.error("selected env is null")
                 return;
             }
-            const response = await fetch(`/colly/environments/${selectedEnvironment.id}`, {
+            const response = await fetch(`/colly/environment-operational-service/environments/${selectedEnvironment.id}`, {
                 method: "DELETE",
             });
 
@@ -142,7 +142,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
             formData.append("expirationDate", changedEnv.expirationDate ? dayjs(changedEnv.expirationDate).format("YYYY-MM-DD") : "");
             changedEnv.labels.forEach(label => formData.append("labels", label));
 
-            const response = await fetch(`/colly/environments/${changedEnv.id}`, {
+            const response = await fetch(`/colly/environment-operational-service/environments/${changedEnv.id}`, {
                 method: "POST",
                 body: formData
             });

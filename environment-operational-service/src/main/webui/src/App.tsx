@@ -15,7 +15,7 @@ function App() {
     const [metadataLoading, setMetadataLoading] = useState(true);
 
     useEffect(() => {
-        const fetchAuthStatus = fetch("/colly/auth-status")
+        const fetchAuthStatus = fetch("/colly/environment-operational-service/auth-status")
             .then(res => res.json())
             .then(authData => {
                 setUserInfo(authData);
@@ -24,7 +24,7 @@ function App() {
                 console.error("Failed to fetch auth status:", err);
             });
 
-        const fetchMetadata = fetch("/colly/metadata")
+        const fetchMetadata = fetch("/colly/environment-operational-service/metadata")
             .then(res => res.json())
             .then((metaData: AppMetadata) => setMetadata(metaData))
             .catch(err => {
