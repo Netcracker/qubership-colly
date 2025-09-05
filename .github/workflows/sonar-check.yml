@@ -2,7 +2,7 @@ name: Sonar Check
 
 on:
   push:
-    branches: main
+    branches: [main, feature/split-into-several-services]
   pull_request:
     types: [ opened, synchronize, reopened ]
 
