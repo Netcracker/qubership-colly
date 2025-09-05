@@ -127,13 +127,13 @@ jobs:
             [
                 {
                   "name": "envgene-inventory-service",
-                  "file": "./envgene-inventory-service/Dockerfile",
-                  "context": "./envgene-inventory-service"
+                  "file": "envgene-inventory-service/Dockerfile",
+                  "context": "envgene-inventory-service"
                 },
                {
                   "name": "environment-operational-service",
-                  "file": "./environment-operational-service/Dockerfile",
-                  "context": "./environment-operational-service"
+                  "file": "environment-operational-service/Dockerfile",
+                  "context": "environment-operational-service"
                 }
             ]
         env:
