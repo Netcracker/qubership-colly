@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build java
-        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@feature/maven-snapshot-deploy-sonar
+        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
         with:
           java-version: 21
           maven-command: >
