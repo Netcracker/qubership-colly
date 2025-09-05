@@ -1,7 +1,7 @@
 branches-template:
   - main: "v{{major}}.{{minor}}.{{patch}}-{{date}}, {{dist-tag}}"
-  - "feature/*": "feature-{{ref-name}}-{{timestamp}}, {{dist-tag}}"
-  - "bugfix/*": "bugfix-{{ref-name}}-{{timestamp}}, {{dist-tag}}"
+  - "feature/*": "{{ref-name}}-{{timestamp}}, {{dist-tag}}"
+  - "bugfix/*": "{{ref-name}}-{{timestamp}}, {{dist-tag}}"
   - tag: "v{{major}}.{{minor}}.{{patch}}, {{dist-tag}}"
 
 distribution-tag:
