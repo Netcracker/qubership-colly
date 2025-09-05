@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build java
-        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
+        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@feature/maven-snapshot-deploy-sonar
         with:
           java-version: 21
           maven-command: >
@@ -32,3 +32,4 @@ jobs:
           upload-artifact: 'true'
           artifact-id: ${{ matrix.component }}
           maven-token: ${{ secrets.GITHUB_TOKEN }}
+          sonar-token: ${{ secrets.SONAR_TOKEN }}
