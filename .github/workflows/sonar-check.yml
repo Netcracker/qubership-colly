@@ -32,6 +32,3 @@ jobs:
           upload-artifact: 'true'
           artifact-id: ${{ matrix.component }}
           maven-token: ${{ secrets.GITHUB_TOKEN }}
-        secrets:
-          maven-token: ${{ secrets.GITHUB_TOKEN }}
-          sonar-token: ${{ secrets.SONAR_TOKEN }}
