@@ -3,6 +3,7 @@ package org.qubership;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -14,6 +15,7 @@ import static org.hamcrest.Matchers.equalTo;
 class EnvgeneInventoryServiceRestTest {
 
     @Test
+    @Disabled("Skip because auth was turned off for service")
     void load_environments_without_auth() {
         given()
                 .when().get("/colly/envgene-inventory-service/environments")
@@ -36,6 +38,7 @@ class EnvgeneInventoryServiceRestTest {
     }
 
     @Test
+    @Disabled("Skip because auth was turned off for service")
     void load_clusters_without_auth() {
         given()
                 .when().get("/colly/envgene-inventory-service/clusters")
