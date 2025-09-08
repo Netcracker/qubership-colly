@@ -1,13 +1,7 @@
 name: Build Project
 
 on:
-  workflow_dispatch:
-    inputs:
-      dry-run:
-        description: 'Dry run'
-        required: false
-        default: true
-        type: boolean
+  push:
 permissions:
   packages: write
 
