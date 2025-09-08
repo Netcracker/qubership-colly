@@ -1,12 +1,15 @@
-[
-    {
-        "name": "envgene-inventory-service",
-        "file": "envgene-inventory-service/Dockerfile",
-        "context": "envgene-inventory-service"
-    },
-    {
-        "name": "environment-operational-service",
-        "file": "environment-operational-service/Dockerfile",
-        "context": "environment-operational-service"
-    }
-]
+{
+    "components": [
+        {
+            "name": "envgene-inventory-service",
+            "file": "envgene-inventory-service/Dockerfile",
+            "context": "envgene-inventory-service"
+        },
+        {
+            "name": "environment-operational-service",
+            "file": "environment-operational-service/Dockerfile",
+            "context": "environment-operational-service"
+        }
+    ],
+    "platforms": "linux/amd64"
+}

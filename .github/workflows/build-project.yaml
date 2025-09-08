@@ -49,7 +49,7 @@ jobs:
       metadata: "${{ steps.metadata.outputs.result }}"
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Load Docker Configuration
       id: load_component
