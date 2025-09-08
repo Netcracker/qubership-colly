@@ -30,11 +30,38 @@ jobs:
     runs-on: ubuntu-latest
     needs: mvn-build
     outputs:
+      components: ${{ steps.load_component.outputs.components }}
       metadata: "${{ steps.metadata.outputs.result }}"
       tags: "${{ steps.prepare_tags.outputs.tags }}"
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Load Docker Configuration
+        id: load_component
+        shell: bash
+        run: |
+          verify=$(cat "$GITHUB_WORKSPACE/.github/docker-dev-config.json" | jq '
+            def verify_structure:
+              .components as $components
+              | .platforms as $platforms
+              | ($components | type == "array")
+              and (all($components[]; has("name") and has("file") and has("context")))
+              and ($platforms | type == "string");
+            verify_structure
+            | if . then true else false end
+          ')
+          if [ "${verify}" == "true" ]; then
+            echo "✅ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is valid"
+            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+          else
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid"
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "components=${components}" >> "$GITHUB_OUTPUT"
+          echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
       - name: Create name
         uses: netcracker/qubership-workflow-hub/actions/metadata-action@main
@@ -68,6 +95,11 @@ jobs:
     name: "Build Docker Images"
     needs: perform-version
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.perform-version.outputs.components) }}
     steps:
       - name: Down load artifacts
         uses: actions/download-artifact@v4
@@ -99,19 +131,7 @@ jobs:
           download-artifact: true
           download-artifact-path: ${{ github.workspace }}
           tags: ${{ needs.perform-version.outputs.tags }}
-          component: |
-            [
-                {
-                  "name": "envgene-inventory-service",
-                  "file": "envgene-inventory-service/Dockerfile",
-                  "context": "envgene-inventory-service"
-                },
-                {
-                  "name": "environment-operational-service",
-                  "file": "environment-operational-service/Dockerfile",
-                  "context": "environment-operational-service"
-                }
-            ]
+          component: ${{ toJson(matrix.component) }}
         env:
           GITHUB_TOKEN:
             ${{ secrets.GITHUB_TOKEN }}
