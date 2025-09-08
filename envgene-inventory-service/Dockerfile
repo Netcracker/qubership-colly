@@ -85,7 +85,7 @@ ENV LANGUAGE='en_US:en'
 COPY --chown=185 envgene-inventory-service/target/quarkus-app/lib/ /deployments/lib/
 COPY --chown=185 envgene-inventory-service/target/quarkus-app/*.jar /deployments/
 COPY --chown=185 envgene-inventory-service/target/quarkus-app/app/ /deployments/app/
-COPY --chown=185 envgene-inventory-servicetarget/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --chown=185 envgene-inventory-servic/target/quarkus-app/quarkus/ /deployments/quarkus/
 
 EXPOSE 8080
 USER 185
