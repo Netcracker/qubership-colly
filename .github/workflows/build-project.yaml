@@ -74,6 +74,11 @@ jobs:
         with:
           name: envgene-inventory-service
 
+      - name: Down load artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: environment-operational-service
+
       - name: Dirrectory listing
         run: |
           ls -la
@@ -82,7 +87,10 @@ jobs:
           ls -la envgene-inventory-service/target/quarkus
           ls -la envgene-inventory-service/target/quarkus-app
 
-
+          ls -la environment-operational-service
+          ls -la environment-operational-service/target
+          ls -la environment-operational-service/target/quarkus
+          ls -la environment-operational-service/target/quarkus-app
 
       - name: Docker
         uses: netcracker/qubership-workflow-hub/actions/docker-action@main
