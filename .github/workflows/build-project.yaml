@@ -94,12 +94,10 @@ jobs:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
-          custom-image-name: ${{ matrix.component.name }}
-          download-artifact-path: ${{ matrix.component.context }}
           component: ${{ toJson(matrix.component) }}
           platforms: ${{ needs.prepare.outputs.platforms }}
           tags: ${{ needs.prepare.outputs.metadata }}
-          checkout: false
+          debug: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
