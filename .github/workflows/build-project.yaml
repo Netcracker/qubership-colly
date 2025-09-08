@@ -98,6 +98,7 @@ jobs:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
+          download-artifact-path: ${{ github.workspace }}
           tags: ${{ needs.perform-version.outputs.tags }}
           component: |
             [
