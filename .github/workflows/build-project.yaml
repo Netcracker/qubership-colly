@@ -69,6 +69,10 @@ jobs:
     needs: perform-version
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
       # - name: Down load artifacts
       #   uses: actions/download-artifact@v4
       #   with:
@@ -99,6 +103,7 @@ jobs:
           download-artifact: true
           download-artifact-path: ${{ github.workspace }}
           tags: ${{ needs.perform-version.outputs.tags }}
+          checkout: false
           component: |
             [
                 {
