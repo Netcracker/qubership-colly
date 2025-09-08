@@ -23,7 +23,7 @@ jobs:
           java-version: 21
           maven-command: install -Dmaven.test.skip=true
           working-directory: ${{ matrix.component }}
-          upload-artifact: 'true'
+          upload-artifact: "true"
           artifact-id: ${{ matrix.component }}
           maven-token: ${{ secrets.GITHUB_TOKEN }}
   perform-version:
@@ -76,37 +76,35 @@ jobs:
 
       - name: Dirrectory listing
         run: |
-           ls -la
-           ls -la envgene-inventory-service
-           ls -la envgene-inventory-service/target
-           ls -la envgene-inventory-service/target/quarkus
-           ls -la envgene-inventory-service/target/quarkus-app
+          ls -la
+          ls -la envgene-inventory-service
+          ls -la envgene-inventory-service/target
+          ls -la envgene-inventory-service/target/quarkus
+          ls -la envgene-inventory-service/target/quarkus-app
 
-           ls -la environment-operational-service
-           ls -la environment-operational-service/target
-           ls -la environment-operational-service/target/quarkus
-           ls -la environment-operational-service/target/quarkus-app
 
-      # - name: Docker
-      #   uses: netcracker/qubership-workflow-hub/actions/docker-action@main
-      #   with:
-      #     ref: ${{ github.ref }}
-      #     dry-run: ${{ inputs.dry-run }}
-      #     download-artifact: true
-      #     tags: ${{ needs.perform-version.outputs.tags }}
-      #     component: |
-      #       [
-      #           {
-      #             "name": "envgene-inventory-service",
-      #             "file": "envgene-inventory-service/Dockerfile",
-      #             "context": "envgene-inventory-service"
-      #           },
-      #          {
-      #             "name": "environment-operational-service",
-      #             "file": "environment-operational-service/Dockerfile",
-      #             "context": "environment-operational-service"
-      #           }
-      #       ]
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Docker
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        with:
+          ref: ${{ github.ref }}
+          dry-run: ${{ inputs.dry-run }}
+          download-artifact: true
+          tags: ${{ needs.perform-version.outputs.tags }}
+          component: |
+            [
+                {
+                  "name": "envgene-inventory-service",
+                  "file": "envgene-inventory-service/Dockerfile",
+                  "context": "envgene-inventory-service"
+                }
+            ]
+        env:
+          GITHUB_TOKEN:
+            ${{ secrets.GITHUB_TOKEN }}
+
+            #  {
+            #     "name": "environment-operational-service",
+            #     "file": "environment-operational-service/Dockerfile",
+            #     "context": "environment-operational-service"
+            #   }
