@@ -99,6 +99,7 @@ jobs:
           component: ${{ toJson(matrix.component) }}
           platforms: ${{ needs.prepare.outputs.platforms }}
           tags: ${{ needs.prepare.outputs.metadata }}
+          checkout: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
