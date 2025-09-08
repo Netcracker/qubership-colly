@@ -13,7 +13,7 @@ jobs:
       matrix:
         component:
           - envgene-inventory-service
-#          - environment-operational-service
+          - environment-operational-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,13 +82,12 @@ jobs:
                   "name": "envgene-inventory-service",
                   "file": "envgene-inventory-service/Dockerfile",
                   "context": "envgene-inventory-service"
+                },
+               {
+                  "name": "environment-operational-service",
+                  "file": "environment-operational-service/Dockerfile",
+                  "context": "environment-operational-service"
                 }
-#                },
-#               {
-#                  "name": "environment-operational-service",
-#                  "file": "environment-operational-service/Dockerfile",
-#                  "context": "environment-operational-service"
-#                }
             ]
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
