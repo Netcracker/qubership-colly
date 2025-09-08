@@ -81,10 +81,8 @@ FROM registry.access.redhat.com/ubi8/openjdk-21:1.20
 
 ENV LANGUAGE='en_US:en'
 
-RUN echo 'start building docker for envgene-inventory-service'
-RUN pwd
-RUN ls -la
 # We make four distinct layers so if there are application changes the library layers can be re-used
+COPY --chown=185 src/main/java/ /deployments/lib/
 COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
 COPY --chown=185 target/quarkus-app/*.jar /deployments/
 COPY --chown=185 target/quarkus-app/app/ /deployments/app/
