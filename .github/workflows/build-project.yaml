@@ -76,7 +76,6 @@ jobs:
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
           tags: ${{ needs.perform-version.outputs.tags }}
-
           component: |
             [
                 {
