@@ -38,6 +38,7 @@ jobs:
           artifact-id: ${{ matrix.component }}
           maven-token: ${{ secrets.GITHUB_TOKEN }}
   prepare:
+    needs: mvn-build
     permissions:
       contents: read
     name: "Prepare Images and Metadata"
