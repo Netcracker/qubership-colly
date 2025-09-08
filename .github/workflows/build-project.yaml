@@ -69,26 +69,37 @@ jobs:
     needs: perform-version
     runs-on: ubuntu-latest
     steps:
-      - name: Docker
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+      - name: Down load artifacts
+        uses: actions/download-artifact@v3
         with:
-          ref: ${{ github.ref }}
-          dry-run: ${{ inputs.dry-run }}
-          download-artifact: true
-          tags: ${{ needs.perform-version.outputs.tags }}
-          component: |
-            [
-                {
-                  "name": "envgene-inventory-service",
-                  "file": "envgene-inventory-service/Dockerfile",
-                  "context": "envgene-inventory-service"
-                },
-               {
-                  "name": "environment-operational-service",
-                  "file": "environment-operational-service/Dockerfile",
-                  "context": "environment-operational-service"
-                }
-            ]
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: envgene-inventory-service
+
+      - name: Dirrectory listing
+        run: |
+          ls -la
+          ls -la envgene-inventory-service
+          ls -la envgene-inventory-service/target
+
+#      - name: Docker
+#        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+#        with:
+#          ref: ${{ github.ref }}
+#          dry-run: ${{ inputs.dry-run }}
+#          download-artifact: true
+#          tags: ${{ needs.perform-version.outputs.tags }}
+#          component: |
+#            [
+#                {
+#                  "name": "envgene-inventory-service",
+#                  "file": "envgene-inventory-service/Dockerfile",
+#                  "context": "envgene-inventory-service"
+#                },
+#               {
+#                  "name": "environment-operational-service",
+#                  "file": "environment-operational-service/Dockerfile",
+#                  "context": "environment-operational-service"
+#                }
+#            ]
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
