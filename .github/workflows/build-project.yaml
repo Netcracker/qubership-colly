@@ -105,7 +105,7 @@ jobs:
                 {
                   "name": "envgene-inventory-service",
                   "file": "envgene-inventory-service/Dockerfile",
-                  "context": "envgene-inventory-service"
+                  "context": "."
                 }
             ]
         env:
