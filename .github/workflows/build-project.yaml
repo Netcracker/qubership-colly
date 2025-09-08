@@ -1,7 +1,13 @@
 name: Build Project
 
 on:
-  push:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry run'
+        required: false
+        default: true
+        type: boolean
 permissions:
   packages: write
 
@@ -76,30 +82,37 @@ jobs:
 
       - name: Dirrectory listing
         run: |
-          ls -la
-          ls -la envgene-inventory-service
-          ls -la envgene-inventory-service/target
+           ls -la
+           ls -la envgene-inventory-service
+           ls -la envgene-inventory-service/target
+           ls -la envgene-inventory-service/target/quarkus
+           ls -la envgene-inventory-service/target/quarkus-app
 
-#      - name: Docker
-#        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
-#        with:
-#          ref: ${{ github.ref }}
-#          dry-run: ${{ inputs.dry-run }}
-#          download-artifact: true
-#          tags: ${{ needs.perform-version.outputs.tags }}
-#          component: |
-#            [
-#                {
-#                  "name": "envgene-inventory-service",
-#                  "file": "envgene-inventory-service/Dockerfile",
-#                  "context": "envgene-inventory-service"
-#                },
-#               {
-#                  "name": "environment-operational-service",
-#                  "file": "environment-operational-service/Dockerfile",
-#                  "context": "environment-operational-service"
-#                }
-#            ]
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+           ls -la environment-operational-service
+           ls -la environment-operational-service/target
+           ls -la environment-operational-service/target/quarkus
+           ls -la environment-operational-service/target/quarkus-app
+
+      # - name: Docker
+      #   uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+      #   with:
+      #     ref: ${{ github.ref }}
+      #     dry-run: ${{ inputs.dry-run }}
+      #     download-artifact: true
+      #     tags: ${{ needs.perform-version.outputs.tags }}
+      #     component: |
+      #       [
+      #           {
+      #             "name": "envgene-inventory-service",
+      #             "file": "envgene-inventory-service/Dockerfile",
+      #             "context": "envgene-inventory-service"
+      #           },
+      #          {
+      #             "name": "environment-operational-service",
+      #             "file": "environment-operational-service/Dockerfile",
+      #             "context": "environment-operational-service"
+      #           }
+      #       ]
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
