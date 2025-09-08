@@ -2,6 +2,17 @@ name: Build Project
 
 on:
   push:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Additional tags for Docker images (comma separated)'
+        required: false
+        default: ''
+      dry-run:
+        description: 'If true, the workflow will run in dry-run mode without pushing images'
+        required: false
+        default: true
+        type: boolean
 permissions:
   packages: write
 
@@ -98,7 +109,6 @@ jobs:
           component: ${{ toJson(matrix.component) }}
           platforms: ${{ needs.prepare.outputs.platforms }}
           tags: ${{ needs.prepare.outputs.metadata }}
-          debug: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
