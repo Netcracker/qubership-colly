@@ -96,7 +96,6 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/docker-action@main
         with:
           ref: ${{ github.ref }}
-          dry-run: ${{ inputs.dry-run }}
           download-artifact: true
           download-artifact-path: ${{ github.workspace }}
           tags: ${{ needs.perform-version.outputs.tags }}
