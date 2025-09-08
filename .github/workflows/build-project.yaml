@@ -5,14 +5,14 @@ on:
   workflow_dispatch:
     inputs:
       dry-run:
-        description: 'Dry run mode'
+        description: "Dry run mode"
         required: false
-        default:  true
+        default: true
         type: boolean
       tags:
-        description: 'Additional tags for docker images, comma separated'
+        description: "Additional tags for docker images, comma separated"
         required: false
-        default: ''
+        default: ""
 permissions:
   packages: write
 
@@ -48,44 +48,41 @@ jobs:
       platforms: ${{ steps.load_component.outputs.platforms }}
       metadata: "${{ steps.metadata.outputs.result }}"
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v5
+      - name: Load Docker Configuration
+        id: load_component
+        shell: bash
+        run: |
+          verify=$(cat "$GITHUB_WORKSPACE/.github/docker-dev-config.json" | jq '
+            def verify_structure:
+              .components as $components
+              | .platforms as $platforms
+              | ($components | type == "array")
+              and (all($components[]; has("name") and has("file") and has("context")))
+              and ($platforms | type == "string");
+            verify_structure
+            | if . then true else false end
+          ')
+          if [ "${verify}" == "true" ]; then
+            echo "✅ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is valid"
+            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+          else
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid"
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "components=${components}" >> "$GITHUB_OUTPUT"
+          echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
-    - name: Load Docker Configuration
-      id: load_component
-      shell: bash
-      run: |
-        verify=$(cat "$GITHUB_WORKSPACE/.github/docker-dev-config.json" | jq '
-          def verify_structure:
-            .components as $components
-            | .platforms as $platforms
-            | ($components | type == "array")
-            and (all($components[]; has("name") and has("file") and has("context")))
-            and ($platforms | type == "string");
-          verify_structure
-          | if . then true else false end
-        ')
-        if [ "${verify}" == "true" ]; then
-          echo "✅ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is valid"
-          components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
-          platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
-        else
-          echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid"
-          echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
-          exit 1
-        fi
-        echo "components=${components}" >> "$GITHUB_OUTPUT"
-        echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
-
-    - name: Create tags for images
-      uses: netcracker/qubership-workflow-hub/actions/metadata-action@main
-      id: metadata
-      with:
-        short-sha: 11
-        extra-tags: ${{ inputs.tags }}
-        default-template: "{{ref-name}}-{{timestamp}}, {{ref-name}}-{{short-sha}}, {{ref-name}}, {{short-sha}}"
-        default-tag: "dev"
-        dry-run: ${{ inputs.dry-run }}
+      - name: Create tags for images
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@main
+        id: metadata
+        with:
+          short-sha: 11
+          extra-tags: ${{ inputs.tags }}
+          default-template: "{{ref-name}}-{{timestamp}}, {{ref-name}}-{{short-sha}}, {{ref-name}}, {{short-sha}}"
+          default-tag: "dev"
+          dry-run: ${{ inputs.dry-run }}
 
   docker-build:
     name: "Build Docker Images"
@@ -133,5 +130,4 @@ jobs:
           platforms: ${{ needs.prepare.outputs.platforms }}
           tags: ${{ needs.prepare.outputs.metadata }}
         env:
-          GITHUB_TOKEN:
-            ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
