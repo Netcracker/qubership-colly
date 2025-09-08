@@ -115,9 +115,3 @@ jobs:
         env:
           GITHUB_TOKEN:
             ${{ secrets.GITHUB_TOKEN }}
-
-            #  {
-            #     "name": "environment-operational-service",
-            #     "file": "environment-operational-service/Dockerfile",
-            #     "context": "environment-operational-service"
-            #   }
