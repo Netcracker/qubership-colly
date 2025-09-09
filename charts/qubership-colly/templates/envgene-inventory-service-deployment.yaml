@@ -3,22 +3,22 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app.kubernetes.io/name: {{ .Values.colly.serviceName }}
+    app.kubernetes.io/name: {{ .Values.colly.envgeneInventoryService.serviceName }}
     app.kubernetes.io/version: {{ .Chart.Version }}
-    name: {{ .Values.colly.serviceName }}
-  name: {{ .Values.colly.serviceName }}
+    name: {{ .Values.colly.envgeneInventoryService.serviceName }}
+  name: {{ .Values.colly.envgeneInventoryService.serviceName }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: {{ .Values.colly.serviceName }}
+      name: {{ .Values.colly.envgeneInventoryService.serviceName }}
   template:
     metadata:
       annotations:
         app.quarkus.io/quarkus-version: 3.18.2
       labels:
-        name: {{ .Values.colly.serviceName }}
-        app.kubernetes.io/name: {{ .Values.colly.serviceName }}
+        name: {{ .Values.colly.envgeneInventoryService.serviceName }}
+        app.kubernetes.io/name: {{ .Values.colly.envgeneInventoryService.serviceName }}
         app.kubernetes.io/version: {{ .Chart.Version }}
     spec:
       containers:
@@ -28,41 +28,41 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: QUARKUS_DATASOURCE_JDBC_URL
-              value: {{ .Values.colly.db.host }}
+              value: {{ .Values.colly.envgeneInventoryService.db.host }}
             - name: QUARKUS_HIBERNATE_ORM_DATABASE_DEFAULT_SCHEMA
-              value: {{ .Values.colly.db.schema | default "public" }}
+              value: {{ .Values.colly.envgeneInventoryService.db.schema | default "public" }}
             - name: QUARKUS_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
                   key: username
-                  name: {{ .Values.colly.serviceName }}-secret
+                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: QUARKUS_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password
-                  name: {{ .Values.colly.serviceName }}-secret
+                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: ENV_INSTANCES_REPO
-              value: {{ .Values.colly.instancesRepo }}
-            - name: CRON_SCHEDULE
-              value: {{ .Values.colly.cronSchedule }}
+              value: {{ .Values.colly.envgeneInventoryService.instancesRepo }}
+            - name: COLLY_ENVGENE_INVENTORY_SERVICE_CRON_SCHEDULE
+              value: {{ .Values.colly.envgeneInventoryService.cronSchedule }}
             - name: QUARKUS_OIDC_AUTH_SERVER_URL
-              value: {{ .Values.colly.idp.url }}
+              value: {{ .Values.colly.envgeneInventoryService.idp.url }}
             - name: QUARKUS_OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef:
                   key: idpClientId
-                  name: {{ .Values.colly.serviceName }}-secret
+                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: QUARKUS_OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   key: idpClientSecret
-                  name: {{ .Values.colly.serviceName }}-secret
+                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
-          image: {{ .Values.colly.image }}
+          image: {{ .Values.colly.envgeneInventoryService.image }}
           imagePullPolicy: Always
           name: qubership-colly
           ports:
-            - containerPort: {{ .Values.colly.ports.http }}
+            - containerPort: {{ .Values.colly.envgeneInventoryService.ports.http }}
               name: web
               protocol: TCP
