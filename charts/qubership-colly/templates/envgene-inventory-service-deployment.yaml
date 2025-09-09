@@ -41,9 +41,9 @@ spec:
                 secretKeyRef:
                   key: password
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
-            - name: ENV_INSTANCES_REPO
+            - name: COLLY_EIS_ENV_INSTANCES_REPO
               value: {{ .Values.colly.envgeneInventoryService.instancesRepo }}
-            - name: COLLY_ENVGENE_INVENTORY_SERVICE_CRON_SCHEDULE
+            - name: COLLY_EIS_CRON_SCHEDULE
               value: {{ .Values.colly.envgeneInventoryService.cronSchedule }}
             - name: QUARKUS_OIDC_AUTH_SERVER_URL
               value: {{ .Values.colly.envgeneInventoryService.idp.url }}
