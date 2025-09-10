@@ -34,10 +34,10 @@ public class CloudPassportLoader {
     @Inject
     GitService gitService;
 
-    @ConfigProperty(name = "colly-eis.cloud.passport.folder")
+    @ConfigProperty(name = "colly.eis.cloud.passport.folder")
     String cloudPassportFolder;
 
-    @ConfigProperty(name = "colly-eis.env.instances.repo")
+    @ConfigProperty(name = "colly.eis.env.instances.repo")
     Optional<List<String>> gitRepoUrls;
 
 
