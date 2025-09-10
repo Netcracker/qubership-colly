@@ -16,7 +16,7 @@ colly:
       host:
       username: postgres
       password: postgres
-      schema: envgeneInventoryService
+      schema: envgene_inventory_service
     ports:
       http: 8080
   environmentOperationalService:
@@ -31,7 +31,7 @@ colly:
       host:
       username: postgres
       password: postgres
-      schema: environmentOperationalService
+      schema: environment_operational_service
     ports:
       http: 8080
     ingress:
