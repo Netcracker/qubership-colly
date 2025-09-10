@@ -1,5 +1,4 @@
-name: Build Docker with Matrix Strategy
-run-name: "Image for ${{ github.event.repository.name }}: ${{ github.run_number }} - ${{ github.actor }}"
+name: Build Images
 on:
   push:
   workflow_dispatch:
@@ -32,16 +31,16 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
         with:
           java-version: 21
-          maven-command: install -Dmaven.test.skip=true
+          maven-command: clean install
           working-directory: ${{ matrix.component }}
           upload-artifact: "true"
           artifact-id: ${{ matrix.component }}
           maven-token: ${{ secrets.GITHUB_TOKEN }}
-  prepare:
+  prepare-metadata:
     permissions:
       contents: read
     needs: mvn-build
-    name: "Prepare Images and Metadata"
+    name: "Prepare Metadata"
     runs-on: ubuntu-latest
     outputs:
       components: ${{ steps.load_component.outputs.components }}
@@ -77,19 +76,18 @@ jobs:
           echo "components=${components}" >> "$GITHUB_OUTPUT"
           echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
-      - name: Create tags for images
+      - name: Calculate tags for images
         uses: netcracker/qubership-workflow-hub/actions/metadata-action@main
         id: metadata
         with:
           short-sha: 11
           extra-tags: ${{ github.event.inputs.tags }}
-          default-template: "{{ref-name}}-{{timestamp}}, {{ref-name}}-{{short-sha}}, {{ref-name}}, {{short-sha}}"
-          default-tag: "dev"
           dry-run: ${{ inputs.dry-run }}
+          configuration-path: .github/metadata-action-config.yml
 
   build:
     name: Build Docker Images
-    needs: [prepare]
+    needs: [prepare-metadata]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,7 +95,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        component: ${{ fromJson(needs.prepare.outputs.components) }}
+        component: ${{ fromJson(needs.prepare-metadata.outputs.components) }}
     steps:
       - name: Docker
         uses: netcracker/qubership-workflow-hub/actions/docker-action@main
@@ -108,108 +106,7 @@ jobs:
           download-artifact-path: '.'
           debug: true
           component: ${{ toJson(matrix.component) }}
-          platforms: ${{ needs.prepare.outputs.platforms }}
-          tags: ${{ needs.prepare.outputs.metadata }}
+          platforms: ${{ needs.prepare-metadata.outputs.platforms }}
+          tags: ${{ needs.prepare-metadata.outputs.metadata }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # perform-version:
-  #   runs-on: ubuntu-latest
-  #   needs: mvn-build
-  #   outputs:
-  #     metadata: "${{ steps.metadata.outputs.result }}"
-  #     tags: "${{ steps.prepare_tags.outputs.tags }}"
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
-
-  #     - name: Create name
-  #       uses: netcracker/qubership-workflow-hub/actions/metadata-action@main
-  #       id: metadata
-  #       with:
-  #         configuration-path: .github/metadata-action-config.yml
-
-  #     - name: Echo metadata
-  #       run: echo "Metadata result ${{ steps.metadata.outputs.result }}" >> $GITHUB_STEP_SUMMARY
-
-  #     - name: Prepare tags
-  #       id: prepare_tags
-  #       run: |
-  #         BASE_TAG="${{ steps.metadata.outputs.result }}"
-  #         EXTRA_TAG="${{ github.event.inputs.tags }}"
-  #         if [ -n "$EXTRA_TAG" ]; then
-  #           TAGS="${BASE_TAG}, ${EXTRA_TAG}"
-  #         else
-  #           TAGS="${BASE_TAG}"
-  #         fi
-  #         echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-  #         echo "tags: ${TAGS}" >> $GITHUB_STEP_SUMMARY
-  #         echo "github.head_ref = ${{ github.head_ref }}"
-
-  #     - name: Summary step
-  #       run: |
-  #         echo "**Metadata:** ${{ steps.metadata.outputs.result }}" >> $GITHUB_STEP_SUMMARY
-  #         echo "**Tags:** ${{ steps.prepare_tags.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-
-  # docker-build:
-  #   name: "Build Docker Images"
-  #   needs: perform-version
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v5
-  #       with:
-  #         ref: ${{ github.ref }}
-  #     # - name: Down load artifacts
-  #     #   uses: actions/download-artifact@v4
-  #     #   with:
-  #     #     name: envgene-inventory-service
-
-  #     # - name: Down load artifacts
-  #     #   uses: actions/download-artifact@v5
-  #     #   with:
-  #     #     name: environment-operational-service
-
-  #     # - name: Dirrectory listing
-  #     #   run: |
-  #     #     ls -la
-  #     #     ls -la envgene-inventory-service
-  #     #     ls -la envgene-inventory-service/target
-  #     #     ls -la envgene-inventory-service/target/quarkus
-  #     #     ls -la envgene-inventory-service/target/quarkus-app
-
-  #     #     ls -la environment-operational-service
-  #     #     ls -la environment-operational-service/target
-  #     #     ls -la environment-operational-service/target/quarkus
-  #     #     ls -la environment-operational-service/target/quarkus-app
-
-  #     - name: Docker
-  #       uses: netcracker/qubership-workflow-hub/actions/docker-action@main
-  #       with:
-  #         ref: ${{ github.ref }}
-  #         download-artifact: true
-  #         download-artifact-path: ${{ github.workspace }}
-  #         tags: ${{ needs.perform-version.outputs.tags }}
-  #         checkout: false
-  #         component: |
-  #           [
-  #               {
-  #                 "name": "envgene-inventory-service",
-  #                 "file": "envgene-inventory-service/Dockerfile",
-  #                 "context": "envgene-inventory-service"
-  #               },
-  #               {
-  #                 "name": "environment-operational-service",
-  #                 "file": "environment-operational-service/Dockerfile",
-  #                 "context": "environment-operational-service"
-  #               }
-  #           ]
-  #       env:
-  #         GITHUB_TOKEN:
-  #           ${{ secrets.GITHUB_TOKEN }}
-
-  #           #  {
-  #           #     "name": "environment-operational-service",
-  #           #     "file": "environment-operational-service/Dockerfile",
-  #           #     "context": "environment-operational-service"
-  #           #   }

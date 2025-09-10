@@ -59,7 +59,7 @@ class CloudPassportLoaderTest {
 
 
     @Test
-    @TestConfigProperty(key = "colly-eis.cloud.passport.folder", value = "src/test/resources/gitrepo_with_cloudpassports")
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "src/test/resources/gitrepo_with_cloudpassports")
     void load_cloud_passports_from_test_folder() {
         List<CloudPassport> result = loader.loadCloudPassports();
         assertThat(result, containsInAnyOrder(TEST_CLUSTER_CLOUD_PASSPORT, TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER));
@@ -67,7 +67,7 @@ class CloudPassportLoaderTest {
     }
 
     @Test
-    @TestConfigProperty(key = "colly-eis.cloud.passport.folder", value = "/nonexistent/path")
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "/nonexistent/path")
     void load_cloud_passports_from_test_folder_with_empty_folder() {
         List<CloudPassport> result = loader.loadCloudPassports();
         assertTrue(result.isEmpty());

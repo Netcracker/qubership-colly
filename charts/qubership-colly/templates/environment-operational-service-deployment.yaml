@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Values.colly.environmentOperationalService.serviceName }}
+    app.kubernetes.io/version: {{ .Chart.Version }}
+    name: {{ .Values.colly.environmentOperationalService.serviceName }}
+  name: {{ .Values.colly.environmentOperationalService.serviceName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: {{ .Values.colly.environmentOperationalService.serviceName }}
+  template:
+    metadata:
+      annotations:
+        app.quarkus.io/quarkus-version: 3.18.2
+      labels:
+        name: {{ .Values.colly.environmentOperationalService.serviceName }}
+        app.kubernetes.io/name: {{ .Values.colly.environmentOperationalService.serviceName }}
+        app.kubernetes.io/version: {{ .Chart.Version }}
+    spec:
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: {{ .Values.colly.environmentOperationalService.db.host }}
+            - name: QUARKUS_HIBERNATE_ORM_DATABASE_DEFAULT_SCHEMA
+              value: {{ .Values.colly.environmentOperationalService.db.schema | default "public" }}
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
+            - name: QUARKUS_REST_CLIENT_ENVGENE_INVENTORY_SERVICE_URL
+              value: "http://{{ .Values.colly.envgeneInventoryService.serviceName }}:8080"
+            - name: COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CRON_SCHEDULE
+              value: {{ .Values.colly.environmentOperationalService.cronSchedule }}
+            - name: QUARKUS_OIDC_AUTH_SERVER_URL
+              value: {{ .Values.colly.environmentOperationalService.idp.url }}
+            - name: QUARKUS_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: idpClientId
+                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
+            - name: QUARKUS_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: idpClientSecret
+                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
+            - name: QUARKUS_OIDC_TLS_VERIFICATION
+              value: none
+          image: {{ .Values.colly.environmentOperationalService.image }}
+          imagePullPolicy: Always
+          name: qubership-colly
+          ports:
+            - containerPort: {{ .Values.colly.environmentOperationalService.ports.http }}
+              name: web
+              protocol: TCP

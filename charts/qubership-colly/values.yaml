@@ -1,19 +1,42 @@
 ---
+CLOUD_PUBLIC_HOST:
+NAMESPACE: qubership-colly
 colly:
-  image: ghcr.io/netcracker/qubership-colly:latest
-  serviceName: qubership-colly
-  instancesRepo:
-  cronSchedule: 0 0/20 * * * ?
-  idp:
-    url:
-    clientId: colly
-    clientSecret:
-  db:
-    host:
-    username: postgres
-    password: postgres
-  ports:
-    http: 8080
-  ingress:
-    http:
-      annotations:
+  global:
+  envgeneInventoryService:
+    image: ghcr.io/netcracker/envgene-inventory-service:latest
+    serviceName: envgene-inventory-service
+    instancesRepo:
+    cronSchedule: 0 0/1 * * * ?
+    idp:
+      url:
+      clientId: envgene-inventory-service
+      clientSecret:
+    db:
+      host:
+      username: postgres
+      password: postgres
+      schema: envgene_inventory_service
+    ports:
+      http: 8080
+  environmentOperationalService:
+    image: ghcr.io/netcracker/environment-operational-service:latest
+    serviceName: environment-operational-service
+    cronSchedule: 0 0/1 * * * ?
+    idp:
+      url:
+      clientId: environment-operational-service
+      clientSecret:
+    db:
+      host:
+      username: postgres
+      password: postgres
+      schema: environment_operational_service
+    ports:
+      http: 8080
+    ingress:
+      className: alb
+      http:
+        annotations:
+          alb.ingress.kubernetes.io/scheme: internet-facing
+          alb.ingress.kubernetes.io/target-type: ip
