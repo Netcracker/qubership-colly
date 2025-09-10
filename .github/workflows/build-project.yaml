@@ -31,7 +31,7 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
         with:
           java-version: 21
-          maven-command: install -Dmaven.test.skip=true
+          maven-command: clean install
           working-directory: ${{ matrix.component }}
           upload-artifact: "true"
           artifact-id: ${{ matrix.component }}
