@@ -1,11 +1,13 @@
 ---
+CLOUD_PUBLIC_HOST:
+NAMESPACE: qubership-colly
 colly:
   global:
   envgeneInventoryService:
     image: ghcr.io/netcracker/envgene-inventory-service:latest
     serviceName: envgene-inventory-service
     instancesRepo:
-    cronSchedule: 0 0/20 * * * ?
+    cronSchedule: 0 0/1 * * * ?
     idp:
       url:
       clientId: envgene-inventory-service
@@ -14,12 +16,13 @@ colly:
       host:
       username: postgres
       password: postgres
+      schema: envgeneInventoryService
     ports:
       http: 8080
   environmentOperationalService:
     image: ghcr.io/netcracker/environment-operational-service:latest
     serviceName: environment-operational-service
-    cronSchedule: 0 0/20 * * * ?
+    cronSchedule: 0 0/1 * * * ?
     idp:
       url:
       clientId: environment-operational-service
@@ -28,6 +31,7 @@ colly:
       host:
       username: postgres
       password: postgres
+      schema: environmentOperationalService
     ports:
       http: 8080
     ingress:
