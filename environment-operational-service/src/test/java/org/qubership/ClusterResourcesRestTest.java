@@ -80,6 +80,8 @@ class ClusterResourcesRestTest {
                 .formParam("labels", "label1,label2")
                 .formParam("type", "development")
                 .formParam("team", "test-team")
+                .formParam("deploymentStatus", "DEPLOYED")
+                .formParam("tickets", "https://issues.example.com/1234,https://issues.example.com/5678")
                 .formParam("expirationDate", "2024-12-31")
                 .when().post("/colly/environment-operational-service/environments/" + env.id.toString())
                 .then()

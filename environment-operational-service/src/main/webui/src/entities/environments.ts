@@ -9,6 +9,8 @@ export type Environment = {
     team: string;
     status: EnvironmentStatus;
     type: EnvironmentType;
+    deploymentStatus: DeploymentStatus;
+    ticketLinks: string;
     labels: string[];
     description: string;
     deploymentVersion: string;
@@ -29,18 +31,31 @@ export const STATUS_MAPPING = {
 
 export type EnvironmentType =
     "ENVIRONMENT"
+    | "PORTAL"
     | "CSE_TOOLSET"
     | "DESIGN_TIME"
     | "APP_DEPLOYER"
     | "INFRASTRUCTURE"
     | "UNDEFINED"
 
-export const ALL_TYPES: EnvironmentType[] = ["ENVIRONMENT", "CSE_TOOLSET", "DESIGN_TIME", "APP_DEPLOYER", "INFRASTRUCTURE", "UNDEFINED"];
+export const ALL_TYPES: EnvironmentType[] = ["ENVIRONMENT", "PORTAL", "CSE_TOOLSET", "DESIGN_TIME", "APP_DEPLOYER", "INFRASTRUCTURE", "UNDEFINED"];
 export const ENVIRONMENT_TYPES_MAPPING = {
     ENVIRONMENT: "Environment",
+    PORTAL: "Portal",
     CSE_TOOLSET: "CSE Toolset",
     DESIGN_TIME: "Design Time",
     APP_DEPLOYER: "App Deployer",
     INFRASTRUCTURE: "Infrastructure",
     UNDEFINED: "Undefined"
 }
+
+export type DeploymentStatus = "DEPLOYED" | "FAILED" | "IN_PROGRESS" | "NOT_STARTED";
+
+export const ALL_DEPLOYMENT_STATUSES: DeploymentStatus[] = ["DEPLOYED", "FAILED", "IN_PROGRESS", "NOT_STARTED"]
+
+export const DEPLOYMENT_STATUS_MAPPING = {
+    DEPLOYED: "Deployed",
+    FAILED: "Failed",
+    IN_PROGRESS: "In Progress",
+    NOT_STARTED: "Not Started"
+};

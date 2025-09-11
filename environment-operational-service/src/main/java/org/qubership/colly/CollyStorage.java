@@ -10,10 +10,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
-import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.EnvironmentStatus;
-import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.db.data.*;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -88,7 +85,7 @@ public class CollyStorage {
 
 
     @Transactional
-    public void saveEnvironment(String id, String name, String owner, String description, String status, List<String> labels, String type, String team, LocalDate expirationDate) {
+    public void saveEnvironment(String id, String name, String owner, String description, String status, List<String> labels, String type, String team, LocalDate expirationDate, String deploymentStatus, String tickets) {
         Environment environment = environmentRepository.findById(Long.valueOf(id));
         if (environment == null) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
@@ -101,6 +98,8 @@ public class CollyStorage {
         environment.setTeam(team);
         environment.setExpirationDate(expirationDate);
         environment.setLabels(labels);
+        environment.setTicketLinks(tickets);
+        environment.setDeploymentStatus(DeploymentStatus.fromString(deploymentStatus));
         environmentRepository.persist(environment);
     }
 

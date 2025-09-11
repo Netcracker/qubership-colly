@@ -83,12 +83,13 @@ class ClusterResourcesLoaderTest {
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), URI.create("http://localhost:" + port));
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
 
+        String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
         V1ConfigMap configMap = new V1ConfigMap()
                 .metadata(new V1ObjectMeta()
                         .name("sd-versions")
                         .uid("configmap-uid")
                         .creationTimestamp(DATE_2024))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
+                .data(Map.of("solution-descriptors-summary", exampleOfLongVersion));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
 
@@ -98,7 +99,7 @@ class ClusterResourcesLoaderTest {
         assertThat(testEnv, allOf(
                 hasProperty("name", equalTo("env-test")),
                 hasProperty("description", equalTo("some env for tests")),
-                hasProperty("deploymentVersion", equalTo("MyVersion 1.0.0\n")),
+                hasProperty("deploymentVersion", equalTo(exampleOfLongVersion + "\n")),
                 hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant())),
                 hasProperty("type", equalTo(EnvironmentType.ENVIRONMENT))));
 
@@ -215,8 +216,9 @@ class ClusterResourcesLoaderTest {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-3-namespaces", "some env for tests",
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME),
-                                new CloudPassportNamespace(NAMESPACE_NAME_2)))), null);
-        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2));
+                                new CloudPassportNamespace(NAMESPACE_NAME_2),
+                                new CloudPassportNamespace(NAMESPACE_NAME_3)))), null);
+        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
         V1ConfigMap configMap1 = new V1ConfigMap()
                 .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
@@ -229,6 +231,14 @@ class ClusterResourcesLoaderTest {
                 .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
 
         mockConfigMaps(List.of(configMap2), NAMESPACE_NAME_2);
+
+         V1ConfigMap configMap3 = new V1ConfigMap()
+                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
+                .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
+
+        mockConfigMaps(List.of(configMap3), NAMESPACE_NAME_3);
+
+
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
         Environment testEnv = environmentRepository.findByNameAndCluster("env-3-namespaces", CLUSTER_NAME);

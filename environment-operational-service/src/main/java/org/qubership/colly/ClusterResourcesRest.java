@@ -76,12 +76,14 @@ public class ClusterResourcesRest {
                                 @FormParam("labels") List<String> labels,
                                 @FormParam("type") String type,
                                 @FormParam("team") String team,
+                                @FormParam("deploymentStatus") String deploymentStatus,
+                                @FormParam("ticketLinks") String ticketLinks,
                                 @FormParam("expirationDate") String expirationDate) {
         LocalDate date = null;
         if (expirationDate != null && !expirationDate.isEmpty()) {
             date = LocalDate.parse(expirationDate);
         }
-        collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, team, date);
+        collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, team, date, deploymentStatus, ticketLinks);
     }
 
     @DELETE

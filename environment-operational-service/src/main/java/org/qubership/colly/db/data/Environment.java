@@ -16,6 +16,7 @@ public class Environment extends PanacheEntity {
     private String name;
     private String owner;
     private String team;
+    @Column(columnDefinition = "TEXT")
     private String description;
     private LocalDate expirationDate;
     private Instant cleanInstallationDate;
@@ -38,6 +39,7 @@ public class Environment extends PanacheEntity {
     @Column(name = "value", columnDefinition = "TEXT")
     private Map<String, String> monitoringData;
 
+    @Column(columnDefinition = "TEXT")
     private String deploymentVersion;
 
     @ElementCollection
@@ -48,6 +50,11 @@ public class Environment extends PanacheEntity {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Namespace> namespaces;
 
+    @Enumerated(EnumType.STRING)
+    private DeploymentStatus deploymentStatus;
+
+    @Column(columnDefinition = "TEXT")
+    private String ticketLinks;
 
     public Environment(String name) {
         this.setName(name);
@@ -56,6 +63,7 @@ public class Environment extends PanacheEntity {
 
     public Environment() {
     }
+
 
     public List<Namespace> getNamespaces() {
         return Collections.unmodifiableList(namespaces);
@@ -164,5 +172,20 @@ public class Environment extends PanacheEntity {
     public void setCleanInstallationDate(Instant cleanInstallationDate) {
         this.cleanInstallationDate = cleanInstallationDate;
     }
-}
 
+    public DeploymentStatus getDeploymentStatus() {
+        return deploymentStatus;
+    }
+
+    public void setDeploymentStatus(DeploymentStatus deploymentStatus) {
+        this.deploymentStatus = deploymentStatus;
+    }
+
+    public String getTicketLinks() {
+        return ticketLinks;
+    }
+
+    public void setTicketLinks(String ticketLinks) {
+        this.ticketLinks = ticketLinks;
+    }
+}
