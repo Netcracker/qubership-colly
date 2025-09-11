@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    app.quarkus.io/quarkus-version: 3.18.2
+  labels:
+    app.kubernetes.io/name: {{ .Values.colly.envgeneInventoryService.serviceName }}
+    app.kubernetes.io/version: {{ .Chart.Version }}
+    name: {{ .Values.colly.envgeneInventoryService.serviceName }}
+  name: {{ .Values.colly.envgeneInventoryService.serviceName }}
+spec:
+  ports:
+    - name: web
+      port: 8080
+      protocol: TCP
+      targetPort: {{ .Values.colly.envgeneInventoryService.ports.http }}
+  selector:
+    name: {{ .Values.colly.envgeneInventoryService.serviceName }}
+  type: ClusterIP

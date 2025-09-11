@@ -1,5 +1,9 @@
 *
-!target/*-runner
-!target/*-runner.jar
-!target/lib/*
-!target/quarkus-app/*
+!envgene-inventory-service/target/*-runner
+!envgene-inventory-service/target/*-runner.jar
+!envgene-inventory-service/target/lib/*
+!envgene-inventory-service/target/quarkus-app/*
+!environment-operational-service/target/*-runner
+!environment-operational-service/target/*-runner.jar
+!environment-operational-service/target/lib/*
+!environment-operational-service/target/quarkus-app/*

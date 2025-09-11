@@ -81,29 +81,90 @@ jobs:
           check-tag: false
   mvn-build:
     needs: [tag, prepare-chart-release]
-    uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
-    with:
-      maven-command: "--batch-mode clean package"
-      upload-artifact: true
-      artifact-id: ${{ github.event.repository.name }}
-      ref: ${{ github.head_ref }}
-    secrets:
-      maven-token: ${{ secrets.GITHUB_TOKEN }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - envgene-inventory-service
+          - environment-operational-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build java
+        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
+        with:
+          java-version: 21
+          maven-command: "--batch-mode clean package"
+          working-directory: ${{ matrix.component }}
+          upload-artifact: "true"
+          artifact-id: ${{ matrix.component }}
+          maven-token: ${{ secrets.GITHUB_TOKEN }}
+
+  prepare-metadata:
+    permissions:
+      contents: read
+    needs: mvn-build
+    name: "Prepare Metadata"
+    runs-on: ubuntu-latest
+    outputs:
+      components: ${{ steps.load_component.outputs.components }}
+      platforms: ${{ steps.load_component.outputs.platforms }}
+      metadata: "${{ steps.metadata.outputs.result }}"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Load Docker Configuration
+        id: load_component
+        shell: bash
+        run: |
+          verify=$(cat "$GITHUB_WORKSPACE/.github/docker-dev-config.json" | jq '
+            def verify_structure:
+              .components as $components
+              | .platforms as $platforms
+              | ($components | type == "array")
+              and (all($components[]; has("name") and has("file") and has("context")))
+              and ($platforms | type == "string");
+            verify_structure
+            | if . then true else false end
+          ')
+          if [ "${verify}" == "true" ]; then
+            echo "✅ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is valid"
+            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+          else
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid"
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "components=${components}" >> "$GITHUB_OUTPUT"
+          echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
   docker-build:
-    needs: [tag, mvn-build, prepare-chart-release]
+    needs: [tag, mvn-build, prepare-chart-release, prepare-metadata]
     runs-on: ubuntu-latest
+    name: Build Docker Images
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.prepare-metadata.outputs.components) }}
     steps:
-      - name: Docker build
+      - name: Docker
         uses: netcracker/qubership-workflow-hub/actions/docker-action@main
         with:
-          ref: v${{ inputs.release }}
-          download-artifact: true
+          ref: ${{ inputs.release }}
           dry-run: false
+          download-artifact: true
+          download-artifact-path: '.'
+          component: ${{ toJson(matrix.component) }}
+          platforms: ${{ needs.prepare-metadata.outputs.platforms }}
           tags: "${{ inputs.release }}"
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   charts-release:
     needs: [tag, docker-build]
