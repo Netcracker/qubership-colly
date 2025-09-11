@@ -13,6 +13,7 @@ else
     echo "✗ Failed to build envgene-inventory-service"
     exit 1
 fi
+cd ..
 
 # Build operational service
 echo "Building environment-operational-service..."
@@ -25,6 +26,7 @@ else
     echo "✗ Failed to build environment-operational-service"
     exit 1
 fi
+cd ..
 
 echo ""
 echo "All Docker images built successfully:"
