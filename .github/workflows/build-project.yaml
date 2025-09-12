@@ -104,7 +104,6 @@ jobs:
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
           download-artifact-path: '.'
-          debug: true
           component: ${{ toJson(matrix.component) }}
           platforms: ${{ needs.prepare-metadata.outputs.platforms }}
           tags: ${{ needs.prepare-metadata.outputs.metadata }}
