@@ -1,25 +1,10 @@
 package org.qubership.colly.db.data;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-
-@Entity(name = "namespaces")
-public class Namespace extends PanacheEntityBase {
-    @Id
+public class Namespace {
     private String uid;
-
     private String name;
-    @ManyToOne()
-    @JoinColumn(referencedColumnName = "name")
-    private Cluster cluster;
-
-    @ManyToOne()
-    @JoinColumn(referencedColumnName = "id")
-    private Environment environment;
-
+    private String clusterId;
+    private String environmentId;
     private Boolean existsInK8s;
 
     public boolean getExistsInK8s() {
@@ -46,19 +31,19 @@ public class Namespace extends PanacheEntityBase {
         this.name = name;
     }
 
-    public Cluster getCluster() {
-        return cluster;
+    public String getClusterId() {
+        return clusterId;
     }
 
-    public void setCluster(Cluster cluster) {
-        this.cluster = cluster;
+    public void setClusterId(String clusterId) {
+        this.clusterId = clusterId;
     }
 
-    public Environment getEnvironment() {
-        return environment;
+    public String getEnvironmentId() {
+        return environmentId;
     }
 
-    public void setEnvironment(Environment environment) {
-        this.environment = environment;
+    public void setEnvironmentId(String environmentId) {
+        this.environmentId = environmentId;
     }
 }

@@ -8,8 +8,8 @@ import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.cloudpassport.CloudPassport;
-import org.qubership.colly.db.ClusterRepository;
-import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.repository.ClusterRepository;
+import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.data.*;
 
 import java.time.LocalDate;
@@ -74,7 +74,7 @@ public class CollyStorage {
 
     public List<Environment> getEnvironments() {
         return environmentRepository.findAll().stream()
-                .sorted(Comparator.comparing((Environment e) -> e.getCluster().getName())
+                .sorted(Comparator.comparing((Environment e) -> e.getClusterId() != null ? e.getClusterId() : "")
                         .thenComparing(Environment::getName))
                 .toList();
     }
@@ -84,9 +84,9 @@ public class CollyStorage {
     }
 
 
-    @Transactional
+    //@Transactional - removed for Redis
     public void saveEnvironment(String id, String name, String owner, String description, String status, List<String> labels, String type, String team, LocalDate expirationDate, String deploymentStatus, String tickets) {
-        Environment environment = environmentRepository.findById(Long.valueOf(id));
+        Environment environment = environmentRepository.findById(id).orElse(null);
         if (environment == null) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
         }
@@ -100,26 +100,26 @@ public class CollyStorage {
         environment.setLabels(labels);
         environment.setTicketLinks(tickets);
         environment.setDeploymentStatus(DeploymentStatus.fromString(deploymentStatus));
-        environmentRepository.persist(environment);
+        environmentRepository.save(environment);
     }
 
-    @Transactional
+    //@Transactional - removed for Redis
     public void saveCluster(String clusterName, String description) {
-        Cluster cluster = clusterRepository.findByName(clusterName);
+        Cluster cluster = clusterRepository.findByName(clusterName).orElse(null);
         if (cluster == null) {
             throw new IllegalArgumentException("Cluster with name " + clusterName + " not found");
         }
         Log.info("Saving cluster with name " + clusterName + " description " + description);
         cluster.setDescription(description);
 
-        clusterRepository.persist(cluster);
+        clusterRepository.save(cluster);
     }
 
-    @Transactional
+    //@Transactional - removed for Redis
     public void deleteEnvironment(String id) {
-        boolean found = environmentRepository.deleteById(Long.valueOf(id));
-        if (!found) {
+        if (!environmentRepository.findById(id).isPresent()) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
         }
+        environmentRepository.delete(id);
     }
 }
