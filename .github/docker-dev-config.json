@@ -3,7 +3,7 @@
         {
             "name": "envgene-inventory-service",
             "file": "envgene-inventory-service/Dockerfile",
-            "context": "."
+            "context": "envgene-inventory-service"
         }
     ],
     "platforms": "linux/amd64"
