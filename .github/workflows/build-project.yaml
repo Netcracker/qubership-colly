@@ -103,7 +103,7 @@ jobs:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
-          download-artifact-path: 'fff'
+          download-artifact-path: '.'
           debug: true
           component: ${{ toJson(matrix.component) }}
           platforms: ${{ needs.prepare-metadata.outputs.platforms }}
