@@ -98,12 +98,13 @@ jobs:
         component: ${{ fromJson(needs.prepare-metadata.outputs.components) }}
     steps:
       - name: Docker
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@v1.0.5
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
         with:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
           download-artifact-path: '.'
+          debug: true
           component: ${{ toJson(matrix.component) }}
           platforms: ${{ needs.prepare-metadata.outputs.platforms }}
           tags: ${{ needs.prepare-metadata.outputs.metadata }}
