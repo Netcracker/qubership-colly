@@ -7,8 +7,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 @TestTransaction
@@ -23,19 +22,6 @@ class EnvgeneInventoryServiceRestTest {
                 .statusCode(401);
     }
 
-    @Test
-    @TestSecurity(user = "test")
-    void load_environments() {
-        given()
-                .when().post("/colly/envgene-inventory-service/tick")
-                .then()
-                .statusCode(204);
-        given()
-                .when().get("/colly/envgene-inventory-service/environments")
-                .then()
-                .statusCode(200)
-                .body("name", contains("env-test", "env-1"));
-    }
 
     @Test
     @Disabled("Skip because auth was turned off for service")
