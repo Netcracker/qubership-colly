@@ -23,7 +23,7 @@ jobs:
       matrix:
         component:
           - envgene-inventory-service
-          - environment-operational-service
+#          - environment-operational-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
