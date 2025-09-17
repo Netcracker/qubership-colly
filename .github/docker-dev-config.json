@@ -8,7 +8,7 @@
     {
       "name": "environment-operational-service",
       "file": "environment-operational-service/Dockerfile",
-      "context": "environment-operational-service"
+      "context": "."
     }
   ],
   "platforms": "linux/amd64"
