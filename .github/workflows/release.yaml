@@ -44,13 +44,25 @@ jobs:
 
   mvn-check-build:
     needs: [ check-tag ]
-    uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
-    with:
-      maven-command: "--batch-mode clean package"
-      upload-artifact: false
-      ref: ${{ github.head_ref }}
-    secrets:
-      maven-token: ${{ secrets.GITHUB_TOKEN }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - envgene-inventory-service
+          - environment-operational-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build java
+        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
+        with:
+          java-version: 21
+          maven-command: "--batch-mode clean package"
+          working-directory: ${{ matrix.component }}
+          upload-artifact: "false"
+          artifact-id: ${{ matrix.component }}
+          maven-token: ${{ secrets.GITHUB_TOKEN }}
 
   prepare-chart-release:
     needs: [mvn-check-build, check-tag]
@@ -160,6 +172,7 @@ jobs:
           dry-run: false
           download-artifact: true
           download-artifact-path: '.'
+          download-artifact-merge-multiple: true
           component: ${{ toJson(matrix.component) }}
           platforms: ${{ needs.prepare-metadata.outputs.platforms }}
           tags: "${{ inputs.release }}"
