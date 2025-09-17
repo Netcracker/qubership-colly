@@ -13,7 +13,8 @@ jobs:
       fail-fast: true
       matrix:
         component:
-          - envgene-inventory-service
+#todo need enterprise sonar cube version to support monorepo https://docs.sonarsource.com/sonarqube-server/10.8/project-administration/monorepos/
+#          - envgene-inventory-service
           - environment-operational-service
     steps:
       - name: Checkout
@@ -25,7 +26,7 @@ jobs:
           maven-command: >
             --batch-mode clean verify
             org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}_${{ matrix.component }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
           working-directory: ${{ matrix.component }}
