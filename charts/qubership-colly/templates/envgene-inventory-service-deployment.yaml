@@ -27,16 +27,14 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: QUARKUS_DATASOURCE_JDBC_URL
-              value: {{ .Values.colly.envgeneInventoryService.db.host }}
-            - name: QUARKUS_HIBERNATE_ORM_DATABASE_DEFAULT_SCHEMA
-              value: {{ .Values.colly.envgeneInventoryService.db.schema | default "public" }}
-            - name: QUARKUS_DATASOURCE_USERNAME
+            - name: QUARKUS_REDIS_HOSTS
+              value: {{ .Values.colly.envgeneInventoryService.redis.hosts }}
+            - name: QUARKUS_REDIS_USERNAME
               valueFrom:
                 secretKeyRef:
                   key: username
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
-            - name: QUARKUS_DATASOURCE_PASSWORD
+            - name: QUARKUS_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   key: password

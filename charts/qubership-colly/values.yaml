@@ -12,11 +12,10 @@ colly:
       url:
       clientId: envgene-inventory-service
       clientSecret:
-    db:
-      host:
-      username: postgres
-      password: postgres
-      schema: envgene_inventory_service
+    redis:
+      hosts: redis://redis:6379
+      username: ""
+      password: ""
     ports:
       http: 8080
   environmentOperationalService:
@@ -27,11 +26,10 @@ colly:
       url:
       clientId: environment-operational-service
       clientSecret:
-    db:
-      host:
-      username: postgres
-      password: postgres
-      schema: environment_operational_service
+    redis:
+      hosts: redis://redis:6379
+      username: ""
+      password: ""
     ports:
       http: 8080
     ingress:
