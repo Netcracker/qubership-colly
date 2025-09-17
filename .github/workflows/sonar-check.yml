@@ -25,7 +25,7 @@ jobs:
           maven-command: >
             --batch-mode clean verify
             org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}_${{ matrix.component }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
           working-directory: ${{ matrix.component }}
