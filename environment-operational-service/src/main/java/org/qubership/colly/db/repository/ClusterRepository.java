@@ -75,9 +75,4 @@ public class ClusterRepository {
             throw new RuntimeException("Failed to find all clusters", e);
         }
     }
-
-    public void delete(String name) {
-        String key = CLUSTER_KEY_PREFIX + name;
-        keyCommands().del(key);
-    }
 }

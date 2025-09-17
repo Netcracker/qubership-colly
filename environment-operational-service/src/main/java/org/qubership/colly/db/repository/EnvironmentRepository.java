@@ -10,7 +10,6 @@ import jakarta.inject.Inject;
 import org.qubership.colly.db.data.Environment;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,13 +17,11 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class EnvironmentRepository {
 
+    private static final String ENVIRONMENT_KEY_PREFIX = "environment:";
     @Inject
     RedisDataSource redisDataSource;
-
     @Inject
     ObjectMapper objectMapper;
-
-    private static final String ENVIRONMENT_KEY_PREFIX = "environment:";
 
     private HashCommands<String, String, String> hashCommands() {
         return redisDataSource.hash(String.class, String.class, String.class);
@@ -38,7 +35,7 @@ public class EnvironmentRepository {
         if (environment.getId() == null) {
             environment.setId(UUID.randomUUID().toString());
         }
-        
+
         try {
             String key = ENVIRONMENT_KEY_PREFIX + environment.getId();
             String json = objectMapper.writeValueAsString(environment);
@@ -90,12 +87,6 @@ public class EnvironmentRepository {
     public List<Environment> findByName(String name) {
         return findAll().stream()
                 .filter(env -> name.equals(env.getName()))
-                .collect(Collectors.toList());
-    }
-
-    public List<Environment> findByClusterId(String clusterId) {
-        return findAll().stream()
-                .filter(env -> clusterId.equals(env.getClusterId()))
                 .collect(Collectors.toList());
     }
 }

@@ -9,7 +9,6 @@ import io.kubernetes.client.util.credentials.AccessTokenAuthentication;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;

@@ -76,10 +76,6 @@ public class NamespaceRepository {
         }
     }
 
-    public void delete(String uid) {
-        String key = NAMESPACE_KEY_PREFIX + uid;
-        keyCommands().del(key);
-    }
 
     public List<Namespace> findByClusterId(String clusterId) {
         return findAll().stream()
