@@ -35,12 +35,6 @@ public class EnvgeneInventoryServiceRest {
         return collyStorage.getClusters();
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("/environments")
-    public List<Environment> getEnvironments() {
-        return collyStorage.getEnvironments();
-    }
 
     @POST
     @Path("/tick")

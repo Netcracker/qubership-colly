@@ -1,29 +1,26 @@
 package org.qubership.colly.db.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
-
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
-@Entity(name = "clusters")
-public class Cluster extends PanacheEntityBase {
-    @Id
+public class Cluster {
+    private String id;
     private String name;
-    @Column(columnDefinition = "TEXT")
     private String token;
     private String cloudApiHost;
-
     private URI monitoringUrl;
-
-    @OneToMany(mappedBy = "cluster", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    public List<Environment> environments;
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    public List<Namespace> namespaces;
+    private List<Environment> environments;
+    private List<Namespace> namespaces;
     private String description;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
@@ -66,7 +63,7 @@ public class Cluster extends PanacheEntityBase {
     }
 
     public List<Environment> getEnvironments() {
-        return environments;
+        return environments != null ? environments : new ArrayList<>();
     }
 
     public void setEnvironments(List<Environment> environments) {
@@ -74,10 +71,24 @@ public class Cluster extends PanacheEntityBase {
     }
 
     public List<Namespace> getNamespaces() {
-        return namespaces;
+        return namespaces != null ? namespaces : new ArrayList<>();
     }
 
     public void setNamespaces(List<Namespace> namespaces) {
         this.namespaces = namespaces;
+    }
+
+    public void addEnvironment(Environment environment) {
+        if (environments == null) {
+            environments = new ArrayList<>();
+        }
+        environments.add(environment);
+    }
+
+    public void addNamespace(Namespace namespace) {
+        if (namespaces == null) {
+            namespaces = new ArrayList<>();
+        }
+        namespaces.add(namespace);
     }
 }

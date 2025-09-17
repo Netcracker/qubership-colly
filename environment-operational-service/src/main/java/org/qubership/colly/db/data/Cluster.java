@@ -1,29 +1,20 @@
 package org.qubership.colly.db.data;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity(name = "clusters")
-public class Cluster extends PanacheEntityBase {
-    @Id
+public class Cluster {
     private String name;
     private Boolean synced;
-
-    @OneToMany(mappedBy = "cluster", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    public List<Environment> environments;
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    public List<Namespace> namespaces;
+    private List<String> environmentIds;
+    private List<String> namespaceIds;
     private String description;
 
     public Cluster(String name) {
         this.name = name;
         this.synced = false;
-        this.namespaces = new ArrayList<>();
-        this.environments = new ArrayList<>();
+        this.namespaceIds = new ArrayList<>();
+        this.environmentIds = new ArrayList<>();
     }
 
     public Cluster() {
@@ -51,5 +42,21 @@ public class Cluster extends PanacheEntityBase {
 
     public void setSynced(Boolean synced) {
         this.synced = synced;
+    }
+
+    public List<String> getEnvironmentIds() {
+        return environmentIds;
+    }
+
+    public void setEnvironmentIds(List<String> environmentIds) {
+        this.environmentIds = environmentIds;
+    }
+
+    public List<String> getNamespaceIds() {
+        return namespaceIds;
+    }
+
+    public void setNamespaceIds(List<String> namespaceIds) {
+        this.namespaceIds = namespaceIds;
     }
 }

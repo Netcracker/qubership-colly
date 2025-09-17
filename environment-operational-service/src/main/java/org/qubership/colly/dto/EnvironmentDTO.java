@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public record EnvironmentDTO(
-        Long id,
+        String id,
         String name,
         List<NamespaceDTO> namespaces,
         ClusterDTO cluster,

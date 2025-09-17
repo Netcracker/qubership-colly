@@ -9,14 +9,13 @@ import io.kubernetes.client.util.credentials.AccessTokenAuthentication;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
-import org.qubership.colly.db.ClusterRepository;
-import org.qubership.colly.db.EnvironmentRepository;
-import org.qubership.colly.db.NamespaceRepository;
+import org.qubership.colly.db.repository.ClusterRepository;
+import org.qubership.colly.db.repository.EnvironmentRepository;
+import org.qubership.colly.db.repository.NamespaceRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.EnvironmentType;
@@ -64,7 +63,7 @@ public class ClusterResourcesLoader {
     }
 
 
-    @Transactional
+    //@Transactional - removed for Redis
     public void loadClusterResources(CloudPassport cloudPassport) {
         AccessTokenAuthentication authentication = new AccessTokenAuthentication(cloudPassport.token());
         try {
@@ -83,16 +82,18 @@ public class ClusterResourcesLoader {
     //for testing purposes
     void loadClusterResources(CoreV1Api coreV1Api, CloudPassport cloudPassport) {
         Log.info("Start Loading cluster resources for: " + cloudPassport.name());
-        Cluster cluster = clusterRepository.findByName(cloudPassport.name());
+        Optional<Cluster> clusterOpt = clusterRepository.findByName(cloudPassport.name());
+        Cluster cluster = clusterOpt.orElse(null);
         if (cluster == null) {
             cluster = new Cluster(cloudPassport.name());
             Log.info("Cluster " + cloudPassport.name() + " not found in db. Creating new one.");
-            clusterRepository.persist(cluster);
+            clusterRepository.save(cluster);
         }
 
-        //it is required to set links to cluster only if it was saved to db. so need to invoke persist two
-        cluster.environments = loadEnvironments(coreV1Api, cluster, cloudPassport.environments(), cloudPassport.monitoringUrl());
-        clusterRepository.persist(cluster);
+        //it is requirzed to set links to cluster only if it was saved to db. so need to invoke persist two
+        List<Environment> environments = loadEnvironments(coreV1Api, cluster, cloudPassport.environments(), cloudPassport.monitoringUrl());
+        cluster.setEnvironmentIds(environments.stream().map(Environment::getId).collect(Collectors.toList()));
+        clusterRepository.save(cluster);
         Log.info("Cluster " + cloudPassport.name() + " loaded successfully.");
     }
 
@@ -113,15 +114,18 @@ public class ClusterResourcesLoader {
         List<Environment> envs = new ArrayList<>();
         Log.info("Namespaces are loaded for " + cluster.getName() + ". Count is " + k8sNamespaces.size() + ". Environments count = " + environments.size());
         for (CloudPassportEnvironment cloudPassportEnvironment : environments) {
-            Environment environment = environmentRepository.findByNameAndCluster(cloudPassportEnvironment.name(), cluster.getName());
+            List<Environment> envList = environmentRepository.findByName(cloudPassportEnvironment.name());
+            Environment environment = envList.stream()
+                    .filter(env -> cluster.getName().equals(env.getClusterId()))
+                    .findFirst().orElse(null);
             Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName() + ". Env exists in db? " + (environment != null));
             EnvironmentType environmentType;
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.name());
                 environment.setDescription(cloudPassportEnvironment.description());
-                environment.setCluster(cluster);
+                environment.setClusterId(cluster.getName());
                 environmentType = EnvironmentType.UNDEFINED;
-                environmentRepository.persist(environment);
+                environmentRepository.save(environment);
                 Log.info("env created in db: " + environment.getName());
             } else {
                 environmentType = environment.getType();
@@ -132,7 +136,10 @@ public class ClusterResourcesLoader {
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaces()) {
                 Log.info("Start working with namespace = " + cloudPassportNamespace.name());
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
-                Namespace namespace = namespaceRepository.findByNameAndCluster(cloudPassportNamespace.name(), cluster.getName());
+                List<Namespace> namespaces = namespaceRepository.findByClusterId(cluster.getName());
+                Namespace namespace = namespaces.stream()
+                        .filter(ns -> cloudPassportNamespace.name().equals(ns.getName()))
+                        .findFirst().orElse(null);
 
                 if (v1Namespace == null) {
                     Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " is not found in cluster " + cluster.getName());
@@ -148,7 +155,7 @@ public class ClusterResourcesLoader {
                     namespace.setExistsInK8s(true);
                 }
                 namespace.setName(cloudPassportNamespace.name());
-                namespaceRepository.persist(namespace);
+                namespaceRepository.save(namespace);
                 if (!namespace.getExistsInK8s()) {
                     Log.warn("Namespace " + namespace.getName() + " does not exist in k8s. Skipping it.");
                     continue;
@@ -170,10 +177,17 @@ public class ClusterResourcesLoader {
                 }
                 Log.info("Namespace " + namespace.getName() + " is loaded successfully. Deployment versions are: " + deploymentVersions);
             }
-            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(Namespace::getName).toList()));
+            // Get namespace names from environment's namespace IDs
+            List<String> namespaceNames = new ArrayList<>();
+            if (environment.getNamespaceIds() != null) {
+                for (String nsId : environment.getNamespaceIds()) {
+                    namespaceRepository.findByUid(nsId).ifPresent(ns -> namespaceNames.add(ns.getName()));
+                }
+            }
+            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, namespaceNames));
             environment.setType(environmentType);
             environment.setDeploymentVersion(deploymentVersions.toString());
-            environmentRepository.persist(environment);
+            environmentRepository.save(environment);
 
             envs.add(environment);
             Log.info("Environment " + environment.getName() + " loaded successfully.");
@@ -185,9 +199,9 @@ public class ClusterResourcesLoader {
         Namespace namespace;
         namespace = new Namespace();
         namespace.setUid(uuid);
-        namespace.setCluster(cluster);
-        namespace.setEnvironment(environment);
-        environment.addNamespace(namespace);
+        namespace.setClusterId(cluster.getName());
+        namespace.setEnvironmentId(environment.getId());
+        environment.addNamespaceId(namespace.getUid());
         return namespace;
     }
 

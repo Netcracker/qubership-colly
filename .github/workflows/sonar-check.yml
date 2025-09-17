@@ -13,7 +13,8 @@ jobs:
       fail-fast: true
       matrix:
         component:
-          - envgene-inventory-service
+#todo need enterprise sonar cube version to support monorepo https://docs.sonarsource.com/sonarqube-server/10.8/project-administration/monorepos/
+#          - envgene-inventory-service
           - environment-operational-service
     steps:
       - name: Checkout

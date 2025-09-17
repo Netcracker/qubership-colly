@@ -12,7 +12,8 @@ import org.mockito.Mockito;
 import org.qubership.colly.EnvgeneInventoryServiceRest;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
-import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.repository.EnvironmentRepository;
+import java.util.List;
 import org.qubership.colly.db.data.Environment;
 
 import java.net.URI;
@@ -23,7 +24,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
-@TestTransaction
+// @TestTransaction - removed for Redis
 class ClusterResourcesRestTest {
     @Inject
     EnvironmentRepository environmentRepository;
@@ -72,7 +73,8 @@ class ClusterResourcesRestTest {
                 .when().post("/colly/environment-operational-service/tick")
                 .then()
                 .statusCode(204);
-        Environment env = environmentRepository.findByNameAndCluster("env-test", "test-cluster");
+        List<Environment> envs = environmentRepository.findByName("env-test");
+        Environment env = envs.stream().filter(e -> "test-cluster".equals(e.getClusterId())).findFirst().orElse(null);
         given()
                 .formParam("owner", "test-owner")
                 .formParam("description", "test-description")
@@ -83,7 +85,7 @@ class ClusterResourcesRestTest {
                 .formParam("deploymentStatus", "DEPLOYED")
                 .formParam("tickets", "https://issues.example.com/1234,https://issues.example.com/5678")
                 .formParam("expirationDate", "2024-12-31")
-                .when().post("/colly/environment-operational-service/environments/" + env.id.toString())
+                .when().post("/colly/environment-operational-service/environments/" + env.getId())
                 .then()
                 .statusCode(204);
     }
@@ -250,10 +252,11 @@ class ClusterResourcesRestTest {
                 .then()
                 .statusCode(200)
                 .body("name", hasItem("env-test"));
-        Environment env = environmentRepository.findByNameAndCluster("env-test", "test-cluster");
+        List<Environment> envs = environmentRepository.findByName("env-test");
+        Environment env = envs.stream().filter(e -> "test-cluster".equals(e.getClusterId())).findFirst().orElse(null);
 
         given()
-                .when().delete("/colly/environment-operational-service/environments/" + env.id.toString())
+                .when().delete("/colly/environment-operational-service/environments/" + env.getId())
                 .then()
                 .statusCode(204);
         given()

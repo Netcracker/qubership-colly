@@ -1,8 +1,5 @@
 package org.qubership.colly.db.data;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
-import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -10,75 +7,59 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@Entity(name = "environments")
-public class Environment extends PanacheEntity {
+public class Environment {
 
+    private String id;
     private String name;
     private String owner;
     private String team;
-    @Column(columnDefinition = "TEXT")
     private String description;
     private LocalDate expirationDate;
     private Instant cleanInstallationDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private EnvironmentStatus status = EnvironmentStatus.FREE;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
-
-    @ManyToOne
-    @JoinColumn(referencedColumnName = "name")
-    private Cluster cluster;
-
-    @ElementCollection
-    @CollectionTable(name = "monitoring_data_content", joinColumns = @JoinColumn(name = "id"))
-    @MapKeyColumn(name = "key")
-    @Column(name = "value", columnDefinition = "TEXT")
+    private String clusterId;
     private Map<String, String> monitoringData;
-
-    @Column(columnDefinition = "TEXT")
     private String deploymentVersion;
-
-    @ElementCollection
-    @CollectionTable(name = "environments_labels", joinColumns = @JoinColumn(name = "environment_id"))
-    @Column(name = "label")
     private List<String> labels;
-
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Namespace> namespaces;
-
-    @Enumerated(EnumType.STRING)
+    private List<String> namespaceIds;
     private DeploymentStatus deploymentStatus;
-
-    @Column(columnDefinition = "TEXT")
     private String ticketLinks;
 
     public Environment(String name) {
         this.setName(name);
-        this.namespaces = new java.util.ArrayList<>();
+        this.namespaceIds = new ArrayList<>();
     }
 
     public Environment() {
     }
 
-
-    public List<Namespace> getNamespaces() {
-        return Collections.unmodifiableList(namespaces);
+    public String getId() {
+        return id;
     }
 
-    public void setNamespaces(List<Namespace> namespaces) {
-        this.namespaces = namespaces;
+    public void setId(String id) {
+        this.id = id;
     }
 
-    public void addNamespace(Namespace namespace) {
-        this.namespaces.add(namespace);
+
+    public List<String> getNamespaceIds() {
+        return namespaceIds != null ? Collections.unmodifiableList(namespaceIds) : Collections.emptyList();
+    }
+
+    public void setNamespaceIds(List<String> namespaceIds) {
+        this.namespaceIds = namespaceIds;
+    }
+
+    public void addNamespaceId(String namespaceId) {
+        if (this.namespaceIds == null) {
+            this.namespaceIds = new ArrayList<>();
+        }
+        this.namespaceIds.add(namespaceId);
     }
 
     public List<String> getLabels() {
-        return Collections.unmodifiableList(labels);
+        return labels != null ? Collections.unmodifiableList(labels) : Collections.emptyList();
     }
 
     public void setLabels(List<String> labels) {
@@ -149,12 +130,12 @@ public class Environment extends PanacheEntity {
         this.type = type;
     }
 
-    public Cluster getCluster() {
-        return cluster;
+    public String getClusterId() {
+        return clusterId;
     }
 
-    public void setCluster(Cluster cluster) {
-        this.cluster = cluster;
+    public void setClusterId(String clusterId) {
+        this.clusterId = clusterId;
     }
 
     public Map<String, String> getMonitoringData() {
