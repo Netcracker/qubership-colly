@@ -22,7 +22,7 @@ public class ClusterRepository {
     @Inject
     ObjectMapper objectMapper;
 
-    private static final String CLUSTER_KEY_PREFIX = "cluster:";
+    private static final String CLUSTER_KEY_PREFIX = "operations:cluster:";
 
     private HashCommands<String, String, String> hashCommands() {
         return redisDataSource.hash(String.class, String.class, String.class);

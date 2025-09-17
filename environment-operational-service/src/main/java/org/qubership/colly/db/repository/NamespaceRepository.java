@@ -22,7 +22,7 @@ public class NamespaceRepository {
     @Inject
     ObjectMapper objectMapper;
 
-    private static final String NAMESPACE_KEY_PREFIX = "namespace:";
+    private static final String NAMESPACE_KEY_PREFIX = "operations:namespace:";
 
     private HashCommands<String, String, String> hashCommands() {
         return redisDataSource.hash(String.class, String.class, String.class);

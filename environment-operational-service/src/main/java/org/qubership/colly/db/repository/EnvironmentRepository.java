@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class EnvironmentRepository {
 
-    private static final String ENVIRONMENT_KEY_PREFIX = "environment:";
+    private static final String ENVIRONMENT_KEY_PREFIX = "operations:environment:";
     @Inject
     RedisDataSource redisDataSource;
     @Inject
