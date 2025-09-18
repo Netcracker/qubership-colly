@@ -168,7 +168,7 @@ jobs:
       - name: Docker
         uses: netcracker/qubership-workflow-hub/actions/docker-action@main
         with:
-          ref: ${{ inputs.release }}
+          ref: v${{ inputs.release }}
           dry-run: false
           download-artifact: true
           download-artifact-path: '.'
