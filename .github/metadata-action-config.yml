@@ -10,4 +10,3 @@ distribution-tag:
   - "feature/*": "dev"
   - "bugfix/*": "dev"
   - tag: "stable"
-  - "release/1.x": "latest_1_x"
