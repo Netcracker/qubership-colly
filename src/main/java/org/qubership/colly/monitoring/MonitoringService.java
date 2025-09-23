@@ -21,7 +21,7 @@ public class MonitoringService {
     @Inject
     MonitoringParams monitoringParams;
 
-    public Map<String, String> loadMonitoringData(URI monitoringUri, List<String> namespaceNames) {
+    public Map<String, String> loadMonitoringData(String monitoringUri, List<String> namespaceNames) {
         if (monitoringUri == null) {
             return emptyMap();
         }
@@ -48,7 +48,7 @@ public class MonitoringService {
                 result.put(monitoringParam.name(), monitoringData);
             }
         } catch (Exception e) {
-            Log.error("Unable to load monitoring data from " + monitoringUri);
+            Log.error("Unable to load monitoring data from " + monitoringUri, e);
             return emptyMap();
         }
         return result;

@@ -14,7 +14,6 @@ import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -36,7 +35,7 @@ class CloudPassportLoaderTest {
                     "env-test",
                     "some env for tests",
                     List.of(new CloudPassportNamespace("demo-k8s")))),
-            URI.create("http://localhost:8428"));
+            "http://vmsingle-k8s.test:8429");
     private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -44,7 +43,7 @@ class CloudPassportLoaderTest {
                     "env-1",
                     "some env for tests",
                     List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")))),
-            URI.create("http://vmsingle-k8s.victoria:8429")
+            "http://vmsingle-k8s.victoria:8429"
     );
     @Inject
     CloudPassportLoader loader;

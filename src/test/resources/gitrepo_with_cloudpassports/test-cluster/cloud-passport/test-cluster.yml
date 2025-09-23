@@ -12,4 +12,5 @@ cloud:
   SOME_UI_URL: https://som-ui.my-cluster.com
   ANOTHER_UI_URL: https://another-ui.my-cluster.com
 cse:
-  MONITORING_EXT_MONITORING_QUERY_URL: http://localhost:8428
+  MONITORING_EXT_MONITORING_QUERY_URL: "http://vmsingle-k8s.${MONITORING_NAMESPACE}:8429"
+  MONITORING_NAMESPACE: "test"
