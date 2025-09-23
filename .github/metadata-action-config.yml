@@ -3,9 +3,11 @@ branches-template:
   - "feature/*": "feature-{{ref-name}}-{{timestamp}}, {{dist-tag}}"
   - "bugfix/*": "bugfix-{{ref-name}}-{{timestamp}}, {{dist-tag}}"
   - tag: "v{{major}}.{{minor}}.{{patch}}, {{dist-tag}}"
+  - "release/*": "v{{ref-name}}, {{dist-tag}}"
 
 distribution-tag:
   - main: "latest"
   - "feature/*": "dev"
   - "bugfix/*": "dev"
   - tag: "stable"
+  - "release/1.x": "latest_1_x"
