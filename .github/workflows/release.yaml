@@ -99,6 +99,7 @@ jobs:
         with:
           ref: v${{ inputs.release }}
           download-artifact: true
+          download-artifact-path: '.'
           dry-run: false
           tags: "${{ inputs.release }}"
         env:
