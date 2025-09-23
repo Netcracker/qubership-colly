@@ -16,7 +16,6 @@ import org.qubership.colly.cloudpassport.envgen.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -114,12 +113,15 @@ public class CloudPassportLoader {
         String cloudApiHost = cloud.getCloudProtocol() + "://" + cloud.getCloudApiHost() + ":" + cloud.getCloudApiPort();
         Log.info("Cloud API Host: " + cloudApiHost);
         CSEData cse = cloudPassportData.getCse();
-        URI monitoringUri = null;
+        String monitoringUri = null;
         if (cse != null) {
             if (cse.getMonitoringExtMonitoringQueryUrl() != null && !cse.getMonitoringExtMonitoringQueryUrl().isEmpty()) {
-                monitoringUri = URI.create(cse.getMonitoringExtMonitoringQueryUrl());
+                monitoringUri = cse.getMonitoringExtMonitoringQueryUrl();
+                if (monitoringUri.contains("${MONITORING_NAMESPACE}") && cse.getMonitoringNamespace() != null) {
+                    monitoringUri = monitoringUri.replace("${MONITORING_NAMESPACE}", cse.getMonitoringNamespace());
+                }
             } else if (cse.getMonitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
-                monitoringUri = URI.create("http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429");
+                monitoringUri = "http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429";
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
@@ -189,7 +191,6 @@ public class CloudPassportLoader {
     }
 
     CloudPassportData parseCloudPassportDataFile(Path filePath) {
-
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try (FileInputStream inputStream = new FileInputStream(filePath.toFile())) {
             CloudPassportData data = mapper.readValue(inputStream, CloudPassportData.class);
