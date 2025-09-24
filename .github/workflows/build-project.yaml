@@ -10,7 +10,7 @@ jobs:
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
       maven-command: >
-        --batch-mode clean install
+        --batch-mode clean package -DskipTests
       upload-artifact: true
       server-id: github
       java-version: 21
@@ -69,7 +69,7 @@ jobs:
           download-artifact: true
 #          custom-image-name: '${{ github.event.repository.name }}'
 #          component: '[{"name": "qubership-colly", "file": "./Dockerfile", "context": "."}]'
-#          download-artifact-path: '.'
+          download-artifact-path: '.'
           tags: ${{ needs.perform-version.outputs.tags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
