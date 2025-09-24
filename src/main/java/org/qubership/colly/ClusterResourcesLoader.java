@@ -170,7 +170,7 @@ public class ClusterResourcesLoader {
                 }
                 Log.info("Namespace " + namespace.getName() + " is loaded successfully. Deployment versions are: " + deploymentVersions);
             }
-            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getNamespaces().stream().map(Namespace::getName).toList()));
+            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment));
             environment.setType(environmentType);
             environment.setDeploymentVersion(deploymentVersions.toString());
             environmentRepository.persist(environment);
