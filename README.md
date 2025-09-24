@@ -36,7 +36,7 @@ The main interface displays environments in a comprehensive table with the follo
 - **Description** - Environment description from Cloud Passport or manual entry
 - **Version** - Deployment version information from config maps
 - **Clean Installation Date** - Last clean installation timestamp from config maps
-- **Monitoring Columns** - Dynamic columns for custom monitoring metrics
+- **Monitoring Columns** - Dynamic columns for custom monitoring metrics 
 
 ### Cluster Table
 ![clusters.png](docs/clusters.png)
