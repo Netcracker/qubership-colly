@@ -124,7 +124,7 @@ class ClusterResourcesRestTest {
                 .when().get("/colly/metadata")
                 .then()
                 .statusCode(200)
-                .body("monitoringColumns", contains("Failed Deployments", "Running Pods"));
+                .body("monitoringColumns", contains("Availability (Core)", "Availability (Infra)", "Failed Deployments", "Running Pods"));
     }
 
     @Test

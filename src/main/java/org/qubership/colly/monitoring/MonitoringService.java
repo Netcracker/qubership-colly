@@ -64,6 +64,7 @@ public class MonitoringService {
     }
 
     public List<String> getParameters() {
+        Log.info("Getting parameters= "+monitoringParams.toString());
         return monitoringParams.allMonitoringParams()
                 .values()
                 .stream()
