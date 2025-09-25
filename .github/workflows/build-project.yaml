@@ -1,6 +1,16 @@
 name: Build Project
 
 on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Dry run"
+        required: false
+        default: "false"
+      tags:
+        description: "Additional tags (comma separated)"
+        required: false
+        default: ""
   push:
 permissions:
   packages: write
@@ -62,15 +72,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Docker
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@375-bug-docker-action-cant-to-build-image-with-correct-name
         with:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
-#          custom-image-name: '${{ github.event.repository.name }}'
-#          component: '[{"name": "qubership-colly", "file": "./Dockerfile", "context": "."}]'
-          download-artifact-path: '.'
+          debug: true
+          #          custom-image-name: '${{ github.event.repository.name }}'
+          #          component: '[{"name": "qubership-colly", "file": "./Dockerfile", "context": "."}]'
+          download-artifact-path: "."
           tags: ${{ needs.perform-version.outputs.tags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
