@@ -77,7 +77,7 @@ jobs:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
-          debug: false
+          debug: true
           #          custom-image-name: '${{ github.event.repository.name }}'
           #          component: '[{"name": "qubership-colly", "file": "./Dockerfile", "context": "."}]'
           download-artifact-path: "."
