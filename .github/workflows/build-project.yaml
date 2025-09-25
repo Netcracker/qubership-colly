@@ -76,7 +76,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
-          download-artifact: false
+          download-artifact: true
           debug: false
           download-artifact-ids: 0
           #          custom-image-name: '${{ github.event.repository.name }}'
