@@ -7,10 +7,6 @@ on:
         description: "Dry run"
         required: false
         default: "false"
-      tags:
-        description: "Additional tags (comma separated)"
-        required: false
-        default: ""
   push:
 permissions:
   packages: write
@@ -20,7 +16,7 @@ jobs:
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
       maven-command: >
-        --batch-mode clean package -DskipTests
+        --batch-mode clean install
       upload-artifact: true
       server-id: github
       java-version: 21
