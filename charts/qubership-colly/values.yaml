@@ -1,6 +1,6 @@
 ---
 colly:
-  image: ghcr.io/netcracker/qubership-colly:1.11.1
+  image: ghcr.io/netcracker/qubership-colly:1.11.4
   serviceName: qubership-colly
   instancesRepo:
   cronSchedule: 0 0/20 * * * ?
