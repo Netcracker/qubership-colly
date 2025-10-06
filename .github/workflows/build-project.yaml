@@ -1,6 +1,12 @@
 name: Build Project
 
 on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Dry run"
+        required: false
+        default: "false"
   push:
 permissions:
   packages: write
@@ -67,10 +73,6 @@ jobs:
           ref: ${{ github.ref }}
           dry-run: ${{ inputs.dry-run }}
           download-artifact: true
-          custom-image-name: '${{ github.event.repository.name }}'
-          component: '[{"name": "qubership-colly", "file": "./Dockerfile", "context": "."}]'
-          download-artifact-path: '.'
           tags: ${{ needs.perform-version.outputs.tags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
