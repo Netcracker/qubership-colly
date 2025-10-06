@@ -64,13 +64,14 @@ public class MonitoringService {
     }
 
     public List<String> getParameters() {
-        Log.info("Getting parameters= "+monitoringParams.toString());
-        return monitoringParams.allMonitoringParams()
+        List<String> paramNames = monitoringParams.allMonitoringParams()
                 .values()
                 .stream()
                 .map(MonitoringParam::name)
                 .sorted()
                 .toList();
+        Log.info("Found " + paramNames.size() + " monitoring parameters: " + paramNames);
+        return paramNames;
     }
 
     @ConfigMapping(prefix = "colly.monitoring")
