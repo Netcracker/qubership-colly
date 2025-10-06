@@ -6,8 +6,9 @@ import io.smallrye.config.WithParentName;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.db.data.Namespace;
 
-import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +22,7 @@ public class MonitoringService {
     @Inject
     MonitoringParams monitoringParams;
 
-    public Map<String, String> loadMonitoringData(String monitoringUri, List<String> namespaceNames) {
+    public Map<String, String> loadMonitoringData(String monitoringUri, Environment environment) {
         if (monitoringUri == null) {
             return emptyMap();
         }
@@ -34,9 +35,17 @@ public class MonitoringService {
             if (monitoringParams.isEmpty()) {
                 return emptyMap();
             }
+            String environmentName = environment.getName();
+            String clusterName = environment.getCluster().getName();
+            List<String> namespaceNames = environment.getNamespaces().stream().map(Namespace::getName).toList();
 
             for (MonitoringParam monitoringParam : monitoringParams) {
-                String monitoringQuery = monitoringParam.query().replace("{namespace}", String.join("|", namespaceNames));
+
+                String monitoringQuery = monitoringParam.query()
+                        .replace("{namespace}", String.join("|", namespaceNames))
+                        .replace("{env}", environmentName)
+                        .replace("{cluster}", clusterName);
+
                 Log.info("Executing query: " + monitoringQuery + " on " + monitoringUri + " for namespaces: " + namespaceNames);
                 MonitoringResponse monitoringResponse = monitoringClient.executeQuery(monitoringQuery);
                 if (monitoringResponse == null || monitoringResponse.data == null || monitoringResponse.data.result == null || monitoringResponse.data.result.isEmpty()) {
@@ -55,12 +64,14 @@ public class MonitoringService {
     }
 
     public List<String> getParameters() {
-        return monitoringParams.allMonitoringParams()
+        List<String> paramNames = monitoringParams.allMonitoringParams()
                 .values()
                 .stream()
                 .map(MonitoringParam::name)
                 .sorted()
                 .toList();
+        Log.info("Found " + paramNames.size() + " monitoring parameters: " + paramNames);
+        return paramNames;
     }
 
     @ConfigMapping(prefix = "colly.monitoring")
