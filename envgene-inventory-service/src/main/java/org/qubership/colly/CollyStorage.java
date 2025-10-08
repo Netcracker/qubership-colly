@@ -78,4 +78,19 @@ public class CollyStorage {
         return clusterRepository.listAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
     }
 
+    public Environment updateEnvironment(String clusterName, String environmentName, Environment environmentUpdate) {
+        Cluster cluster = clusterRepository.findByName(clusterName);
+        if (cluster == null) {
+            throw new IllegalArgumentException("Cluster not found: " + clusterName);
+        }
+
+        Environment existingEnv = clusterRepository.findEnvironmentByNameAndCluster(environmentName, clusterName);
+        if (existingEnv == null) {
+            throw new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName);
+        }
+
+        //todo gitService.saveEnvironment
+        return existingEnv;
+    }
+
 }

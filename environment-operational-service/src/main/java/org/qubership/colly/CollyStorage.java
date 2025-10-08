@@ -4,6 +4,7 @@ import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -11,6 +12,7 @@ import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.data.*;
+import org.qubership.colly.mapper.EnvironmentMapper;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -27,18 +29,20 @@ public class CollyStorage {
     private final ClusterRepository clusterRepository;
     private final EnvironmentRepository environmentRepository;
     private final EnvgeneInventoryServiceRest envgeneInventoryServiceRest;
+    private final EnvironmentMapper environmentMapper;
     private final Executor executor;
 
     @Inject
     public CollyStorage(ClusterResourcesLoader clusterResourcesLoader,
                         ClusterRepository clusterRepository,
                         EnvironmentRepository environmentRepository,
-                        @RestClient EnvgeneInventoryServiceRest envgeneInventoryServiceRest,
+                        @RestClient EnvgeneInventoryServiceRest envgeneInventoryServiceRest, EnvironmentMapper environmentMapper,
                         @ConfigProperty(name = "colly.environment-operational-service.cluster-resource-loader.thread-pool-size") int threadPoolSize) {
         this.clusterResourcesLoader = clusterResourcesLoader;
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.envgeneInventoryServiceRest = envgeneInventoryServiceRest;
+        this.environmentMapper = environmentMapper;
         this.executor = Executors.newFixedThreadPool(threadPoolSize);
     }
 
@@ -91,6 +95,7 @@ public class CollyStorage {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
         }
         Log.info("Saving environment with id " + id + " name " + name + " owner " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
+        //todo refactor logic for update environment in cache
         environment.setOwner(owner);
         environment.setDescription(description);
         environment.setStatus(EnvironmentStatus.fromString(status));
@@ -101,6 +106,13 @@ public class CollyStorage {
         environment.setTicketLinks(tickets);
         environment.setDeploymentStatus(DeploymentStatus.fromString(deploymentStatus));
         environmentRepository.save(environment);
+
+        try {
+            envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(), environmentMapper.toDTO(environment));
+            Log.info("Successfully updated environment in inventory service: " + environment.getName());
+        } catch (Exception e) {
+            Log.error("Failed to update environment in inventory service: " + e.getMessage(), e);
+        }
     }
 
     //@Transactional - removed for Redis
