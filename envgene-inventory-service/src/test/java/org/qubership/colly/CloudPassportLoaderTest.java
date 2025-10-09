@@ -4,15 +4,18 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.component.QuarkusComponentTest;
 import io.quarkus.test.component.TestConfigProperty;
 import jakarta.inject.Inject;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
+import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -24,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 
 @QuarkusComponentTest
@@ -36,7 +40,8 @@ class CloudPassportLoaderTest {
                     "env-test",
                     "some env for tests",
                     List.of(new CloudPassportNamespace("demo-k8s")))),
-            URI.create("http://localhost:8428"));
+            URI.create("http://localhost:8428"),
+            new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
     private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -44,22 +49,30 @@ class CloudPassportLoaderTest {
                     "env-1",
                     "some env for tests",
                     List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")))),
-            URI.create("http://vmsingle-k8s.victoria:8429")
+            URI.create("http://vmsingle-k8s.victoria:8429"),
+            new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")
     );
-    @Inject
-    CloudPassportLoader loader;
 
     @InjectMock
     GitService gitService;
 
+    @Inject
+    CloudPassportLoader loader;
+
     @BeforeEach
     void setUp() {
-        doAnswer(invocationOnMock -> null).when(gitService).cloneRepository(any(), any());
+        doAnswer(invocation -> {
+                    FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(1));
+                    return null;
+                }
+        ).when(gitService).cloneRepository(anyString(), any());
+
     }
 
 
     @Test
-    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "src/test/resources/gitrepo_with_cloudpassports")
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    @TestConfigProperty(key = "colly.eis.env.instances.repo", value = "gitrepo_with_cloudpassports,gitrepo_with_unreachable_cluster")
     void load_cloud_passports_from_test_folder() {
         List<CloudPassport> result = loader.loadCloudPassports();
         assertThat(result, containsInAnyOrder(TEST_CLUSTER_CLOUD_PASSPORT, TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER));

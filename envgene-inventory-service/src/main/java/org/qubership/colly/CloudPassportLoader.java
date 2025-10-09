@@ -11,6 +11,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
+import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.*;
 
 import java.io.File;
@@ -42,28 +43,32 @@ public class CloudPassportLoader {
 
 
     public List<CloudPassport> loadCloudPassports() {
-        cloneGitRepository();
+        List<GitInfo> gitInfos = cloneGitRepositories();
+
         Path dir = Paths.get(cloudPassportFolder);
         if (!dir.toFile().exists()) {
             return Collections.emptyList();
         }
-        try (Stream<Path> paths = Files.walk(dir)) {
-            return paths.filter(Files::isDirectory)
-                    .map(path -> path.resolve(CLOUD_PASSPORT_FOLDER))
-                    .filter(Files::isDirectory)
-                    .map(path -> processYamlFilesInClusterFolder(path, path.getParent()))
-                    .filter(Objects::nonNull)
-                    .toList();
-        } catch (Exception e) {
-            Log.error("Error loading CloudPassports from " + dir, e);
+        List<CloudPassport> cloudPassports = new ArrayList<>();
+        for (GitInfo gitInfo : gitInfos) {
+            try (Stream<Path> paths = Files.walk(Paths.get(gitInfo.folderName()))) {
+                cloudPassports.addAll(paths.filter(Files::isDirectory)
+                        .map(path -> path.resolve(CLOUD_PASSPORT_FOLDER))
+                        .filter(Files::isDirectory)
+                        .map(path -> processYamlFilesInClusterFolder(gitInfo, path, path.getParent()))
+                        .filter(Objects::nonNull)
+                        .toList());
+            } catch (Exception e) {
+                Log.error("Error loading CloudPassports from " + dir, e);
+            }
         }
-        return Collections.emptyList();
+        return cloudPassports;
     }
 
-    private void cloneGitRepository() {
+    private List<GitInfo> cloneGitRepositories() {
         if (gitRepoUrls.isEmpty()) {
             Log.error("gitRepoUrl parameter is not set. Skipping repository cloning.");
-            return;
+            return Collections.emptyList();
         }
         File directory = new File(cloudPassportFolder);
 
@@ -73,18 +78,22 @@ public class CloudPassportLoader {
             }
         } catch (IOException e) {
             Log.error("Impossible to start git cloning. Failed to clean directory: " + cloudPassportFolder, e);
-            return;
+            return Collections.emptyList(); //todo - throw exception?
         }
 
+        List<GitInfo> result = new ArrayList<>();
         List<String> gitRepoUrlValues = gitRepoUrls.get();
         int index = 1;
         for (String gitRepoUrlValue : gitRepoUrlValues) {
-            gitService.cloneRepository(gitRepoUrlValue, new File(cloudPassportFolder + "/" + index));
+            String folderNameToClone = cloudPassportFolder + "/" + index;
+            gitService.cloneRepository(gitRepoUrlValue, new File(folderNameToClone));
+            result.add(new GitInfo(gitRepoUrlValue, folderNameToClone));
             index++;
         }
+        return result;
     }
 
-    private CloudPassport processYamlFilesInClusterFolder(Path cloudPassportFolderPath, Path clusterFolderPath) {
+    private CloudPassport processYamlFilesInClusterFolder(GitInfo gitInfo, Path cloudPassportFolderPath, Path clusterFolderPath) {
         Log.info("Loading Cloud Passport from " + cloudPassportFolderPath);
         String clusterName = clusterFolderPath.getFileName().toString();
         Set<CloudPassportEnvironment> environments = processEnvironmentsInClusterFolder(clusterFolderPath);
@@ -123,7 +132,7 @@ public class CloudPassportLoader {
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
-        return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri);
+        return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri, gitInfo);
     }
 
     private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {

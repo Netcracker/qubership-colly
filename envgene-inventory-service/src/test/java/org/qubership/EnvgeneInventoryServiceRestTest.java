@@ -1,17 +1,39 @@
 package org.qubership;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.qubership.colly.GitService;
+
+import java.io.File;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 
 @QuarkusTest
 @TestTransaction
 class EnvgeneInventoryServiceRestTest {
+
+    @InjectMock
+    GitService gitService;
+
+    @BeforeEach
+    void setUp() {
+        doAnswer(invocation -> {
+                    FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(1));
+                    return null;
+                }
+        ).when(gitService).cloneRepository(anyString(), any());
+    }
 
     @Test
     @Disabled("Skip because auth was turned off for service")
