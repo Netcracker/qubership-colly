@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class Inventory {
     private String environmentName;
     private String description;
+    private String owner;
 
     public String getEnvironmentName() {
         return environmentName;
@@ -21,5 +22,13 @@ public class Inventory {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 }

@@ -57,17 +57,13 @@ class UpdateEnvironmentServiceTest {
 
     @Test
     void updateEnvironment_shouldProcessExistingEnvironmentFile() throws IOException {
-        // When
-        Environment result = updateEnvironmentService.updateEnvironment(testCluster, testEnvironment);
+        updateEnvironmentService.updateEnvironment(testCluster, testEnvironment);
 
-        // Then
-        assertNotNull(result);
-        assertEquals("env-test", result.getName());
-        assertEquals("some environment", result.getDescription());
         Path path = Paths.get(testCluster.getGitInfo().folderName() + "/gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
         assertEquals("some environment", envDefinition.getInventory().getDescription());
+        assertEquals("test-owner", envDefinition.getInventory().getOwner());
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName(), "todo");
     }
 

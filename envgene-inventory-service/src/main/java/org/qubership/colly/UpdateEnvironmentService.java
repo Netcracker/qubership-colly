@@ -1,9 +1,14 @@
 package org.qubership.colly;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.GitInfo;
+import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
+import org.qubership.colly.cloudpassport.envgen.Inventory;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.yaml.snakeyaml.DumperOptions;
@@ -13,8 +18,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -42,13 +45,10 @@ public class UpdateEnvironmentService {
             }
             envDefinitionPath.ifPresent(path -> {
                 try {
-                    System.out.println("roro: " + path);
                     String content = Files.readString(path);
-                    System.out.println("Content before update:\n" + content);
-                    Map<String, Object> yamlData = parseYaml(content);
+                    EnvDefinition yamlData = parseYaml(content);
                     updateYamlData(yamlData, environmentUpdate);
                     String updatedContent = writeYaml(yamlData);
-                    System.out.println("Content after update:\n" + updatedContent);
                     Files.writeString(path, updatedContent);
                 } catch (IOException e) {
                     throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
@@ -63,39 +63,35 @@ public class UpdateEnvironmentService {
         return environmentUpdate;
     }
 
-    private Map<String, Object> parseYaml(String yamlContent) {
-        Yaml yaml = new Yaml();
-        Map<String, Object> data = yaml.load(yamlContent);
-        return data != null ? data : new LinkedHashMap<>();
+    private EnvDefinition parseYaml(String yamlContent) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
+        System.out.println(yamlContent);
+        return objectMapper.readValue(yamlContent, EnvDefinition.class);
     }
 
-    private void updateYamlData(Map<String, Object> yamlData, Environment environmentUpdate) {
-        Map<String, Object> inventory = (Map<String, Object>) yamlData.computeIfAbsent("inventory", k -> new LinkedHashMap<>());
+    private void updateYamlData(EnvDefinition envDefinition, Environment environmentUpdate) {
+        Inventory inventory = envDefinition.getInventory();
+        inventory.setDescription(environmentUpdate.getDescription());
+        inventory.setOwner(environmentUpdate.getOwner());
 
-        if (environmentUpdate.getDescription() != null) {
-            inventory.put("description", environmentUpdate.getDescription());
-        }
-        if (environmentUpdate.getOwner() != null) {
-            inventory.put("owners", environmentUpdate.getOwner());
-        }
-        if (environmentUpdate.getTeam() != null) {
-            inventory.put("team", environmentUpdate.getTeam());
-        }
-        if (environmentUpdate.getStatus() != null) {
-            inventory.put("status", environmentUpdate.getStatus().toString());
-        }
-        if (environmentUpdate.getType() != null) {
-            inventory.put("type", environmentUpdate.getType().toString());
-        }
-        if (environmentUpdate.getExpirationDate() != null) {
-            inventory.put("expirationDate", environmentUpdate.getExpirationDate().toString());
-        }
-        if (environmentUpdate.getLabels() != null && !environmentUpdate.getLabels().isEmpty()) {
-            inventory.put("labels", environmentUpdate.getLabels());
-        }
+//        if (environmentUpdate.getTeam() != null) {
+//            inventory.put("team", environmentUpdate.getTeam());
+//        }
+//        if (environmentUpdate.getStatus() != null) {
+//            inventory.put("status", environmentUpdate.getStatus().toString());
+//        }
+//        if (environmentUpdate.getType() != null) {
+//            inventory.put("type", environmentUpdate.getType().toString());
+//        }
+//        if (environmentUpdate.getExpirationDate() != null) {
+//            inventory.put("expirationDate", environmentUpdate.getExpirationDate().toString());
+//        }
+//        if (environmentUpdate.getLabels() != null && !environmentUpdate.getLabels().isEmpty()) {
+//            inventory.put("labels", environmentUpdate.getLabels());
+//        }
     }
 
-    private String writeYaml(Map<String, Object> yamlData) {
+    private String writeYaml(EnvDefinition yamlData) {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
