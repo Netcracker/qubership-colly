@@ -21,13 +21,15 @@ public class CollyStorage {
 
     private final ClusterRepository clusterRepository;
     private final CloudPassportLoader cloudPassportLoader;
+    private final UpdateEnvironmentService updateEnvironmentService;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
-            CloudPassportLoader cloudPassportLoader) {
+            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService) {
         this.clusterRepository = clusterRepository;
         this.cloudPassportLoader = cloudPassportLoader;
+        this.updateEnvironmentService = updateEnvironmentService;
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
@@ -46,6 +48,7 @@ public class CollyStorage {
         cluster.setToken(cloudPassport.token());
         cluster.setCloudApiHost(cloudPassport.cloudApiHost());
         cluster.setMonitoringUrl(cloudPassport.monitoringUrl());
+        cluster.setGitInfo(cloudPassport.gitInfo());
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToDatabase(env, finalCluster));
         clusterRepository.persist(cluster);
@@ -89,7 +92,7 @@ public class CollyStorage {
             throw new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName);
         }
 
-        //todo gitService.saveEnvironment
+        updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
         return existingEnv;
     }
 

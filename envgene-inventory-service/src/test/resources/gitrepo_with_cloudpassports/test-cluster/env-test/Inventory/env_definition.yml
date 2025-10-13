@@ -1,4 +1,7 @@
 inventory:
   environmentName: "env-test"
+  status: "ACTIVE"
   description: "some env for tests"
+  owner: "test"
   tenantName: "Applications"
+  team: "team-1"

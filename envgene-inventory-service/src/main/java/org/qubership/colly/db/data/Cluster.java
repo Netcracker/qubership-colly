@@ -1,5 +1,7 @@
 package org.qubership.colly.db.data;
 
+import org.qubership.colly.cloudpassport.GitInfo;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +15,15 @@ public class Cluster {
     private List<Environment> environments;
     private List<Namespace> namespaces;
     private String description;
+    private GitInfo gitInfo;
+
+    public GitInfo getGitInfo() {
+        return gitInfo;
+    }
+
+    public void setGitInfo(GitInfo gitInfo) {
+        this.gitInfo = gitInfo;
+    }
 
     public String getId() {
         return id;
