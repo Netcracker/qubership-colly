@@ -64,7 +64,7 @@ class UpdateEnvironmentServiceTest {
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
         assertEquals("some environment", envDefinition.getInventory().getDescription());
         assertEquals("test-owner", envDefinition.getInventory().getOwner());
-        verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName(), "todo");
+        verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 
     @Test

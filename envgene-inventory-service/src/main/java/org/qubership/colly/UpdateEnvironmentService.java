@@ -59,7 +59,7 @@ public class UpdateEnvironmentService {
             Log.error("Error loading CloudPassports from " + gitRepoPathWithClusters, e);
         }
 
-        gitService.commitAndPush(Paths.get(gitInfo.folderName()).toFile(), "Update environment " + environmentUpdate.getName(), "todo");
+        gitService.commitAndPush(Paths.get(gitInfo.folderName()).toFile(), "Update environment " + environmentUpdate.getName());
         return environmentUpdate;
     }
 
