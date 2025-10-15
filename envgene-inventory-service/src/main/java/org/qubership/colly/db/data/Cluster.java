@@ -13,7 +13,6 @@ public class Cluster {
     private String cloudApiHost;
     private URI monitoringUrl;
     private List<Environment> environments;
-    private List<Namespace> namespaces;
     private String description;
     private GitInfo gitInfo;
 
@@ -81,14 +80,6 @@ public class Cluster {
         this.environments = environments;
     }
 
-    public List<Namespace> getNamespaces() {
-        return namespaces != null ? namespaces : new ArrayList<>();
-    }
-
-    public void setNamespaces(List<Namespace> namespaces) {
-        this.namespaces = namespaces;
-    }
-
     public void addEnvironment(Environment environment) {
         if (environments == null) {
             environments = new ArrayList<>();
@@ -96,10 +87,5 @@ public class Cluster {
         environments.add(environment);
     }
 
-    public void addNamespace(Namespace namespace) {
-        if (namespaces == null) {
-            namespaces = new ArrayList<>();
-        }
-        namespaces.add(namespace);
-    }
+
 }

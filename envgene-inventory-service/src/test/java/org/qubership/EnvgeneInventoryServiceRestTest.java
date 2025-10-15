@@ -102,4 +102,24 @@ class EnvgeneInventoryServiceRestTest {
                 .statusCode(401)
                 .body("authenticated", equalTo(false));
     }
+
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_with_auth() {
+        given()
+                .when().post("/colly/envgene-inventory-service/tick")
+                .then()
+                .statusCode(204);
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"env-test\",\"owner\":\"new-owner\",\"description\":\"Updated description\"}")
+                .when().put("/colly/envgene-inventory-service/clusters/test-cluster/environments/env-test")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("env-test"))
+                .body("owner", equalTo("new-owner"))
+                .body("description", equalTo("Updated description"));
+    }
 }

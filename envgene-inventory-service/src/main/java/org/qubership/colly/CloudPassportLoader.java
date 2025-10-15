@@ -165,7 +165,7 @@ public class CloudPassportLoader {
             EnvDefinition envDefinition = mapper.readValue(inputStream, EnvDefinition.class);
             Inventory inventory = envDefinition.getInventory();
             Log.info("Processing environment " + inventory.getEnvironmentName());
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), inventory.getDescription(), namespaces);
+            return new CloudPassportEnvironment(inventory.getEnvironmentName(), inventory.getDescription(), inventory.getOwners(), namespaces);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }

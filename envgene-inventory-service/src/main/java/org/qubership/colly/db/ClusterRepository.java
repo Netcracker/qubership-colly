@@ -115,18 +115,15 @@ public class ClusterRepository {
     public Environment findEnvironmentByNameAndCluster(String environmentName, String clusterName) {
         Cluster cluster = findByName(clusterName);
         if (cluster == null) return null;
-        
+
         return cluster.getEnvironments().stream()
                 .filter(env -> environmentName.equals(env.getName()))
                 .findFirst()
                 .orElse(null);
     }
 
-    public Namespace findNamespaceByNameAndCluster(String namespaceName, String clusterName) {
-        Cluster cluster = findByName(clusterName);
-        if (cluster == null) return null;
-        
-        return cluster.getNamespaces().stream()
+    public Namespace findNamespaceByName(String namespaceName, Environment environment) {
+        return environment.getNamespaces().stream()
                 .filter(ns -> namespaceName.equals(ns.getName()))
                 .findFirst()
                 .orElse(null);

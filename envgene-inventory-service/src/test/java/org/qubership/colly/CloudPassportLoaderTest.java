@@ -39,6 +39,7 @@ class CloudPassportLoaderTest {
             Set.of(new CloudPassportEnvironment(
                     "env-test",
                     "some env for tests",
+                    "test-owner",
                     List.of(new CloudPassportNamespace("demo-k8s")))),
             URI.create("http://localhost:8428"),
             new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
@@ -48,6 +49,7 @@ class CloudPassportLoaderTest {
             Set.of(new CloudPassportEnvironment(
                     "env-1",
                     "some env for tests",
+                    null,
                     List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")))),
             URI.create("http://vmsingle-k8s.victoria:8429"),
             new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")

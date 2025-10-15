@@ -61,19 +61,18 @@ public class CollyStorage {
             cluster.addEnvironment(environment);
         }
         environment.setDescription(cloudPassportEnvironment.description());
-
+        environment.setOwner(cloudPassportEnvironment.owners());
         Environment finalEnvironment = environment;
-        cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment, cluster));
+        cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
     }
 
-    private void saveNamespaceToDatabase(CloudPassportNamespace cloudPassportNamespace, Environment environment, Cluster cluster) {
-        Namespace namespace = clusterRepository.findNamespaceByNameAndCluster(cloudPassportNamespace.name(), cluster.getName());
+    private void saveNamespaceToDatabase(CloudPassportNamespace cloudPassportNamespace, Environment environment) {
+        Namespace namespace = clusterRepository.findNamespaceByName(cloudPassportNamespace.name(), environment);
         if (namespace == null) {
             namespace = new Namespace();
             namespace.setName(cloudPassportNamespace.name());
             namespace.setUid(UUID.randomUUID().toString());
             environment.addNamespace(namespace);
-            cluster.addNamespace(namespace);
         }
     }
 
@@ -86,13 +85,12 @@ public class CollyStorage {
         if (cluster == null) {
             throw new IllegalArgumentException("Cluster not found: " + clusterName);
         }
-
-        Environment existingEnv = clusterRepository.findEnvironmentByNameAndCluster(environmentName, clusterName);
-        if (existingEnv == null) {
-            throw new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName);
-        }
-
-        updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
+        Environment existingEnv = cluster.getEnvironments().stream().filter(env -> env.getName().equals(environmentName)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName));
+        Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
+        existingEnv.setOwner(updatedEnvironment.getOwner());
+        existingEnv.setDescription(updatedEnvironment.getDescription());
+        clusterRepository.persist(cluster);
         return existingEnv;
     }
 

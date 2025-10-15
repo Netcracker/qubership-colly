@@ -63,7 +63,7 @@ class UpdateEnvironmentServiceTest {
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
         assertEquals("some environment", envDefinition.getInventory().getDescription());
-        assertEquals("test-owner", envDefinition.getInventory().getOwner());
+        assertEquals("test-owner", envDefinition.getInventory().getOwners());
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 
