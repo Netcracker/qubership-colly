@@ -78,7 +78,7 @@ public class CloudPassportLoader {
             }
         } catch (IOException e) {
             Log.error("Impossible to start git cloning. Failed to clean directory: " + cloudPassportFolder, e);
-            return Collections.emptyList(); //todo - throw exception?
+            return Collections.emptyList();
         }
 
         List<GitInfo> result = new ArrayList<>();

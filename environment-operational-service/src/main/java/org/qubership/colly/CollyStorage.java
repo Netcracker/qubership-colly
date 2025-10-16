@@ -4,14 +4,12 @@ import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
-import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.cloudpassport.CloudPassport;
+import org.qubership.colly.db.data.*;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
-import org.qubership.colly.db.data.*;
 import org.qubership.colly.mapper.EnvironmentMapper;
 
 import java.time.LocalDate;
@@ -95,7 +93,7 @@ public class CollyStorage {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
         }
         Log.info("Saving environment with id " + id + " name " + name + " owner " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
-        //todo refactor logic for update environment in cache
+        //todo refactor logic for update environment in cache when commit feature for all properties implemented in inventory service
         environment.setOwner(owner);
         environment.setDescription(description);
         environment.setStatus(EnvironmentStatus.fromString(status));
@@ -107,12 +105,8 @@ public class CollyStorage {
         environment.setDeploymentStatus(DeploymentStatus.fromString(deploymentStatus));
         environmentRepository.save(environment);
 
-        try {
-            envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(), environmentMapper.toDTO(environment));
-            Log.info("Successfully updated environment in inventory service: " + environment.getName());
-        } catch (Exception e) {
-            Log.error("Failed to update environment in inventory service: " + e.getMessage(), e);
-        }
+        envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(), environmentMapper.toDTO(environment));
+        Log.info("Successfully updated environment in inventory service: " + environment.getName());
     }
 
     //@Transactional - removed for Redis
