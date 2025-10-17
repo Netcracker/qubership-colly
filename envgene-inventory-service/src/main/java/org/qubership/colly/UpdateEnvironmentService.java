@@ -1,15 +1,9 @@
 package org.qubership.colly;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.GitInfo;
-import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
-import org.qubership.colly.cloudpassport.envgen.Inventory;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.yaml.snakeyaml.DumperOptions;
@@ -19,6 +13,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -47,7 +43,7 @@ public class UpdateEnvironmentService {
             envDefinitionPath.ifPresent(path -> {
                 try {
                     String content = Files.readString(path);
-                    EnvDefinition yamlData = parseYaml(content);
+                    Map<String, Object> yamlData = parseYaml(content);
                     updateYamlData(yamlData, environmentUpdate);
                     String updatedContent = writeYaml(yamlData);
                     Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName() + ":\n" + updatedContent);
@@ -65,18 +61,18 @@ public class UpdateEnvironmentService {
         return environmentUpdate;
     }
 
-    private EnvDefinition parseYaml(String yamlContent) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
-        return objectMapper.readValue(yamlContent, EnvDefinition.class);
+    private Map<String, Object> parseYaml(String yamlContent) {
+        Yaml yaml = new Yaml();
+        return yaml.load(yamlContent);
     }
 
-    private void updateYamlData(EnvDefinition envDefinition, Environment environmentUpdate) {
-        Inventory inventory = envDefinition.getInventory();
-        inventory.setDescription(environmentUpdate.getDescription());
-        inventory.setOwners(environmentUpdate.getOwner());
+    private void updateYamlData(Map<String, Object> yamlData, Environment environmentUpdate) {
+        Map<String, Object> inventory = (Map<String, Object>) yamlData.computeIfAbsent("inventory", k -> new LinkedHashMap<>());
+        inventory.put("description", environmentUpdate.getDescription());
+        inventory.put("owners", environmentUpdate.getOwner());
     }
 
-    private String writeYaml(EnvDefinition yamlData) {
+    private String writeYaml(Map<String, Object> yamlData) {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
