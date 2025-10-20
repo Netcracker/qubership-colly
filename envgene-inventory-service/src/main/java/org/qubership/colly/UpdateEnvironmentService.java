@@ -6,16 +6,14 @@ import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 @ApplicationScoped
@@ -42,13 +40,9 @@ public class UpdateEnvironmentService {
             }
             envDefinitionPath.ifPresent(path -> {
                 try {
-                    String content = Files.readString(path);
-                    Map<String, Object> yamlData = parseYaml(content);
-                    updateYamlData(yamlData, environmentUpdate);
-                    String updatedContent = writeYaml(yamlData);
-                    Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName() + ":\n" + updatedContent);
-                    Files.writeString(path, updatedContent);
-                } catch (IOException e) {
+                    updateYamlFileWithYq(path, environmentUpdate);
+                    Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
+                } catch (IOException | InterruptedException e) {
                     throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
                 }
             });
@@ -61,24 +55,61 @@ public class UpdateEnvironmentService {
         return environmentUpdate;
     }
 
-    private Map<String, Object> parseYaml(String yamlContent) {
-        Yaml yaml = new Yaml();
-        return yaml.load(yamlContent);
+    private void updateYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException, InterruptedException {
+        if (!isYqAvailable()) {
+            throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
+        }
+        executeYqCommand(yamlPath, ".inventory.description", environmentUpdate.getDescription());
+        executeYqCommand(yamlPath, ".inventory.owners", environmentUpdate.getOwner());
+
     }
 
-    private void updateYamlData(Map<String, Object> yamlData, Environment environmentUpdate) {
-        Map<String, Object> inventory = (Map<String, Object>) yamlData.computeIfAbsent("inventory", k -> new LinkedHashMap<>());
-        inventory.put("description", environmentUpdate.getDescription());
-        inventory.put("owners", environmentUpdate.getOwner());
+    private boolean isYqAvailable() {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("yq", "--version");
+            Process process = pb.start();
+            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
+            return finished && process.exitValue() == 0;
+        } catch (IOException | InterruptedException e) {
+            Log.error("Error checking yq availability:", e);
+            return false;
+        }
     }
 
-    private String writeYaml(Map<String, Object> yamlData) {
-        DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setPrettyFlow(true);
-        options.setIndent(2);
+    private void executeYqCommand(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
+        String escapedValue = escapeForYq(value);
+        ProcessBuilder pb = new ProcessBuilder(
+                "yq",
+                "eval",
+                yamlFieldPath + " = \"" + escapedValue + "\"",
+                yamlPath.toString(),
+                "--inplace"
+        );
 
-        Yaml yaml = new Yaml(options);
-        return yaml.dump(yamlData);
+        Process process = pb.start();
+        boolean finished = process.waitFor(30, TimeUnit.SECONDS);
+
+        if (!finished) {
+            process.destroyForcibly();
+            throw new IOException("yq command timed out");
+        }
+
+        if (process.exitValue() != 0) {
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader bufferedReader = process.errorReader()) {
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+                throw new IOException("yq command failed with exit code " + process.exitValue() + ": " + output.toString().trim());
+            }
+        }
+    }
+
+    private String escapeForYq(String value) {
+        return value.replace("\"", "\\\"")
+                .replace("\\", "\\\\")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }
