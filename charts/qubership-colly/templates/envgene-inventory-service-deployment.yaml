@@ -41,6 +41,11 @@ spec:
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: COLLY_EIS_ENV_INSTANCES_REPO
               value: {{ .Values.colly.envgeneInventoryService.instancesRepo }}
+            - name: COLLY_EIS_GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: gitToken
+                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: COLLY_EIS_CRON_SCHEDULE
               value: {{ .Values.colly.envgeneInventoryService.cronSchedule }}
             - name: QUARKUS_OIDC_AUTH_SERVER_URL
