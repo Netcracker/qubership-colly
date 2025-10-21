@@ -122,7 +122,6 @@ public class ClusterResourcesLoader {
             EnvironmentType environmentType;
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.name());
-                environment.setDescription(cloudPassportEnvironment.description());
                 environment.setClusterId(cluster.getName());
                 environmentType = EnvironmentType.UNDEFINED;
                 environmentRepository.save(environment);

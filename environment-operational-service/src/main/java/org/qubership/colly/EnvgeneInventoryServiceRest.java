@@ -4,7 +4,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.qubership.colly.cloudpassport.CloudPassport;
-import org.qubership.colly.dto.EnvironmentDTO;
+import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 
 import java.util.List;
 
@@ -23,6 +23,6 @@ public interface EnvgeneInventoryServiceRest {
     @Path("/clusters/{clusterName}/environments/{environmentName}")
     void updateEnvironment(@PathParam("clusterName") String clusterName,
                            @PathParam("environmentName") String environmentName,
-                           EnvironmentDTO environment);
+                           CloudPassportEnvironment environment);
 
 }
