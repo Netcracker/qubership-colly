@@ -51,28 +51,31 @@ public class CollyStorage {
         cluster.setGitInfo(cloudPassport.gitInfo());
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToDatabase(env, finalCluster));
-        clusterRepository.persist(cluster);
+        clusterRepository.persist(finalCluster);
     }
 
     private void saveEnvironmentToDatabase(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
-        Environment environment = clusterRepository.findEnvironmentByNameAndCluster(cloudPassportEnvironment.name(), cluster.getName());
+        Environment environment = cluster.getEnvironments().stream().filter(env -> env.getName().equals(cloudPassportEnvironment.name())).findFirst().orElse(null);
         if (environment == null) {
             environment = new Environment(cloudPassportEnvironment.name());
             cluster.addEnvironment(environment);
+            Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }
         environment.setDescription(cloudPassportEnvironment.description());
         environment.setOwner(cloudPassportEnvironment.owners());
+        Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
         Environment finalEnvironment = environment;
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
     }
 
     private void saveNamespaceToDatabase(CloudPassportNamespace cloudPassportNamespace, Environment environment) {
-        Namespace namespace = clusterRepository.findNamespaceByName(cloudPassportNamespace.name(), environment);
-        if (namespace == null) {
-            namespace = new Namespace();
-            namespace.setName(cloudPassportNamespace.name());
-            namespace.setUid(UUID.randomUUID().toString());
-            environment.addNamespace(namespace);
+        Namespace namespaceInCache = environment.getNamespaces().stream().filter(namespace -> namespace.getName().equals(cloudPassportNamespace.name())).findFirst().orElse(null);
+        if (namespaceInCache == null) {
+            namespaceInCache = new Namespace();
+            namespaceInCache.setName(cloudPassportNamespace.name());
+            namespaceInCache.setUid(UUID.randomUUID().toString());
+            environment.addNamespace(namespaceInCache);
+            Log.info("Namespace " + namespaceInCache.getName() + " has been created in cache for environment " + environment.getName());
         }
     }
 
