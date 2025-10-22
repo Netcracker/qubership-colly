@@ -59,9 +59,11 @@ public class UpdateEnvironmentService {
         if (!isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
+        Log.info("Updating yaml file " + yamlPath);
         executeYqCommand(yamlPath, ".inventory.description", environmentUpdate.getDescription());
+        Log.info("Updated description to " + environmentUpdate.getDescription());
         executeYqCommand(yamlPath, ".inventory.owners", environmentUpdate.getOwner());
-
+        Log.info("Updated owners to " + environmentUpdate.getOwner());
     }
 
     private boolean isYqAvailable() {

@@ -84,6 +84,7 @@ public class CollyStorage {
     }
 
     public Environment updateEnvironment(String clusterName, String environmentName, Environment environmentUpdate) {
+        Log.info("Updating environment " + environmentName + " in cluster " + clusterName);
         Cluster cluster = clusterRepository.findByName(clusterName);
         if (cluster == null) {
             throw new IllegalArgumentException("Cluster not found: " + clusterName);
