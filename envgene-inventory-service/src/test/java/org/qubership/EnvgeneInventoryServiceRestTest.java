@@ -1,17 +1,39 @@
 package org.qubership;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.qubership.colly.GitService;
+
+import java.io.File;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 
 @QuarkusTest
 @TestTransaction
 class EnvgeneInventoryServiceRestTest {
+
+    @InjectMock
+    GitService gitService;
+
+    @BeforeEach
+    void setUp() {
+        doAnswer(invocation -> {
+                    FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(1));
+                    return null;
+                }
+        ).when(gitService).cloneRepository(anyString(), any());
+    }
 
     @Test
     @Disabled("Skip because auth was turned off for service")
@@ -79,5 +101,25 @@ class EnvgeneInventoryServiceRestTest {
                 .then()
                 .statusCode(401)
                 .body("authenticated", equalTo(false));
+    }
+
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_with_auth() {
+        given()
+                .when().post("/colly/envgene-inventory-service/tick")
+                .then()
+                .statusCode(204);
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"env-test\",\"owner\":\"new-owner\",\"description\":\"Updated description\"}")
+                .when().put("/colly/envgene-inventory-service/clusters/test-cluster/environments/env-test")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("env-test"))
+                .body("owner", equalTo("new-owner"))
+                .body("description", equalTo("Updated description"));
     }
 }

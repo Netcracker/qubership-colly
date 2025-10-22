@@ -11,9 +11,7 @@ public class Environment {
 
     private String id;
     private String name;
-    private String owner;
     private String team;
-    private String description;
     private LocalDate expirationDate;
     private Instant cleanInstallationDate;
     private EnvironmentStatus status = EnvironmentStatus.FREE;
@@ -90,28 +88,12 @@ public class Environment {
         this.name = name;
     }
 
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
-
     public String getTeam() {
         return team;
     }
 
     public void setTeam(String team) {
         this.team = team;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public EnvironmentStatus getStatus() {

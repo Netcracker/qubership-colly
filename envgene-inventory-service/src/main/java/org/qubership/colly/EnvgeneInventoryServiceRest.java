@@ -2,10 +2,7 @@ package org.qubership.colly;
 
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Cluster;
@@ -33,6 +30,28 @@ public class EnvgeneInventoryServiceRest {
     @Path("/clusters")
     public List<Cluster> getClusters() {
         return collyStorage.getClusters();
+    }
+
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/clusters/{clusterName}/environments/{environmentName}")
+    public Response updateEnvironment(@PathParam("clusterName") String clusterName,
+                                      @PathParam("environmentName") String environmentName,
+                                      Environment environment) {
+        try {
+            Environment updatedEnvironment = collyStorage.updateEnvironment(clusterName, environmentName, environment);
+            return Response.ok(updatedEnvironment).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", e.getMessage()))
+                    .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", "Failed to update environment: " + e.getMessage()))
+                    .build();
+        }
     }
 
 

@@ -8,8 +8,6 @@ import io.quarkus.redis.datasource.keys.KeyCommands;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
 
 import java.util.List;
 import java.util.Objects;
@@ -20,13 +18,11 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class ClusterRepository {
 
+    private static final String CLUSTER_KEY_PREFIX = "inventory:cluster:";
     @Inject
     RedisDataSource redisDataSource;
-
     @Inject
     ObjectMapper objectMapper;
-
-    private static final String CLUSTER_KEY_PREFIX = "inventory:cluster:";
 
     private HashCommands<String, String, String> hashCommands() {
         return redisDataSource.hash(String.class, String.class, String.class);
@@ -106,29 +102,4 @@ public class ClusterRepository {
                 .orElse(null);
     }
 
-    public List<Environment> findAllEnvironments() {
-        return listAll().stream()
-                .flatMap(cluster -> cluster.getEnvironments().stream())
-                .collect(Collectors.toList());
-    }
-
-    public Environment findEnvironmentByNameAndCluster(String environmentName, String clusterName) {
-        Cluster cluster = findByName(clusterName);
-        if (cluster == null) return null;
-        
-        return cluster.getEnvironments().stream()
-                .filter(env -> environmentName.equals(env.getName()))
-                .findFirst()
-                .orElse(null);
-    }
-
-    public Namespace findNamespaceByNameAndCluster(String namespaceName, String clusterName) {
-        Cluster cluster = findByName(clusterName);
-        if (cluster == null) return null;
-        
-        return cluster.getNamespaces().stream()
-                .filter(ns -> namespaceName.equals(ns.getName()))
-                .findFirst()
-                .orElse(null);
-    }
 }

@@ -1,5 +1,7 @@
 package org.qubership.colly.db.data;
 
+import org.qubership.colly.cloudpassport.GitInfo;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,8 +13,16 @@ public class Cluster {
     private String cloudApiHost;
     private URI monitoringUrl;
     private List<Environment> environments;
-    private List<Namespace> namespaces;
     private String description;
+    private GitInfo gitInfo;
+
+    public GitInfo getGitInfo() {
+        return gitInfo;
+    }
+
+    public void setGitInfo(GitInfo gitInfo) {
+        this.gitInfo = gitInfo;
+    }
 
     public String getId() {
         return id;
@@ -70,14 +80,6 @@ public class Cluster {
         this.environments = environments;
     }
 
-    public List<Namespace> getNamespaces() {
-        return namespaces != null ? namespaces : new ArrayList<>();
-    }
-
-    public void setNamespaces(List<Namespace> namespaces) {
-        this.namespaces = namespaces;
-    }
-
     public void addEnvironment(Environment environment) {
         if (environments == null) {
             environments = new ArrayList<>();
@@ -85,10 +87,5 @@ public class Cluster {
         environments.add(environment);
     }
 
-    public void addNamespace(Namespace namespace) {
-        if (namespaces == null) {
-            namespaces = new ArrayList<>();
-        }
-        namespaces.add(namespace);
-    }
+
 }

@@ -7,7 +7,6 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.ApplicationMetadata;
 import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.dto.ClusterDTO;
@@ -54,8 +53,7 @@ public class ClusterResourcesRest {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
     public List<EnvironmentDTO> getEnvironments() {
-        List<Environment> environments = collyStorage.getEnvironments();
-        return environmentMapper.toDTOs(environments);
+        return collyStorage.getEnvironments();
     }
 
     @POST

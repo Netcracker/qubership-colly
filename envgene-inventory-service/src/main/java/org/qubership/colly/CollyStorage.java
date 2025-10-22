@@ -21,13 +21,15 @@ public class CollyStorage {
 
     private final ClusterRepository clusterRepository;
     private final CloudPassportLoader cloudPassportLoader;
+    private final UpdateEnvironmentService updateEnvironmentService;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
-            CloudPassportLoader cloudPassportLoader) {
+            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService) {
         this.clusterRepository = clusterRepository;
         this.cloudPassportLoader = cloudPassportLoader;
+        this.updateEnvironmentService = updateEnvironmentService;
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
@@ -46,36 +48,54 @@ public class CollyStorage {
         cluster.setToken(cloudPassport.token());
         cluster.setCloudApiHost(cloudPassport.cloudApiHost());
         cluster.setMonitoringUrl(cloudPassport.monitoringUrl());
+        cluster.setGitInfo(cloudPassport.gitInfo());
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToDatabase(env, finalCluster));
-        clusterRepository.persist(cluster);
+        clusterRepository.persist(finalCluster);
     }
 
     private void saveEnvironmentToDatabase(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
-        Environment environment = clusterRepository.findEnvironmentByNameAndCluster(cloudPassportEnvironment.name(), cluster.getName());
+        Environment environment = cluster.getEnvironments().stream().filter(env -> env.getName().equals(cloudPassportEnvironment.name())).findFirst().orElse(null);
         if (environment == null) {
             environment = new Environment(cloudPassportEnvironment.name());
             cluster.addEnvironment(environment);
+            Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }
         environment.setDescription(cloudPassportEnvironment.description());
-
+        environment.setOwner(cloudPassportEnvironment.owners());
+        Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
         Environment finalEnvironment = environment;
-        cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment, cluster));
+        cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
     }
 
-    private void saveNamespaceToDatabase(CloudPassportNamespace cloudPassportNamespace, Environment environment, Cluster cluster) {
-        Namespace namespace = clusterRepository.findNamespaceByNameAndCluster(cloudPassportNamespace.name(), cluster.getName());
-        if (namespace == null) {
-            namespace = new Namespace();
-            namespace.setName(cloudPassportNamespace.name());
-            namespace.setUid(UUID.randomUUID().toString());
-            environment.addNamespace(namespace);
-            cluster.addNamespace(namespace);
+    private void saveNamespaceToDatabase(CloudPassportNamespace cloudPassportNamespace, Environment environment) {
+        Namespace namespaceInCache = environment.getNamespaces().stream().filter(namespace -> namespace.getName().equals(cloudPassportNamespace.name())).findFirst().orElse(null);
+        if (namespaceInCache == null) {
+            namespaceInCache = new Namespace();
+            namespaceInCache.setName(cloudPassportNamespace.name());
+            namespaceInCache.setUid(UUID.randomUUID().toString());
+            environment.addNamespace(namespaceInCache);
+            Log.info("Namespace " + namespaceInCache.getName() + " has been created in cache for environment " + environment.getName());
         }
     }
 
     public List<Cluster> getClusters() {
         return clusterRepository.listAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
+    }
+
+    public Environment updateEnvironment(String clusterName, String environmentName, Environment environmentUpdate) {
+        Log.info("Updating environment " + environmentName + " in cluster " + clusterName);
+        Cluster cluster = clusterRepository.findByName(clusterName);
+        if (cluster == null) {
+            throw new IllegalArgumentException("Cluster not found: " + clusterName);
+        }
+        Environment existingEnv = cluster.getEnvironments().stream().filter(env -> env.getName().equals(environmentName)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName));
+        Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
+        existingEnv.setOwner(updatedEnvironment.getOwner());
+        existingEnv.setDescription(updatedEnvironment.getDescription());
+        clusterRepository.persist(cluster);
+        return existingEnv;
     }
 
 }
