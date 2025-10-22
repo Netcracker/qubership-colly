@@ -3,19 +3,10 @@ package org.qubership.colly.cloudpassport.envgen;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Inventory {
-    private String environmentName;
+public class InventoryMetadata {
     private String description;
     private String owners;
-    private InventoryMetadata metadata;
-
-    public String getEnvironmentName() {
-        return environmentName;
-    }
-
-    public void setEnvironmentName(String environmentName) {
-        this.environmentName = environmentName;
-    }
+    private String labels;
 
     public String getDescription() {
         return description;
@@ -33,11 +24,11 @@ public class Inventory {
         this.owners = owners;
     }
 
-    public InventoryMetadata getMetadata() {
-        return metadata;
+    public String getLabels() {
+        return labels;
     }
 
-    public void setMetadata(InventoryMetadata metadata) {
-        this.metadata = metadata;
+    public void setLabels(String labels) {
+        this.labels = labels;
     }
 }

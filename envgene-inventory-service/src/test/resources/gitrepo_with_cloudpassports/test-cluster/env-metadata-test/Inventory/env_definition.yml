@@ -1,0 +1,8 @@
+inventory:
+  metadata:
+    description: "description from metadata"
+    owners: "owner from metadata"
+  environmentName: "env-metadata-test"
+  description: "description from inventory"
+  owners: "owner from inventory"
+  tenantName: "Applications"
