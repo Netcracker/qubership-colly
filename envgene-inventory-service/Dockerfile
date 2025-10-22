@@ -85,7 +85,7 @@ ENV LANGUAGE='en_US:en'
 USER root
 RUN microdnf update -y && \
     microdnf install -y wget && \
-    wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
+    wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.48.1/yq_linux_amd64 && \
     chmod +x /usr/local/bin/yq && \
     microdnf clean all
 
