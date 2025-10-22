@@ -77,11 +77,11 @@ public class UpdateEnvironmentService {
     }
 
     private void executeYqCommand(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
-        String escapedValue = escapeForYq(value);
+        String escapedValue = value == null ? null : "\"" + escapeForYq(value) + "\"";
         ProcessBuilder pb = new ProcessBuilder(
                 "yq",
                 "eval",
-                yamlFieldPath + " = \"" + escapedValue + "\"",
+                yamlFieldPath + " = " + escapedValue,
                 yamlPath.toString(),
                 "--inplace"
         );
