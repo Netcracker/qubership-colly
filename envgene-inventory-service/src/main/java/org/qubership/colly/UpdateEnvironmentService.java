@@ -60,10 +60,12 @@ public class UpdateEnvironmentService {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
         Log.info("Updating yaml file " + yamlPath);
-        executeYqCommand(yamlPath, ".inventory.description", environmentUpdate.getDescription());
-        Log.info("Updated description to " + environmentUpdate.getDescription());
-        executeYqCommand(yamlPath, ".inventory.owners", environmentUpdate.getOwner());
-        Log.info("Updated owners to " + environmentUpdate.getOwner());
+        deleteYamlField(yamlPath, ".inventory.description");
+        updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
+        Log.info("Updated metadata description to " + environmentUpdate.getDescription());
+        deleteYamlField(yamlPath, ".inventory.owners");
+        updateYamlField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwner());
+        Log.info("Updated metadata owners to " + environmentUpdate.getOwner());
     }
 
     private boolean isYqAvailable() {
@@ -78,7 +80,18 @@ public class UpdateEnvironmentService {
         }
     }
 
-    private void executeYqCommand(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
+    private void deleteYamlField(Path yamlPath, String yamlFieldPath) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(
+                "yq",
+                "eval",
+                "del(" + yamlFieldPath + ")",
+                yamlPath.toString(),
+                "--inplace"
+        );
+        executeYqCommand(pb);
+    }
+
+    private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
         String escapedValue = value == null ? null : "\"" + escapeForYq(value) + "\"";
         ProcessBuilder pb = new ProcessBuilder(
                 "yq",
@@ -87,8 +100,11 @@ public class UpdateEnvironmentService {
                 yamlPath.toString(),
                 "--inplace"
         );
+        executeYqCommand(pb);
+    }
 
-        Process process = pb.start();
+    private void executeYqCommand(ProcessBuilder processBuilder) throws IOException, InterruptedException {
+        Process process = processBuilder.start();
         boolean finished = process.waitFor(30, TimeUnit.SECONDS);
 
         if (!finished) {

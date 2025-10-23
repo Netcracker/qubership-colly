@@ -1,5 +1,6 @@
 package org.qubership.colly;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.component.QuarkusComponentTest;
@@ -17,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
@@ -50,8 +50,8 @@ class UpdateEnvironmentServiceTest {
         testCluster.setName("test-cluster");
         testCluster.setGitInfo(gitInfo);
         testEnvironment = new Environment("env-test");
-        testEnvironment.setDescription("some environment");
-        testEnvironment.setOwner("test-owner");
+        testEnvironment.setDescription("new description");
+        testEnvironment.setOwner("new owner");
         testEnvironment.setTeam("test-team");
     }
 
@@ -62,8 +62,10 @@ class UpdateEnvironmentServiceTest {
         Path path = Paths.get(testCluster.getGitInfo().folderName() + "/gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
-        assertEquals("some environment", envDefinition.getInventory().getDescription());
-        assertEquals("test-owner", envDefinition.getInventory().getOwners());
+        assertEquals("new description", envDefinition.getInventory().getMetadata().getDescription());
+        assertNull(envDefinition.getInventory().getDescription());
+        assertEquals("new owner", envDefinition.getInventory().getMetadata().getOwners());
+        assertNull(envDefinition.getInventory().getOwners());
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 
