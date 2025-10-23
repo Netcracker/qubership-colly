@@ -19,7 +19,6 @@ public class Environment {
     private String clusterId;
     private Map<String, String> monitoringData;
     private String deploymentVersion;
-    private List<String> labels;
     private List<String> namespaceIds;
     private DeploymentStatus deploymentStatus;
     private String ticketLinks;
@@ -54,14 +53,6 @@ public class Environment {
             this.namespaceIds = new ArrayList<>();
         }
         this.namespaceIds.add(namespaceId);
-    }
-
-    public List<String> getLabels() {
-        return labels != null ? Collections.unmodifiableList(labels) : Collections.emptyList();
-    }
-
-    public void setLabels(List<String> labels) {
-        this.labels = new ArrayList<>(labels);
     }
 
     public String getDeploymentVersion() {

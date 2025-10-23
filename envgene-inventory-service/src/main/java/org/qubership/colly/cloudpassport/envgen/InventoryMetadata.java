@@ -2,11 +2,13 @@ package org.qubership.colly.cloudpassport.envgen;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InventoryMetadata {
     private String description;
     private String owners;
-    private String labels;
+    private List<String> labels;
 
     public String getDescription() {
         return description;
@@ -24,11 +26,11 @@ public class InventoryMetadata {
         this.owners = owners;
     }
 
-    public String getLabels() {
+    public List<String> getLabels() {
         return labels;
     }
 
-    public void setLabels(String labels) {
+    public void setLabels(List<String> labels) {
         this.labels = labels;
     }
 }

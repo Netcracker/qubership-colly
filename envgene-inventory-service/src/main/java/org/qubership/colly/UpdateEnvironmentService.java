@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ApplicationScoped
@@ -66,6 +68,9 @@ public class UpdateEnvironmentService {
         deleteYamlField(yamlPath, ".inventory.owners");
         updateYamlField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwner());
         Log.info("Updated metadata owners to " + environmentUpdate.getOwner());
+        updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
+        Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
+
     }
 
     private boolean isYqAvailable() {
@@ -97,6 +102,20 @@ public class UpdateEnvironmentService {
                 "yq",
                 "eval",
                 yamlFieldPath + " = " + escapedValue,
+                yamlPath.toString(),
+                "--inplace"
+        );
+        executeYqCommand(pb);
+    }
+
+    private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException, InterruptedException {
+        String arrayValue = values.stream()
+                .map(value -> "\"" + escapeForYq(value) + "\"")
+                .collect(Collectors.joining(", ", "[", "]"));
+        ProcessBuilder pb = new ProcessBuilder(
+                "yq",
+                "eval",
+                yamlFieldPath + " = " + arrayValue,
                 yamlPath.toString(),
                 "--inplace"
         );

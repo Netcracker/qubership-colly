@@ -2,5 +2,5 @@ package org.qubership.colly.cloudpassport;
 
 import java.util.List;
 
-public record CloudPassportEnvironment(String name, String description, String owners, List<CloudPassportNamespace> namespaceDtos) {
+public record CloudPassportEnvironment(String name, String description, List<CloudPassportNamespace> namespaceDtos, String owners, List<String> labels) {
 }

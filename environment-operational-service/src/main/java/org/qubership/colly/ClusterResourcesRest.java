@@ -10,7 +10,6 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.dto.ApplicationMetadata;
 import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.dto.ClusterDTO;
-import org.qubership.colly.mapper.EnvironmentMapper;
 import org.qubership.colly.mapper.ClusterMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
@@ -25,19 +24,16 @@ public class ClusterResourcesRest {
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final MonitoringService monitoringService;
-    private final EnvironmentMapper environmentMapper;
     private final ClusterMapper clusterMapper;
 
     @Inject
     public ClusterResourcesRest(CollyStorage collyStorage,
                                SecurityIdentity securityIdentity,
                                MonitoringService monitoringService,
-                               EnvironmentMapper environmentMapper,
                                ClusterMapper clusterMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.monitoringService = monitoringService;
-        this.environmentMapper = environmentMapper;
         this.clusterMapper = clusterMapper;
     }
 

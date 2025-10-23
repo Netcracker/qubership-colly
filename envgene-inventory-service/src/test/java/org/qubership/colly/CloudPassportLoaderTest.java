@@ -39,13 +39,15 @@ class CloudPassportLoaderTest {
             Set.of(new CloudPassportEnvironment(
                             "env-test",
                             "some env for tests",
+                            List.of(new CloudPassportNamespace("demo-k8s")),
                             "test-owner",
-                            List.of(new CloudPassportNamespace("demo-k8s"))),
+                            List.of()),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
+                            List.of(new CloudPassportNamespace("test-ns")),
                             "owner from metadata",
-                            List.of(new CloudPassportNamespace("test-ns")))),
+                            List.of("label1", "label2"))),
             URI.create("http://localhost:8428"),
             new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
@@ -54,8 +56,9 @@ class CloudPassportLoaderTest {
             Set.of(new CloudPassportEnvironment(
                     "env-1",
                     "some env for tests",
+                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")),
                     null,
-                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")))),
+                    List.of())),
             URI.create("http://vmsingle-k8s.victoria:8429"),
             new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")
     );

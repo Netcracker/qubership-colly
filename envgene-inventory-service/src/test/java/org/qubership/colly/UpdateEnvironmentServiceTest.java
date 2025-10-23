@@ -18,7 +18,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 
@@ -53,6 +56,7 @@ class UpdateEnvironmentServiceTest {
         testEnvironment.setDescription("new description");
         testEnvironment.setOwner("new owner");
         testEnvironment.setTeam("test-team");
+        testEnvironment.setLabels(List.of("ci", "dev"));
     }
 
     @Test
@@ -66,6 +70,7 @@ class UpdateEnvironmentServiceTest {
         assertNull(envDefinition.getInventory().getDescription());
         assertEquals("new owner", envDefinition.getInventory().getMetadata().getOwners());
         assertNull(envDefinition.getInventory().getOwners());
+        assertThat(envDefinition.getInventory().getMetadata().getLabels(), contains("ci", "dev"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 

@@ -172,7 +172,10 @@ public class CloudPassportLoader {
             String owners = inventoryMetadata == null || inventoryMetadata.getOwners() == null
                     ? inventory.getOwners()
                     : inventoryMetadata.getOwners();
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, owners, namespaces);
+            List<String> labels = inventoryMetadata == null || inventoryMetadata.getLabels() == null
+                    ? List.of()
+                    : inventoryMetadata.getLabels();
+            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces, owners, labels);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }

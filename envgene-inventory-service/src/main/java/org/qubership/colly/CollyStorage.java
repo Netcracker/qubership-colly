@@ -63,6 +63,7 @@ public class CollyStorage {
         }
         environment.setDescription(cloudPassportEnvironment.description());
         environment.setOwner(cloudPassportEnvironment.owners());
+        environment.setLabels(cloudPassportEnvironment.labels());
         Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
         Environment finalEnvironment = environment;
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
@@ -94,6 +95,7 @@ public class CollyStorage {
         Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
         existingEnv.setOwner(updatedEnvironment.getOwner());
         existingEnv.setDescription(updatedEnvironment.getDescription());
+        existingEnv.setLabels(updatedEnvironment.getLabels());
         clusterRepository.persist(cluster);
         return existingEnv;
     }

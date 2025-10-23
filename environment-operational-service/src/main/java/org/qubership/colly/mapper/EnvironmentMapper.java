@@ -4,7 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
@@ -48,7 +47,7 @@ public class EnvironmentMapper {
                 entity.getStatus(),
                 entity.getExpirationDate(),
                 entity.getType(),
-                entity.getLabels(),
+                cloudPassportEnvironment.labels(),
                 cloudPassportEnvironment.description(),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),

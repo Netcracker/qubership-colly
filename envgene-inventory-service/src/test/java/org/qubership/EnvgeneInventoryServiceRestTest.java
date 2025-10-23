@@ -114,12 +114,13 @@ class EnvgeneInventoryServiceRestTest {
 
         given()
                 .contentType("application/json")
-                .body("{\"name\":\"env-test\",\"owner\":\"new-owner\",\"description\":\"Updated description\"}")
+                .body("{\"name\":\"env-test\",\"owner\":\"new-owner\",\"description\":\"Updated description\",\"labels\":[\"label1\",\"label2\"]}")
                 .when().put("/colly/envgene-inventory-service/clusters/test-cluster/environments/env-test")
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("env-test"))
                 .body("owner", equalTo("new-owner"))
-                .body("description", equalTo("Updated description"));
+                .body("description", equalTo("Updated description"))
+                .body("labels", contains("label1", "label2"));
     }
 }
