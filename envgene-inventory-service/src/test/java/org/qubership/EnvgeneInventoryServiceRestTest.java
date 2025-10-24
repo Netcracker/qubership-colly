@@ -13,8 +13,8 @@ import org.qubership.colly.GitService;
 import java.io.File;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -65,7 +65,23 @@ class EnvgeneInventoryServiceRestTest {
                 .when().get("/colly/envgene-inventory-service/clusters")
                 .then()
                 .statusCode(200)
-                .body("name", contains("test-cluster", "unreachable-cluster"));
+                .body("name", contains("test-cluster", "unreachable-cluster"))
+                .body("environments.flatten()", containsInAnyOrder(
+                        allOf(
+                                hasEntry("name", "env-test"),
+                                hasEntry("owner", "test-owner"),
+                                hasEntry("description", "some env for tests")
+                        ),
+                        allOf(
+                                hasEntry("name", "env-metadata-test"),
+                                hasEntry("owner", "owner from metadata"),
+                                hasEntry("description", "description from metadata")
+                        ),
+                        allOf(
+                                hasEntry("name", "env-1"),
+                                hasEntry("description", "some env for tests")
+                        )
+                ));
     }
 
 
@@ -114,13 +130,26 @@ class EnvgeneInventoryServiceRestTest {
 
         given()
                 .contentType("application/json")
-                .body("{\"name\":\"env-test\",\"owner\":\"new-owner\",\"description\":\"Updated description\",\"labels\":[\"label1\",\"label2\"]}")
+                .body("{\"name\":\"env-test\",\"owner\":\"new-owner\",\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
                 .when().put("/colly/envgene-inventory-service/clusters/test-cluster/environments/env-test")
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("env-test"))
                 .body("owner", equalTo("new-owner"))
                 .body("description", equalTo("Updated description"))
-                .body("labels", contains("label1", "label2"));
+                .body("labels", contains("test", "test2"));
+
+        given()
+                .when().get("/colly/envgene-inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("environments.flatten()", hasItem(
+                        allOf(
+                                hasEntry("name", "env-test"),
+                                hasEntry("owner", "new-owner"),
+                                hasEntry("description", "Updated description")
+                        )
+                ))
+                .body("environments.flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"));
     }
 }
