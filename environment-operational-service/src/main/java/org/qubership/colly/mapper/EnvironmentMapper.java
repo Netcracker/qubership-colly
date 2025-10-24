@@ -42,7 +42,7 @@ public class EnvironmentMapper {
                 entity.getName(),
                 toNamespaceDTOs(entity.getNamespaceIds()),
                 clusterMapper.toDTO(clusterRepository.findByName(entity.getClusterId()).orElse(null)),
-                cloudPassportEnvironment.owner(),
+                cloudPassportEnvironment.owners(),
                 entity.getTeam(),
                 entity.getStatus(),
                 entity.getExpirationDate(),

@@ -64,7 +64,7 @@ public class ClusterResourcesRest {
     @RolesAllowed("admin")
     public void saveEnvironment(@PathParam("envId") String id,
                                 @FormParam("name") String name,
-                                @FormParam("owner") String owner,
+                                @FormParam("owners") List<String> owner,
                                 @FormParam("description") String description,
                                 @FormParam("status") String status,
                                 @FormParam("labels") List<String> labels,

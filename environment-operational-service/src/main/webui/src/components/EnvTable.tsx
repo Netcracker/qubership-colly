@@ -133,8 +133,8 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const handleSaveAction = useCallback(async (changedEnv: Environment) => {
         try {
             const formData = new FormData();
-            if (changedEnv.owner) {
-                formData.append("owner", changedEnv.owner);
+            if (changedEnv.owners) {
+                changedEnv.owners.forEach(owner => formData.append("owners", owner));
             }
             if (changedEnv.team) {
                 formData.append("team", changedEnv.team);
@@ -174,7 +174,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         name: env.name,
         namespaces: env.namespaces.filter((namespace: Namespace) => showAllNamespaces || namespace.existsInK8s),
         cluster: env.cluster?.name,
-        owner: env.owner,
+        owners: env.owners,
         team: env.team,
         status: env.status,
         expirationDate: env.expirationDate,
@@ -213,7 +213,15 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 )
             },
             {field: "cluster", headerName: "Cluster", width: 150},
-            {field: "owner", headerName: "Owner", width: 120},
+            {
+                field: "owners", headerName: "Owner(s)", width: 120,
+                valueFormatter: (value: string[]) => {
+                    if (value == null) {
+                        return '';
+                    }
+                    return value.join(', ');
+                }
+            },
             {field: "team", headerName: "Team", width: 120},
             {
                 field: "expirationDate", headerName: "Expiration Date",

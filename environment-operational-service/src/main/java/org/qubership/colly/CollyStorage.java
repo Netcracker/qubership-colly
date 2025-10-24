@@ -111,12 +111,12 @@ public class CollyStorage {
 
 
     //@Transactional - removed for Redis
-    public void saveEnvironment(String id, String name, String owner, String description, String status, List<String> labels, String type, String team, LocalDate expirationDate, String deploymentStatus, String tickets) {
+    public void saveEnvironment(String id, String name, List<String> owner, String description, String status, List<String> labels, String type, String team, LocalDate expirationDate, String deploymentStatus, String tickets) {
         Environment environment = environmentRepository.findById(id).orElse(null);
         if (environment == null) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
         }
-        Log.info("Saving environment with id " + id + " name " + name + " owner " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
+        Log.info("Saving environment with id " + id + " name " + name + " owners " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
         //todo refactor logic for update environment in cache when commit feature for all properties implemented in inventory service
         environment.setStatus(EnvironmentStatus.fromString(status));
         environment.setType(EnvironmentType.fromString(type));

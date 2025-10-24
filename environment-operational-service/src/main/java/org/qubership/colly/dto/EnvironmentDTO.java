@@ -15,7 +15,7 @@ public record EnvironmentDTO(
         String name,
         List<NamespaceDTO> namespaces,
         ClusterDTO cluster,
-        String owner,
+        List<String> owners,
         String team,
         EnvironmentStatus status,
         @JsonFormat(pattern = "yyyy-MM-dd")

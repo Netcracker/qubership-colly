@@ -58,9 +58,9 @@ export default function EditEnvironmentDialog({show, environment, allLabels, onC
                 fullWidth
                 margin="dense"/>
             <TextField
-                label="Owner"
-                value={localEnv.owner || ''}
-                onChange={e => setLocalEnv(prevState => ({...prevState, owner: e.target.value}))}
+                label="Owners"
+                value={localEnv.owners ? localEnv.owners.join(', ') : ''}
+                onChange={e => setLocalEnv(prevState => ({...prevState, owners: e.target.value.split(',').map(s => s.trim())}))}
                 fullWidth
                 margin="dense"
             />

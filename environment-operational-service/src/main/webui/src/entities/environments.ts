@@ -5,7 +5,7 @@ export type Environment = {
     name: string;
     namespaces: Namespace[];
     cluster: { name: string };
-    owner: string;
+    owners: string[];
     team: string;
     status: EnvironmentStatus;
     type: EnvironmentType;
