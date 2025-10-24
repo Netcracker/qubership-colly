@@ -69,12 +69,10 @@ class EnvgeneInventoryServiceRestTest {
                 .body("environments.flatten()", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "env-test"),
-                                hasEntry("owner", "test-owner"),
                                 hasEntry("description", "some env for tests")
                         ),
                         allOf(
                                 hasEntry("name", "env-metadata-test"),
-                                hasEntry("owner", "owner from metadata"),
                                 hasEntry("description", "description from metadata")
                         ),
                         allOf(
@@ -130,12 +128,12 @@ class EnvgeneInventoryServiceRestTest {
 
         given()
                 .contentType("application/json")
-                .body("{\"name\":\"env-test\",\"owner\":\"new-owner\",\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
+                .body("{\"name\":\"env-test\",\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
                 .when().put("/colly/envgene-inventory-service/clusters/test-cluster/environments/env-test")
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("env-test"))
-                .body("owner", equalTo("new-owner"))
+                .body("owners", contains("new-owner"))
                 .body("description", equalTo("Updated description"))
                 .body("labels", contains("test", "test2"));
 
@@ -146,10 +144,10 @@ class EnvgeneInventoryServiceRestTest {
                 .body("environments.flatten()", hasItem(
                         allOf(
                                 hasEntry("name", "env-test"),
-                                hasEntry("owner", "new-owner"),
                                 hasEntry("description", "Updated description")
                         )
                 ))
-                .body("environments.flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"));
+                .body("environments.flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"))
+                .body("environments.flatten().find { it.name == 'env-test' }.owners", contains("new-owner"));
     }
 }

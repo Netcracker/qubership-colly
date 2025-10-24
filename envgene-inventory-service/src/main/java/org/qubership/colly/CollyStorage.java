@@ -62,7 +62,7 @@ public class CollyStorage {
             Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }
         environment.setDescription(cloudPassportEnvironment.description());
-        environment.setOwner(cloudPassportEnvironment.owners());
+        environment.setOwners(cloudPassportEnvironment.owners());
         environment.setLabels(cloudPassportEnvironment.labels());
         Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
         Environment finalEnvironment = environment;
@@ -93,7 +93,7 @@ public class CollyStorage {
         Environment existingEnv = cluster.getEnvironments().stream().filter(env -> env.getName().equals(environmentName)).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName));
         Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
-        existingEnv.setOwner(updatedEnvironment.getOwner());
+        existingEnv.setOwners(updatedEnvironment.getOwners());
         existingEnv.setDescription(updatedEnvironment.getDescription());
         existingEnv.setLabels(updatedEnvironment.getLabels());
         clusterRepository.persist(cluster);

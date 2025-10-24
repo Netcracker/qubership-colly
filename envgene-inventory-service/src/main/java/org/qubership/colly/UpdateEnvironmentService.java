@@ -66,8 +66,8 @@ public class UpdateEnvironmentService {
         updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
         Log.info("Updated metadata description to " + environmentUpdate.getDescription());
         deleteYamlField(yamlPath, ".inventory.owners");
-        updateYamlField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwner());
-        Log.info("Updated metadata owners to " + environmentUpdate.getOwner());
+        updateYamlArrayField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwners());
+        Log.info("Updated metadata owners to " + environmentUpdate.getOwners());
         updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
         Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
 

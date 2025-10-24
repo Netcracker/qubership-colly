@@ -12,7 +12,7 @@ import java.util.List;
 public class Environment {
 
     private String name;
-    private String owner;
+    private List<String> owners;
     private String team;
     private String description;
     @JsonFormat(pattern = "yyyy-MM-dd")
@@ -71,12 +71,12 @@ public class Environment {
         this.name = name;
     }
 
-    public String getOwner() {
-        return owner;
+    public List<String> getOwners() {
+        return owners != null ? Collections.unmodifiableList(owners) : Collections.emptyList();
     }
 
-    public void setOwner(String owner) {
-        this.owner = owner;
+    public void setOwners(List<String> owners) {
+        this.owners = owners != null ? new ArrayList<>(owners) : null;
     }
 
     public String getTeam() {

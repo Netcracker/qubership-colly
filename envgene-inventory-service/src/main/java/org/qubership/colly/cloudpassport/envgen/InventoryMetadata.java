@@ -7,7 +7,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InventoryMetadata {
     private String description;
-    private String owners;
+    private List<String> owners;
     private List<String> labels;
 
     public String getDescription() {
@@ -18,11 +18,11 @@ public class InventoryMetadata {
         this.description = description;
     }
 
-    public String getOwners() {
+    public List<String> getOwners() {
         return owners;
     }
 
-    public void setOwners(String owners) {
+    public void setOwners(List<String> owners) {
         this.owners = owners;
     }
 

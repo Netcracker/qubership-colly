@@ -54,7 +54,7 @@ class UpdateEnvironmentServiceTest {
         testCluster.setGitInfo(gitInfo);
         testEnvironment = new Environment("env-test");
         testEnvironment.setDescription("new description");
-        testEnvironment.setOwner("new owner");
+        testEnvironment.setOwners(List.of("new owner"));
         testEnvironment.setTeam("test-team");
         testEnvironment.setLabels(List.of("ci", "dev"));
     }
@@ -68,7 +68,7 @@ class UpdateEnvironmentServiceTest {
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
         assertEquals("new description", envDefinition.getInventory().getMetadata().getDescription());
         assertNull(envDefinition.getInventory().getDescription());
-        assertEquals("new owner", envDefinition.getInventory().getMetadata().getOwners());
+        assertThat(envDefinition.getInventory().getMetadata().getOwners(), contains("new owner"));
         assertNull(envDefinition.getInventory().getOwners());
         assertThat(envDefinition.getInventory().getMetadata().getLabels(), contains("ci", "dev"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());

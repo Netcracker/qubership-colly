@@ -1,7 +1,7 @@
 inventory:
   metadata:
     description: "description from metadata"
-    owners: "owner from metadata"
+    owners: ["owner from metadata"]
     labels: ["label1", "label2"]
   environmentName: "env-metadata-test"
   description: "description from inventory"

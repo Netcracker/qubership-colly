@@ -169,8 +169,8 @@ public class CloudPassportLoader {
             String description = inventoryMetadata == null || inventoryMetadata.getDescription() == null
                     ? inventory.getDescription()
                     : inventoryMetadata.getDescription();
-            String owners = inventoryMetadata == null || inventoryMetadata.getOwners() == null
-                    ? inventory.getOwners()
+            List<String> owners = inventoryMetadata == null || inventoryMetadata.getOwners() == null
+                    ? inventory.getOwners() == null ? List.of() : List.of(inventory.getOwners())
                     : inventoryMetadata.getOwners();
             List<String> labels = inventoryMetadata == null || inventoryMetadata.getLabels() == null
                     ? List.of()
