@@ -96,6 +96,7 @@ public class CollyStorage {
         existingEnv.setOwners(updatedEnvironment.getOwners());
         existingEnv.setDescription(updatedEnvironment.getDescription());
         existingEnv.setLabels(updatedEnvironment.getLabels());
+        existingEnv.setTeams(updatedEnvironment.getTeams());
         clusterRepository.persist(cluster);
         return existingEnv;
     }

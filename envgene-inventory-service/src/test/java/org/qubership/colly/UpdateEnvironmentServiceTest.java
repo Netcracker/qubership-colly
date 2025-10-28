@@ -42,7 +42,7 @@ class UpdateEnvironmentServiceTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        // Copy test resources to temp directory
+        // Copy test resources to the temp directory
         Path testResourcesPath = Path.of("src/test/resources/gitrepo_with_cloudpassports");
         if (Files.exists(testResourcesPath)) {
             copyDirectory(testResourcesPath, tempDir.resolve("gitrepo_with_cloudpassports"));
@@ -55,7 +55,7 @@ class UpdateEnvironmentServiceTest {
         testEnvironment = new Environment("env-test");
         testEnvironment.setDescription("new description");
         testEnvironment.setOwners(List.of("new owner"));
-        testEnvironment.setTeam("test-team");
+        testEnvironment.setTeams(List.of("new test-team"));
         testEnvironment.setLabels(List.of("ci", "dev"));
     }
 
@@ -69,6 +69,7 @@ class UpdateEnvironmentServiceTest {
         assertEquals("new description", envDefinition.getInventory().getMetadata().getDescription());
         assertNull(envDefinition.getInventory().getDescription());
         assertThat(envDefinition.getInventory().getMetadata().getOwners(), contains("new owner"));
+        assertThat(envDefinition.getInventory().getMetadata().getTeams(), contains("new test-team"));
         assertNull(envDefinition.getInventory().getOwners());
         assertThat(envDefinition.getInventory().getMetadata().getLabels(), contains("ci", "dev"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());

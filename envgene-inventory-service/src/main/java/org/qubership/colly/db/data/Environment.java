@@ -13,7 +13,7 @@ public class Environment {
 
     private String name;
     private List<String> owners;
-    private String team;
+    private List<String> teams;
     private String description;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expirationDate;
@@ -79,12 +79,12 @@ public class Environment {
         this.owners = owners != null ? new ArrayList<>(owners) : null;
     }
 
-    public String getTeam() {
-        return team;
+    public List<String> getTeams() {
+        return teams;
     }
 
-    public void setTeam(String team) {
-        this.team = team;
+    public void setTeams(List<String> teams) {
+        this.teams = teams!=null ? new ArrayList<>(teams): null;
     }
 
     public String getDescription() {

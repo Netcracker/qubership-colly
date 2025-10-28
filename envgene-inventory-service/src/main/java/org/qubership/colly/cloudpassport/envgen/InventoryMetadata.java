@@ -9,6 +9,7 @@ public class InventoryMetadata {
     private String description;
     private List<String> owners;
     private List<String> labels;
+    private List<String> teams;
 
     public String getDescription() {
         return description;
@@ -32,5 +33,13 @@ public class InventoryMetadata {
 
     public void setLabels(List<String> labels) {
         this.labels = labels;
+    }
+
+    public List<String> getTeams() {
+        return teams;
+    }
+
+    public void setTeams(List<String> teams) {
+        this.teams = teams;
     }
 }

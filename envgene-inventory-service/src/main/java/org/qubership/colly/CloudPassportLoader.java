@@ -175,7 +175,10 @@ public class CloudPassportLoader {
             List<String> labels = inventoryMetadata == null || inventoryMetadata.getLabels() == null
                     ? List.of()
                     : inventoryMetadata.getLabels();
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces, owners, labels);
+            List<String> teams = inventoryMetadata == null || inventoryMetadata.getTeams() == null
+                    ? List.of()
+                    : inventoryMetadata.getTeams();
+            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces, owners, labels, teams);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }

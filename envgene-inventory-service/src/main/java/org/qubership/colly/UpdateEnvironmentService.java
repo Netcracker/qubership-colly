@@ -70,6 +70,8 @@ public class UpdateEnvironmentService {
         Log.info("Updated metadata owners to " + environmentUpdate.getOwners());
         updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
         Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
+        updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
+        Log.info("Updated metadata teams to " + environmentUpdate.getTeams());
 
     }
 
@@ -109,6 +111,10 @@ public class UpdateEnvironmentService {
     }
 
     private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException, InterruptedException {
+        if (values == null) {
+            deleteYamlField(yamlPath, yamlFieldPath);
+            return;
+        }
         String arrayValue = values.stream()
                 .map(value -> "\"" + escapeForYq(value) + "\"")
                 .collect(Collectors.joining(", ", "[", "]"));
