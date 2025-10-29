@@ -12,16 +12,20 @@ import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.db.data.EnvironmentStatus;
+import org.qubership.colly.db.data.EnvironmentType;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 
@@ -57,6 +61,10 @@ class UpdateEnvironmentServiceTest {
         testEnvironment.setOwners(List.of("new owner"));
         testEnvironment.setTeams(List.of("new test-team"));
         testEnvironment.setLabels(List.of("ci", "dev"));
+        testEnvironment.setType(EnvironmentType.DESIGN_TIME);
+        testEnvironment.setRole("Dev");
+        testEnvironment.setStatus(EnvironmentStatus.IN_USE);
+        testEnvironment.setExpirationDate(LocalDate.of(2025,12,31));
     }
 
     @Test
@@ -72,6 +80,10 @@ class UpdateEnvironmentServiceTest {
         assertThat(envDefinition.getInventory().getMetadata().getTeams(), contains("new test-team"));
         assertNull(envDefinition.getInventory().getOwners());
         assertThat(envDefinition.getInventory().getMetadata().getLabels(), contains("ci", "dev"));
+        assertEquals("DESIGN_TIME", envDefinition.getInventory().getMetadata().getType());
+        assertEquals("Dev", envDefinition.getInventory().getMetadata().getRole());
+        assertThat(envDefinition.getInventory().getMetadata().getStatus(), is("IN_USE"));
+        assertThat(envDefinition.getInventory().getMetadata().getExpirationDate(), is("2025-12-31"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 

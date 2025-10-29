@@ -21,6 +21,7 @@ public record EnvironmentDTO(
         @JsonFormat(pattern = "yyyy-MM-dd")
         LocalDate expirationDate,
         EnvironmentType type,
+        String role,
         List<String> labels,
         String description,
         String deploymentVersion,

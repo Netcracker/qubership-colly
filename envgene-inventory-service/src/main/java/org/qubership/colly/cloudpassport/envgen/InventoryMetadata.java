@@ -12,6 +12,8 @@ public class InventoryMetadata {
     private List<String> teams;
     private String status;
     private String expirationDate;
+    private String type;
+    private String role;
 
     public String getDescription() {
         return description;
@@ -59,5 +61,21 @@ public class InventoryMetadata {
 
     public void setExpirationDate(String expirationDate) {
         this.expirationDate = expirationDate;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

@@ -119,15 +119,13 @@ public class ClusterResourcesLoader {
                     .filter(env -> cluster.getName().equals(env.getClusterId()))
                     .findFirst().orElse(null);
             Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName() + ". Env exists in db? " + (environment != null));
-            EnvironmentType environmentType;
+            EnvironmentType environmentType = cloudPassportEnvironment.environmentType();
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.name());
                 environment.setClusterId(cluster.getName());
-                environmentType = EnvironmentType.UNDEFINED;
                 environmentRepository.save(environment);
                 Log.info("env created in db: " + environment.getName());
             } else {
-                environmentType = environment.getType();
                 Log.info("environment " + environment.getName() + " exists");
             }
             StringBuilder deploymentVersions = new StringBuilder();

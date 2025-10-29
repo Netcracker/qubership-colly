@@ -76,7 +76,10 @@ public class UpdateEnvironmentService {
         Log.info("Updated status to " + environmentUpdate.getStatus().name());
         updateYamlField(yamlPath, ".inventory.metadata.expirationDate", environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
         Log.info("Updated expirationDate to " + environmentUpdate.getExpirationDate());
-
+        updateYamlField(yamlPath, ".inventory.metadata.type", environmentUpdate.getType().name());
+        Log.info("Updated type to " + environmentUpdate.getType().name());
+        updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
+        Log.info("Updated role to " + environmentUpdate.getRole());
     }
 
     private boolean isYqAvailable() {

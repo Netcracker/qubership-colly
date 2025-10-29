@@ -14,6 +14,7 @@ import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.EnvironmentStatus;
+import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 
 import java.net.URI;
@@ -38,9 +39,9 @@ class ClusterResourcesRestTest {
     void setUp() {
         Mockito.when(envgeneInventoryServiceRest.getCloudPassports()).thenReturn(List.of(
                 new CloudPassport("test-cluster", "cloud-deploy-sa-token", "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
-                        Set.of(new CloudPassportEnvironment("env-test", "", List.of(), List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.IN_USE, LocalDate.of(2025, 12, 31))), URI.create("http://localhost:8428")),
+                        Set.of(new CloudPassportEnvironment("env-test", "", List.of(), List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.IN_USE, LocalDate.of(2025, 12, 31),EnvironmentType.DESIGN_TIME, "QA")), URI.create("http://localhost:8428")),
                 new CloudPassport("unreachable-cluster", "cloud-deploy-sa-token", "https://some.unreachable.url:8443",
-                        Set.of(new CloudPassportEnvironment("env-1", "", List.of(), List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null)), URI.create("http://vmsingle-k8s.victoria:8429"))));
+                        Set.of(new CloudPassportEnvironment("env-1", "", List.of(), List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null)), URI.create("http://vmsingle-k8s.victoria:8429"))));
 
     }
 
@@ -84,7 +85,7 @@ class ClusterResourcesRestTest {
                 .formParam("description", "test-description")
                 .formParam("status", "IN_USE")
                 .formParam("labels", "label1,label2")
-                .formParam("type", "development")
+                .formParam("type", "ENVIRONMENT")
                 .formParam("team", "test-team")
                 .formParam("deploymentStatus", "DEPLOYED")
                 .formParam("tickets", "https://issues.example.com/1234,https://issues.example.com/5678")

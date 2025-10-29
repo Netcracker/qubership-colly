@@ -71,13 +71,17 @@ class EnvgeneInventoryServiceRestTest {
                                 hasEntry("name", "env-test"),
                                 hasEntry("description", "some env for tests"),
                                 hasEntry("status", "FREE"),
-                                hasEntry("expirationDate", null)
+                                hasEntry("expirationDate", null),
+                                hasEntry("type", "ENVIRONMENT"),
+                                hasEntry("role", null)
                         ),
                         allOf(
                                 hasEntry("name", "env-metadata-test"),
                                 hasEntry("description", "description from metadata"),
                                 hasEntry("status", "IN_USE"),
-                                hasEntry("expirationDate", "2025-12-31")
+                                hasEntry("expirationDate", "2025-12-31"),
+                                hasEntry("type", "DESIGN_TIME"),
+                                hasEntry("role", "QA")
                         ),
                         allOf(
                                 hasEntry("name", "env-1"),

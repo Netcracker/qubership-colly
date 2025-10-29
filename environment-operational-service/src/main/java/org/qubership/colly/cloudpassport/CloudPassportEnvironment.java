@@ -1,6 +1,7 @@
 package org.qubership.colly.cloudpassport;
 
 import org.qubership.colly.db.data.EnvironmentStatus;
+import org.qubership.colly.db.data.EnvironmentType;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,5 +13,7 @@ public record CloudPassportEnvironment(String name,
                                        List<String> labels,
                                        List<String> teams,
                                        EnvironmentStatus status,
-                                       LocalDate expirationDate) {
+                                       LocalDate expirationDate,
+                                       EnvironmentType environmentType,
+                                       String role) {
 }

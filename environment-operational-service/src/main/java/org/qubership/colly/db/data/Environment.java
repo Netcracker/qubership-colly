@@ -11,7 +11,7 @@ public class Environment {
     private String id;
     private String name;
     private Instant cleanInstallationDate;
-    private EnvironmentType type = EnvironmentType.ENVIRONMENT;
+    private EnvironmentType type = EnvironmentType.ENVIRONMENT;//todo discuss and remove
     private String clusterId;
     private Map<String, String> monitoringData;
     private String deploymentVersion;

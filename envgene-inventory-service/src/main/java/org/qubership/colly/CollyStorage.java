@@ -67,6 +67,9 @@ public class CollyStorage {
         environment.setTeams(cloudPassportEnvironment.teams());
         environment.setStatus(cloudPassportEnvironment.status());
         environment.setExpirationDate(cloudPassportEnvironment.expirationDate());
+        environment.setType(cloudPassportEnvironment.type());
+        environment.setRole(cloudPassportEnvironment.role());
+
         Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
         Environment finalEnvironment = environment;
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
@@ -102,6 +105,8 @@ public class CollyStorage {
         existingEnv.setTeams(updatedEnvironment.getTeams());
         existingEnv.setStatus(updatedEnvironment.getStatus());
         existingEnv.setExpirationDate(updatedEnvironment.getExpirationDate());
+        existingEnv.setType(updatedEnvironment.getType());
+        existingEnv.setRole(updatedEnvironment.getRole());
         clusterRepository.persist(cluster);
         return existingEnv;
     }

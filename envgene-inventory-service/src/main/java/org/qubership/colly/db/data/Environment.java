@@ -20,6 +20,7 @@ public class Environment {
     private EnvironmentStatus status = EnvironmentStatus.FREE;
 
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
+    private String role;
     private List<String> labels;
     private List<Namespace> namespaces;
 
@@ -111,6 +112,12 @@ public class Environment {
         this.type = type;
     }
 
+    public String getRole() {
+        return role;
+    }
 
+    public void setRole(String role) {
+        this.role = role;
+    }
 }
 
