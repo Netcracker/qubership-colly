@@ -17,6 +17,7 @@ import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.repository.EnvironmentRepository;
@@ -49,7 +50,7 @@ class ClusterResourcesLoaderTest {
     private static final CloudPassport CLOUD_PASSPORT = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
             Set.of(new CloudPassportEnvironment(ENV_1, "some env for tests",
                     List.of(new CloudPassportNamespace(NAMESPACE_NAME)),
-                    List.of("some-owner"), List.of(), List.of())), null);
+                    List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null)), null);
     private static final OffsetDateTime DATE_2024 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     private static final OffsetDateTime DATE_2025 = OffsetDateTime.of(2025, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
     @Inject
@@ -88,7 +89,9 @@ class ClusterResourcesLoaderTest {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-test", "some env for tests",
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME)),
-                        List.of("some-owner"), List.of(), List.of())), URI.create("http://localhost:" + port));
+                        List.of("some-owner"), List.of(), List.of(),
+                        EnvironmentStatus.FREE,
+                        null)), URI.create("http://localhost:" + port));
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
 
         String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
@@ -127,7 +130,7 @@ class ClusterResourcesLoaderTest {
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME),
                                 new CloudPassportNamespace(NAMESPACE_NAME_2),
                                 new CloudPassportNamespace(NAMESPACE_NAME_3)),
-                        List.of("some-owner"), List.of(), List.of())
+                        List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null)
                 ), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
@@ -151,7 +154,7 @@ class ClusterResourcesLoaderTest {
                 Set.of(new CloudPassportEnvironment("env-3-namespaces", "some env for tests",
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME),
                                 new CloudPassportNamespace(NAMESPACE_NAME_2)),
-                        List.of("some-owner"), List.of(), List.of())), null);
+                        List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null)), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
@@ -240,7 +243,7 @@ class ClusterResourcesLoaderTest {
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME),
                                 new CloudPassportNamespace(NAMESPACE_NAME_2),
                                 new CloudPassportNamespace(NAMESPACE_NAME_3)),
-                        List.of("some-owner"), List.of(), List.of())), null);
+                        List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null)), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
         V1ConfigMap configMap1 = new V1ConfigMap()
@@ -275,7 +278,7 @@ class ClusterResourcesLoaderTest {
                 Set.of(new CloudPassportEnvironment("env-2-namespaces", "some env for tests",
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME),
                                 new CloudPassportNamespace("non-existing-namespace")),
-                        List.of("some-owner"), List.of(), List.of())), null);
+                        List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null)), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
@@ -296,7 +299,9 @@ class ClusterResourcesLoaderTest {
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME)),
                         List.of("some-owner"),
                         List.of(),
-                        List.of())),
+                        List.of(),
+                        EnvironmentStatus.FREE,
+                        null)),
                 URI.create("http://localhost:" + port));
 
         CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
@@ -320,7 +325,8 @@ class ClusterResourcesLoaderTest {
         CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(new CloudPassportEnvironment("env-with-new-namespace", "some env for tests",
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME), new CloudPassportNamespace("new-namespace")),
-                        List.of("some-owner"), List.of(), List.of())), null);
+                        List.of("some-owner"), List.of(), List.of(),
+                        EnvironmentStatus.FREE, null)), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);

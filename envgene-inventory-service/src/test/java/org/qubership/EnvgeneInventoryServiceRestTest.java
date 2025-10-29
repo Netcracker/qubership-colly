@@ -69,11 +69,15 @@ class EnvgeneInventoryServiceRestTest {
                 .body("environments.flatten()", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "env-test"),
-                                hasEntry("description", "some env for tests")
+                                hasEntry("description", "some env for tests"),
+                                hasEntry("status", "FREE"),
+                                hasEntry("expirationDate", null)
                         ),
                         allOf(
                                 hasEntry("name", "env-metadata-test"),
-                                hasEntry("description", "description from metadata")
+                                hasEntry("description", "description from metadata"),
+                                hasEntry("status", "IN_USE"),
+                                hasEntry("expirationDate", "2025-12-31")
                         ),
                         allOf(
                                 hasEntry("name", "env-1"),
@@ -81,7 +85,7 @@ class EnvgeneInventoryServiceRestTest {
                         )
                 ))
                 .body("environments.flatten().find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
-                .body("environments.flatten().find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));;
+                .body("environments.flatten().find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
     }
 
 

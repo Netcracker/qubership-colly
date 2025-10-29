@@ -13,6 +13,7 @@ import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.*;
+import org.qubership.colly.db.data.EnvironmentStatus;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,6 +22,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -178,7 +180,13 @@ public class CloudPassportLoader {
             List<String> teams = inventoryMetadata == null || inventoryMetadata.getTeams() == null
                     ? List.of()
                     : inventoryMetadata.getTeams();
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces, owners, labels, teams);
+            EnvironmentStatus environmentStatus = inventoryMetadata == null || inventoryMetadata.getStatus() == null
+                    ? EnvironmentStatus.FREE
+                    : EnvironmentStatus.valueOf(inventoryMetadata.getStatus());
+            LocalDate expirationDate = inventoryMetadata == null || inventoryMetadata.getExpirationDate() == null
+                    ? null
+                    : LocalDate.parse(inventoryMetadata.getExpirationDate());
+            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces, owners, labels, teams, environmentStatus, expirationDate);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }

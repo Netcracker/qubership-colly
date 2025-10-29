@@ -72,6 +72,10 @@ public class UpdateEnvironmentService {
         Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
         updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
         Log.info("Updated metadata teams to " + environmentUpdate.getTeams());
+        updateYamlField(yamlPath, ".inventory.metadata.status", environmentUpdate.getStatus().name());
+        Log.info("Updated status to " + environmentUpdate.getStatus().name());
+        updateYamlField(yamlPath, ".inventory.metadata.expirationDate", environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
+        Log.info("Updated expirationDate to " + environmentUpdate.getExpirationDate());
 
     }
 
@@ -99,11 +103,14 @@ public class UpdateEnvironmentService {
     }
 
     private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
-        String escapedValue = value == null ? null : "\"" + escapeForYq(value) + "\"";
+        if (value == null) {
+            deleteYamlField(yamlPath, yamlFieldPath);
+            return;
+        }
         ProcessBuilder pb = new ProcessBuilder(
                 "yq",
                 "eval",
-                yamlFieldPath + " = " + escapedValue,
+                yamlFieldPath + " = " + "\"" + escapeForYq(value) + "\"",
                 yamlPath.toString(),
                 "--inplace"
         );
@@ -111,7 +118,7 @@ public class UpdateEnvironmentService {
     }
 
     private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException, InterruptedException {
-        if (values == null) {
+        if (values == null || values.isEmpty()) {
             deleteYamlField(yamlPath, yamlFieldPath);
             return;
         }

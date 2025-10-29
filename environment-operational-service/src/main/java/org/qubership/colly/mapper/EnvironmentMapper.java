@@ -44,8 +44,8 @@ public class EnvironmentMapper {
                 clusterMapper.toDTO(clusterRepository.findByName(entity.getClusterId()).orElse(null)),
                 cloudPassportEnvironment.owners(),
                 cloudPassportEnvironment.teams(),
-                entity.getStatus(),
-                entity.getExpirationDate(),
+                cloudPassportEnvironment.status(),
+                cloudPassportEnvironment.expirationDate(),
                 entity.getType(),
                 cloudPassportEnvironment.labels(),
                 cloudPassportEnvironment.description(),
@@ -77,7 +77,7 @@ public class EnvironmentMapper {
         List<NamespaceDTO> namespaceDTOs = new ArrayList<>();
         for (String nsId : namespaceIds) {
             namespaceRepository.findByUid(nsId).ifPresent(ns ->
-                namespaceDTOs.add(new NamespaceDTO(ns.getUid(), ns.getName(), ns.getExistsInK8s()))
+                    namespaceDTOs.add(new NamespaceDTO(ns.getUid(), ns.getName(), ns.getExistsInK8s()))
             );
         }
         return namespaceDTOs;

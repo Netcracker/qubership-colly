@@ -1,7 +1,6 @@
 package org.qubership.colly.db.data;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,9 +10,7 @@ public class Environment {
 
     private String id;
     private String name;
-    private LocalDate expirationDate;
     private Instant cleanInstallationDate;
-    private EnvironmentStatus status = EnvironmentStatus.FREE;
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
     private String clusterId;
     private Map<String, String> monitoringData;
@@ -62,28 +59,12 @@ public class Environment {
         this.deploymentVersion = deploymentVersion;
     }
 
-    public LocalDate getExpirationDate() {
-        return expirationDate;
-    }
-
-    public void setExpirationDate(LocalDate expirationDate) {
-        this.expirationDate = expirationDate;
-    }
-
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public EnvironmentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(EnvironmentStatus status) {
-        this.status = status;
     }
 
     public EnvironmentType getType() {

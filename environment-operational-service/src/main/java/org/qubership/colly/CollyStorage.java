@@ -118,15 +118,13 @@ public class CollyStorage {
         }
         Log.info("Saving environment with id " + id + " name " + name + " owners " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
         //todo refactor logic for update environment in cache when commit feature for all properties implemented in inventory service
-        environment.setStatus(EnvironmentStatus.fromString(status));
         environment.setType(EnvironmentType.fromString(type));
-        environment.setExpirationDate(expirationDate);
         environment.setTicketLinks(tickets);
         environment.setDeploymentStatus(DeploymentStatus.fromString(deploymentStatus));
         environmentRepository.save(environment);
 
         envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(),
-                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams));
+                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams, EnvironmentStatus.valueOf(status), expirationDate));
         Log.info("Successfully updated environment in inventory service: " + environment.getName());
     }
 

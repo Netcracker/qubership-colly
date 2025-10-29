@@ -1,7 +1,6 @@
 package org.qubership;
 
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
@@ -13,11 +12,13 @@ import org.mockito.Mockito;
 import org.qubership.colly.EnvgeneInventoryServiceRest;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
-import org.qubership.colly.db.repository.EnvironmentRepository;
-import java.util.List;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.db.data.EnvironmentStatus;
+import org.qubership.colly.db.repository.EnvironmentRepository;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
@@ -37,9 +38,9 @@ class ClusterResourcesRestTest {
     void setUp() {
         Mockito.when(envgeneInventoryServiceRest.getCloudPassports()).thenReturn(List.of(
                 new CloudPassport("test-cluster", "cloud-deploy-sa-token", "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
-                        Set.of(new CloudPassportEnvironment("env-test", "", List.of(),List.of("some-owner"), List.of(), List.of())), URI.create("http://localhost:8428")),
+                        Set.of(new CloudPassportEnvironment("env-test", "", List.of(), List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.IN_USE, LocalDate.of(2025, 12, 31))), URI.create("http://localhost:8428")),
                 new CloudPassport("unreachable-cluster", "cloud-deploy-sa-token", "https://some.unreachable.url:8443",
-                        Set.of(new CloudPassportEnvironment("env-1", "", List.of(),List.of("some-owner"), List.of(), List.of())), URI.create("http://vmsingle-k8s.victoria:8429"))));
+                        Set.of(new CloudPassportEnvironment("env-1", "", List.of(), List.of("some-owner"), List.of(), List.of(), EnvironmentStatus.FREE, null)), URI.create("http://vmsingle-k8s.victoria:8429"))));
 
     }
 
@@ -62,7 +63,10 @@ class ClusterResourcesRestTest {
                 .when().get("/colly/environment-operational-service/environments")
                 .then()
                 .statusCode(200)
-                .body("name", contains("env-test", "env-1"));
+                .body("name", contains("env-test", "env-1"))
+                .body("status", containsInAnyOrder("IN_USE", "FREE"))
+                .body("expirationDate", containsInAnyOrder(null, "2025-12-31"));
+
     }
 
 
@@ -78,7 +82,7 @@ class ClusterResourcesRestTest {
         given()
                 .formParam("owners", "test-owners")
                 .formParam("description", "test-description")
-                .formParam("status", "active")
+                .formParam("status", "IN_USE")
                 .formParam("labels", "label1,label2")
                 .formParam("type", "development")
                 .formParam("team", "test-team")

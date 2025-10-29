@@ -17,8 +17,8 @@ public class Environment {
     private String description;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expirationDate;
-
     private EnvironmentStatus status = EnvironmentStatus.FREE;
+
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
     private List<String> labels;
     private List<Namespace> namespaces;

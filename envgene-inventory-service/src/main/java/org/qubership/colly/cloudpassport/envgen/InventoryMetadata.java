@@ -10,6 +10,8 @@ public class InventoryMetadata {
     private List<String> owners;
     private List<String> labels;
     private List<String> teams;
+    private String status;
+    private String expirationDate;
 
     public String getDescription() {
         return description;
@@ -41,5 +43,21 @@ public class InventoryMetadata {
 
     public void setTeams(List<String> teams) {
         this.teams = teams;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getExpirationDate() {
+        return expirationDate;
+    }
+
+    public void setExpirationDate(String expirationDate) {
+        this.expirationDate = expirationDate;
     }
 }

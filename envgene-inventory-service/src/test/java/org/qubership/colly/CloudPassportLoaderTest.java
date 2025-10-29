@@ -14,12 +14,14 @@ import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
+import org.qubership.colly.db.data.EnvironmentStatus;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -42,13 +44,17 @@ class CloudPassportLoaderTest {
                             List.of(new CloudPassportNamespace("demo-k8s")),
                             List.of("test-owner"),
                             List.of(),
-                            List.of()),
+                            List.of(),
+                            EnvironmentStatus.FREE,
+                            null),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
                             List.of(new CloudPassportNamespace("test-ns")),
                             List.of("owner from metadata"),
-                            List.of("label1", "label2"), List.of("team-from-metadata"))),
+                            List.of("label1", "label2"), List.of("team-from-metadata"),
+                            EnvironmentStatus.IN_USE,
+                            LocalDate.of(2025, 12, 31))),
             URI.create("http://localhost:8428"),
             new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
@@ -60,7 +66,9 @@ class CloudPassportLoaderTest {
                     List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")),
                     List.of(),
                     List.of(),
-                    List.of())),
+                    List.of(),
+                    EnvironmentStatus.FREE,
+                    null)),
             URI.create("http://vmsingle-k8s.victoria:8429"),
             new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")
     );
