@@ -79,7 +79,9 @@ class EnvgeneInventoryServiceRestTest {
                                 hasEntry("name", "env-1"),
                                 hasEntry("description", "some env for tests")
                         )
-                ));
+                ))
+                .body("environments.flatten().find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
+                .body("environments.flatten().find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));;
     }
 
 

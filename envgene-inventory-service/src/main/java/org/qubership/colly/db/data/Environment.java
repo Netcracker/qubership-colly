@@ -84,7 +84,7 @@ public class Environment {
     }
 
     public void setTeams(List<String> teams) {
-        this.teams = teams!=null ? new ArrayList<>(teams): null;
+        this.teams = teams != null ? new ArrayList<>(teams) : null;
     }
 
     public String getDescription() {

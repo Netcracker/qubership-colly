@@ -64,6 +64,7 @@ public class CollyStorage {
         environment.setDescription(cloudPassportEnvironment.description());
         environment.setOwners(cloudPassportEnvironment.owners());
         environment.setLabels(cloudPassportEnvironment.labels());
+        environment.setTeams(cloudPassportEnvironment.teams());
         Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
         Environment finalEnvironment = environment;
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
