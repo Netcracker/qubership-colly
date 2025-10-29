@@ -16,7 +16,7 @@ public record EnvironmentDTO(
         List<NamespaceDTO> namespaces,
         ClusterDTO cluster,
         List<String> owners,
-        String team,
+        List<String> teams,
         EnvironmentStatus status,
         @JsonFormat(pattern = "yyyy-MM-dd")
         LocalDate expirationDate,

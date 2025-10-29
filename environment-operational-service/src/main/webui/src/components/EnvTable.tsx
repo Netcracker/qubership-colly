@@ -134,10 +134,10 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         try {
             const formData = new FormData();
             if (changedEnv.owners) {
-                changedEnv.owners.forEach(owner => formData.append("owners", owner));
+                changedEnv.owners.forEach(owner => formData.append("owners", owner.trim()));
             }
-            if (changedEnv.team) {
-                formData.append("team", changedEnv.team);
+            if (changedEnv.teams) {
+                changedEnv.teams.forEach(team => formData.append("teams", team.trim()));
             }
             if (changedEnv.description) {
                 formData.append("description", changedEnv.description);
@@ -175,7 +175,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         namespaces: env.namespaces.filter((namespace: Namespace) => showAllNamespaces || namespace.existsInK8s),
         cluster: env.cluster?.name,
         owners: env.owners,
-        team: env.team,
+        teams: env.teams,
         status: env.status,
         expirationDate: env.expirationDate,
         type: ENVIRONMENT_TYPES_MAPPING[env.type] || env.type,
@@ -222,7 +222,13 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     return value.join(', ');
                 }
             },
-            {field: "team", headerName: "Team", width: 120},
+            {field: "teams", headerName: "Team(s)", width: 120,
+                valueFormatter: (value: string[]) => {
+                    if (value == null) {
+                        return '';
+                    }
+                    return value.join(', ');
+                }},
             {
                 field: "expirationDate", headerName: "Expiration Date",
                 valueFormatter: (value?: string) => {

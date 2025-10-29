@@ -111,7 +111,7 @@ public class CollyStorage {
 
 
     //@Transactional - removed for Redis
-    public void saveEnvironment(String id, String name, List<String> owner, String description, String status, List<String> labels, String type, String team, LocalDate expirationDate, String deploymentStatus, String tickets) {
+    public void saveEnvironment(String id, String name, List<String> owner, String description, String status, List<String> labels, String type, List<String> teams, LocalDate expirationDate, String deploymentStatus, String tickets) {
         Environment environment = environmentRepository.findById(id).orElse(null);
         if (environment == null) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
@@ -120,14 +120,13 @@ public class CollyStorage {
         //todo refactor logic for update environment in cache when commit feature for all properties implemented in inventory service
         environment.setStatus(EnvironmentStatus.fromString(status));
         environment.setType(EnvironmentType.fromString(type));
-        environment.setTeam(team);
         environment.setExpirationDate(expirationDate);
         environment.setTicketLinks(tickets);
         environment.setDeploymentStatus(DeploymentStatus.fromString(deploymentStatus));
         environmentRepository.save(environment);
 
         envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(),
-                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels));
+                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams));
         Log.info("Successfully updated environment in inventory service: " + environment.getName());
     }
 

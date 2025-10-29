@@ -11,7 +11,6 @@ public class Environment {
 
     private String id;
     private String name;
-    private String team;
     private LocalDate expirationDate;
     private Instant cleanInstallationDate;
     private EnvironmentStatus status = EnvironmentStatus.FREE;
@@ -77,14 +76,6 @@ public class Environment {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getTeam() {
-        return team;
-    }
-
-    public void setTeam(String team) {
-        this.team = team;
     }
 
     public EnvironmentStatus getStatus() {
