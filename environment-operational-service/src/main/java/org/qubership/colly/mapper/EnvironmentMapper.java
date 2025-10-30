@@ -52,9 +52,7 @@ public class EnvironmentMapper {
                 cloudPassportEnvironment.description(),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),
-                entity.getMonitoringData(),
-                entity.getDeploymentStatus(),
-                entity.getTicketLinks()
+                entity.getMonitoringData()
         );
     }
 

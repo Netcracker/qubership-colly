@@ -1,7 +1,6 @@
 package org.qubership.colly.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import org.qubership.colly.db.data.DeploymentStatus;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
 
@@ -26,8 +25,6 @@ public record EnvironmentDTO(
         String description,
         String deploymentVersion,
         Instant cleanInstallationDate,
-        Map<String, String> monitoringData,
-        DeploymentStatus deploymentStatus,
-        String ticketLinks) {
+        Map<String, String> monitoringData) {
 
 }

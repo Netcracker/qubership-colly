@@ -16,8 +16,6 @@ public class Environment {
     private Map<String, String> monitoringData;
     private String deploymentVersion;
     private List<String> namespaceIds;
-    private DeploymentStatus deploymentStatus;
-    private String ticketLinks;
 
     public Environment(String name) {
         this.setName(name);
@@ -99,19 +97,4 @@ public class Environment {
         this.cleanInstallationDate = cleanInstallationDate;
     }
 
-    public DeploymentStatus getDeploymentStatus() {
-        return deploymentStatus;
-    }
-
-    public void setDeploymentStatus(DeploymentStatus deploymentStatus) {
-        this.deploymentStatus = deploymentStatus;
-    }
-
-    public String getTicketLinks() {
-        return ticketLinks;
-    }
-
-    public void setTicketLinks(String ticketLinks) {
-        this.ticketLinks = ticketLinks;
-    }
 }
