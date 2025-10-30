@@ -119,7 +119,7 @@ public class CollyStorage {
         }
         Log.info("Saving environment with id " + id + " name " + name + " owners " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
         envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(),
-                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams, EnvironmentStatus.valueOf(status), expirationDate, EnvironmentType.valueOf(type), role));
+                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams, status, expirationDate, type, role));
         Log.info("Successfully updated environment in inventory service: " + environment.getName());
     }
 

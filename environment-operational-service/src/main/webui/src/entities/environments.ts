@@ -9,8 +9,6 @@ export type Environment = {
     teams: string[];
     status: EnvironmentStatus;
     type: EnvironmentType;
-    deploymentStatus: DeploymentStatus;
-    ticketLinks: string;
     labels: string[];
     description: string;
     deploymentVersion: string;
@@ -49,13 +47,3 @@ export const ENVIRONMENT_TYPES_MAPPING = {
     UNDEFINED: "Undefined"
 }
 
-export type DeploymentStatus = "DEPLOYED" | "FAILED" | "IN_PROGRESS" | "NOT_STARTED";
-
-export const ALL_DEPLOYMENT_STATUSES: DeploymentStatus[] = ["DEPLOYED", "FAILED", "IN_PROGRESS", "NOT_STARTED"]
-
-export const DEPLOYMENT_STATUS_MAPPING = {
-    DEPLOYED: "Deployed",
-    FAILED: "Failed",
-    IN_PROGRESS: "In Progress",
-    NOT_STARTED: "Not Started"
-};

@@ -1,5 +1,6 @@
 package org.qubership.colly;
 
+import io.quarkus.logging.Log;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -8,8 +9,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.dto.ApplicationMetadata;
-import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.dto.ClusterDTO;
+import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.ClusterMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
@@ -28,9 +29,9 @@ public class ClusterResourcesRest {
 
     @Inject
     public ClusterResourcesRest(CollyStorage collyStorage,
-                               SecurityIdentity securityIdentity,
-                               MonitoringService monitoringService,
-                               ClusterMapper clusterMapper) {
+                                SecurityIdentity securityIdentity,
+                                MonitoringService monitoringService,
+                                ClusterMapper clusterMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.monitoringService = monitoringService;
@@ -76,6 +77,7 @@ public class ClusterResourcesRest {
         if (expirationDate != null && !expirationDate.isEmpty()) {
             date = LocalDate.parse(expirationDate);
         }
+        Log.info("Saving environment " + name + " in cluster " + id + " ownersCount=" + owner.size());
         collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, teams, date, role);
     }
 

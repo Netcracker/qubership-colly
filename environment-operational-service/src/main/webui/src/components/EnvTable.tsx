@@ -2,7 +2,6 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Box, Chip} from "@mui/material";
 import {DataGrid, GridColDef, useGridApiRef} from '@mui/x-data-grid';
 import {
-    DEPLOYMENT_STATUS_MAPPING, DeploymentStatus,
     Environment,
     ENVIRONMENT_TYPES_MAPPING,
     EnvironmentStatus,
@@ -142,13 +141,9 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
             if (changedEnv.description) {
                 formData.append("description", changedEnv.description);
             }
-            if (changedEnv.ticketLinks) {
-                formData.append("ticketLinks", changedEnv.ticketLinks);
-            }
             formData.append("status", changedEnv.status);
             formData.append("type", changedEnv.type);
             formData.append("name", changedEnv.name);
-            formData.append("deploymentStatus", changedEnv.deploymentStatus);
 
             formData.append("expirationDate", changedEnv.expirationDate ? dayjs(changedEnv.expirationDate).format("YYYY-MM-DD") : "");
             changedEnv.labels.forEach(label => formData.append("labels", label));
@@ -183,8 +178,6 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         description: env.description,
         deploymentVersion: env.deploymentVersion,
         cleanInstallationDate: env.cleanInstallationDate,
-        deploymentStatus: env.deploymentStatus,
-        ticketLinks: env.ticketLinks,
         ...(env.monitoringData || {}),
         raw: env
     })), [environments, showAllNamespaces]);
@@ -254,15 +247,6 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     </>
             },
             {field: "description", headerName: "Description", width: 300},
-            {field: "deploymentStatus", headerName: "Deployment Status",
-                renderCell: (params: { row: { deploymentStatus: DeploymentStatus; }; }) => {
-                    if (params.row.deploymentStatus == null) {
-                        return '';
-                    }
-                    return DEPLOYMENT_STATUS_MAPPING[params.row.deploymentStatus];
-                },
-                width: 150},
-            {field: "ticketLinks", headerName: "Linked Tickets", width: 150},
             {field: "deploymentVersion", headerName: "Version", width: 150},
             {
                 field: "cleanInstallationDate", headerName: "Clean Installation Date",
