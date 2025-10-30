@@ -61,7 +61,7 @@ export default function EditEnvironmentDialog({show, environment, allLabels, onC
                 value={localEnv.owners || ''}
                 onChange={e => setLocalEnv(prevState => ({
                     ...prevState,
-                    owners: e.target.value.length == 0 ? [] : e.target.value.split(',')
+                    owners: e.target.value.length === 0 ? [] : e.target.value.split(',')
                 }))}
                 fullWidth
                 margin="dense"
@@ -71,7 +71,7 @@ export default function EditEnvironmentDialog({show, environment, allLabels, onC
                 value={localEnv.teams || ''}
                 onChange={e => setLocalEnv(prevState => ({
                     ...prevState,
-                    teams: e.target.value.length == 0 ? [] : e.target.value.split(',')
+                    teams: e.target.value.length === 0 ? [] : e.target.value.split(',')
                 }))}
                 fullWidth
                 margin="dense"
