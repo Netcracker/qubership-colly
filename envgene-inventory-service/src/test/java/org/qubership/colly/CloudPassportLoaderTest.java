@@ -14,12 +14,15 @@ import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
+import org.qubership.colly.db.data.EnvironmentStatus;
+import org.qubership.colly.db.data.EnvironmentType;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -33,24 +36,46 @@ import static org.mockito.Mockito.doAnswer;
 @QuarkusComponentTest
 class CloudPassportLoaderTest {
 
-    private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT = new CloudPassport("test-cluster",
-            "eyJhbGciOiJSUzI1NiIsImtpZCI6IkhIQjJJMDU0azFDbERMcXBEYVk0ckdLbGhMQnlSVnB4aWhaYzBia2tpdncifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZW1vLWs4cyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkZW1vLWs4cy1zZWNyZXQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVtby1rOHMiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIyMzk4OGZhYi05OWU5LTQ1ODYtYWIxNi0wZWI1NmExY2Q3YmEiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVtby1rOHM6ZGVtby1rOHMifQ.TOfvRb-JO7GON_O8Zmb4gfLjnbuwOn8cMija4qW1z4Et_4BlipT_vf4Bv5sXnw36KjdVD-sWkyIUza10_XQdpXFqGj0xTinS-SEXuqQ-r2d5tVTEBQ_H8ALDqN_9oA5r0TcH18SijuxgVfMDSEBXdfjzFTu2rxyK6cFbcYKZVmY3W9JD9Tpz3qB_FLa8MAbuDnCg5r4feohjpmiA7lDpRWwjjMEpByj-wGd3u3l-vBk6QW5Aw_iEqiG-AcbzM2Lx874Inlz8M60jLpbTdw58KQjNOlkUpmzzrHAcyBizeBCNl-7DCduY0sqE3ZTNn7sV3mNaec0TGWrSUhPIHTrHcQ",
+    private static final CloudPassport TEST_CLUSTER = new CloudPassport("test-cluster",
+            "some_token_for_test_cluster",
             "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
             Set.of(new CloudPassportEnvironment(
-                    "env-test",
-                    "some env for tests",
-                    "test-owner",
-                    List.of(new CloudPassportNamespace("demo-k8s")))),
+                            "env-test",
+                            "some env for tests",
+                            List.of(new CloudPassportNamespace("demo-k8s")),
+                            List.of("test-owner"),
+                            List.of(),
+                            List.of(),
+                            EnvironmentStatus.FREE,
+                            null,
+                            EnvironmentType.ENVIRONMENT,
+                            null),
+                    new CloudPassportEnvironment(
+                            "env-metadata-test",
+                            "description from metadata",
+                            List.of(new CloudPassportNamespace("test-ns")),
+                            List.of("owner from metadata"),
+                            List.of("label1", "label2"), List.of("team-from-metadata"),
+                            EnvironmentStatus.IN_USE,
+                            LocalDate.of(2025, 12, 31),
+                            EnvironmentType.DESIGN_TIME,
+                            "QA")),
             URI.create("http://localhost:8428"),
             new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
-    private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
+    private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
             Set.of(new CloudPassportEnvironment(
                     "env-1",
                     "some env for tests",
+                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    EnvironmentStatus.FREE,
                     null,
-                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")))),
+                    EnvironmentType.ENVIRONMENT,
+                    null)),
             URI.create("http://vmsingle-k8s.victoria:8429"),
             new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")
     );
@@ -77,7 +102,7 @@ class CloudPassportLoaderTest {
     @TestConfigProperty(key = "colly.eis.env.instances.repo", value = "gitrepo_with_cloudpassports,gitrepo_with_unreachable_cluster")
     void load_cloud_passports_from_test_folder() {
         List<CloudPassport> result = loader.loadCloudPassports();
-        assertThat(result, containsInAnyOrder(TEST_CLUSTER_CLOUD_PASSPORT, TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER));
+        assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 
     }
 

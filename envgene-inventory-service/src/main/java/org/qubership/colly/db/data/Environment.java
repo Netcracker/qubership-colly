@@ -12,14 +12,15 @@ import java.util.List;
 public class Environment {
 
     private String name;
-    private String owner;
-    private String team;
+    private List<String> owners;
+    private List<String> teams;
     private String description;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expirationDate;
-
     private EnvironmentStatus status = EnvironmentStatus.FREE;
+
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
+    private String role;
     private List<String> labels;
     private List<Namespace> namespaces;
 
@@ -71,20 +72,20 @@ public class Environment {
         this.name = name;
     }
 
-    public String getOwner() {
-        return owner;
+    public List<String> getOwners() {
+        return owners != null ? Collections.unmodifiableList(owners) : Collections.emptyList();
     }
 
-    public void setOwner(String owner) {
-        this.owner = owner;
+    public void setOwners(List<String> owners) {
+        this.owners = owners != null ? new ArrayList<>(owners) : null;
     }
 
-    public String getTeam() {
-        return team;
+    public List<String> getTeams() {
+        return teams;
     }
 
-    public void setTeam(String team) {
-        this.team = team;
+    public void setTeams(List<String> teams) {
+        this.teams = teams != null ? new ArrayList<>(teams) : null;
     }
 
     public String getDescription() {
@@ -111,6 +112,12 @@ public class Environment {
         this.type = type;
     }
 
+    public String getRole() {
+        return role;
+    }
 
+    public void setRole(String role) {
+        this.role = role;
+    }
 }
 

@@ -13,6 +13,8 @@ import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.*;
+import org.qubership.colly.db.data.EnvironmentStatus;
+import org.qubership.colly.db.data.EnvironmentType;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,6 +23,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -165,7 +168,32 @@ public class CloudPassportLoader {
             EnvDefinition envDefinition = mapper.readValue(inputStream, EnvDefinition.class);
             Inventory inventory = envDefinition.getInventory();
             Log.info("Processing environment " + inventory.getEnvironmentName());
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), inventory.getDescription(), inventory.getOwners(), namespaces);
+            InventoryMetadata inventoryMetadata = inventory.getMetadata();
+            String description = inventoryMetadata == null || inventoryMetadata.getDescription() == null
+                    ? inventory.getDescription()
+                    : inventoryMetadata.getDescription();
+            List<String> owners = inventoryMetadata == null || inventoryMetadata.getOwners() == null
+                    ? inventory.getOwners() == null ? List.of() : List.of(inventory.getOwners())
+                    : inventoryMetadata.getOwners();
+            List<String> labels = inventoryMetadata == null || inventoryMetadata.getLabels() == null
+                    ? List.of()
+                    : inventoryMetadata.getLabels();
+            List<String> teams = inventoryMetadata == null || inventoryMetadata.getTeams() == null
+                    ? List.of()
+                    : inventoryMetadata.getTeams();
+            EnvironmentStatus environmentStatus = inventoryMetadata == null || inventoryMetadata.getStatus() == null
+                    ? EnvironmentStatus.FREE
+                    : EnvironmentStatus.valueOf(inventoryMetadata.getStatus());
+            LocalDate expirationDate = inventoryMetadata == null || inventoryMetadata.getExpirationDate() == null
+                    ? null
+                    : LocalDate.parse(inventoryMetadata.getExpirationDate());
+            EnvironmentType type = inventoryMetadata == null || inventoryMetadata.getType() == null
+                    ? EnvironmentType.ENVIRONMENT
+                    : EnvironmentType.valueOf(inventoryMetadata.getType());
+            String role = inventoryMetadata == null
+                    ? null
+                    : inventoryMetadata.getRole();
+            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces, owners, labels, teams, environmentStatus, expirationDate, type, role);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }

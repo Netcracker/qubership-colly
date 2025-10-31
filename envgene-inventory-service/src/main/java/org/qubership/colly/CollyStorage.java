@@ -62,7 +62,14 @@ public class CollyStorage {
             Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }
         environment.setDescription(cloudPassportEnvironment.description());
-        environment.setOwner(cloudPassportEnvironment.owners());
+        environment.setOwners(cloudPassportEnvironment.owners());
+        environment.setLabels(cloudPassportEnvironment.labels());
+        environment.setTeams(cloudPassportEnvironment.teams());
+        environment.setStatus(cloudPassportEnvironment.status());
+        environment.setExpirationDate(cloudPassportEnvironment.expirationDate());
+        environment.setType(cloudPassportEnvironment.type());
+        environment.setRole(cloudPassportEnvironment.role());
+
         Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
         Environment finalEnvironment = environment;
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
@@ -92,8 +99,14 @@ public class CollyStorage {
         Environment existingEnv = cluster.getEnvironments().stream().filter(env -> env.getName().equals(environmentName)).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName));
         Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
-        existingEnv.setOwner(updatedEnvironment.getOwner());
+        existingEnv.setOwners(updatedEnvironment.getOwners());
         existingEnv.setDescription(updatedEnvironment.getDescription());
+        existingEnv.setLabels(updatedEnvironment.getLabels());
+        existingEnv.setTeams(updatedEnvironment.getTeams());
+        existingEnv.setStatus(updatedEnvironment.getStatus());
+        existingEnv.setExpirationDate(updatedEnvironment.getExpirationDate());
+        existingEnv.setType(updatedEnvironment.getType());
+        existingEnv.setRole(updatedEnvironment.getRole());
         clusterRepository.persist(cluster);
         return existingEnv;
     }

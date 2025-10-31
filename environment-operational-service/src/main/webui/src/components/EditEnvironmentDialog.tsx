@@ -14,9 +14,8 @@ import {
 } from "@mui/material";
 import React, {useEffect} from "react";
 import {
-    ALL_DEPLOYMENT_STATUSES,
     ALL_STATUSES,
-    ALL_TYPES, DEPLOYMENT_STATUS_MAPPING, DeploymentStatus,
+    ALL_TYPES,
     Environment,
     ENVIRONMENT_TYPES_MAPPING,
     EnvironmentStatus,
@@ -58,16 +57,22 @@ export default function EditEnvironmentDialog({show, environment, allLabels, onC
                 fullWidth
                 margin="dense"/>
             <TextField
-                label="Owner"
-                value={localEnv.owner || ''}
-                onChange={e => setLocalEnv(prevState => ({...prevState, owner: e.target.value}))}
+                label="Owner(s)"
+                value={localEnv.owners || ''}
+                onChange={e => setLocalEnv(prevState => ({
+                    ...prevState,
+                    owners: e.target.value.length === 0 ? [] : e.target.value.split(',')
+                }))}
                 fullWidth
                 margin="dense"
             />
             <TextField
-                label="Team"
-                value={localEnv.team || ''}
-                onChange={e => setLocalEnv(prevState => ({...prevState, team: e.target.value}))}
+                label="Team(s)"
+                value={localEnv.teams || ''}
+                onChange={e => setLocalEnv(prevState => ({
+                    ...prevState,
+                    teams: e.target.value.length === 0 ? [] : e.target.value.split(',')
+                }))}
                 fullWidth
                 margin="dense"
             />
@@ -143,26 +148,6 @@ export default function EditEnvironmentDialog({show, environment, allLabels, onC
                     }}
                 />
             </FormControl>
-            <FormControl sx={{mt: 1, mb: 1}} fullWidth>
-                <InputLabel>Deployment Status</InputLabel>
-                <Select
-                    value={localEnv.deploymentStatus || ''}
-                    onChange={e => setLocalEnv(prev => ({...prev, deploymentStatus: e.target.value as DeploymentStatus}))}
-                    fullWidth
-                    label="Deployment Status"
-                    margin="dense"
-                >
-                    {ALL_DEPLOYMENT_STATUSES.map(status => <MenuItem key={status}
-                                                          value={status}>{DEPLOYMENT_STATUS_MAPPING[status]}</MenuItem>)}
-                </Select>
-            </FormControl>
-            <TextField
-                label="Linked Tickets"
-                value={localEnv.ticketLinks || ''}
-                onChange={e => setLocalEnv(prev => ({...prev, ticketLinks: e.target.value}))}
-                fullWidth
-                margin="dense"
-            />
         </DialogContent>
         <DialogActions>
             <Button onClick={onClose} color="secondary">Close</Button>

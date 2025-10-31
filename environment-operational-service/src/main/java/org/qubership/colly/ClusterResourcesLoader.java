@@ -18,7 +18,6 @@ import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.monitoring.MonitoringService;
 
@@ -32,13 +31,6 @@ import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class ClusterResourcesLoader {
-
-    static final String LABEL_DISCOVERY_CLI_IO_LEVEL = "discovery.cli.io/level";
-    static final String LABEL_DISCOVERY_CLI_IO_TYPE = "discovery.cli.io/type";
-    static final String LABEL_LEVEL_INFRA = "infra";
-    static final String LABEL_LEVEL_APPS = "apps";
-    static final String LABEL_TYPE_CORE = "core";
-    static final String LABEL_TYPE_CSE_TOOLSET = "cse-toolset";
 
     private final NamespaceRepository namespaceRepository;
     private final ClusterRepository clusterRepository;
@@ -119,15 +111,12 @@ public class ClusterResourcesLoader {
                     .filter(env -> cluster.getName().equals(env.getClusterId()))
                     .findFirst().orElse(null);
             Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName() + ". Env exists in db? " + (environment != null));
-            EnvironmentType environmentType;
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.name());
                 environment.setClusterId(cluster.getName());
-                environmentType = EnvironmentType.UNDEFINED;
                 environmentRepository.save(environment);
                 Log.info("env created in db: " + environment.getName());
             } else {
-                environmentType = environment.getType();
                 Log.info("environment " + environment.getName() + " exists");
             }
             StringBuilder deploymentVersions = new StringBuilder();
@@ -149,7 +138,6 @@ public class ClusterResourcesLoader {
                 } else {
                     if (namespace == null) {
                         namespace = createNamespace(v1Namespace.getMetadata().getUid(), cluster, environment);
-                        environmentType = calculateEnvironmentType(v1Namespace, environmentType);
                     }
                     namespace.setExistsInK8s(true);
                 }
@@ -184,7 +172,6 @@ public class ClusterResourcesLoader {
                 }
             }
             environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, namespaceNames));
-            environment.setType(environmentType);
             environment.setDeploymentVersion(deploymentVersions.toString());
             environmentRepository.save(environment);
 
@@ -227,25 +214,4 @@ public class ClusterResourcesLoader {
         return meta.getName();
     }
 
-    private EnvironmentType calculateEnvironmentType(V1Namespace v1Namespace, EnvironmentType defaultEnvType) {
-        if (v1Namespace == null) {
-            return defaultEnvType;
-        }
-        Map<String, String> labels = Objects.requireNonNull(v1Namespace.getMetadata()).getLabels();
-        String levelValue = labels.get(LABEL_DISCOVERY_CLI_IO_LEVEL);
-        if (LABEL_LEVEL_APPS.equals(levelValue)) {
-            String typeValue = labels.get(LABEL_DISCOVERY_CLI_IO_TYPE);
-            if (LABEL_TYPE_CORE.equals(typeValue)) {
-                return EnvironmentType.ENVIRONMENT;
-            }
-            if (LABEL_TYPE_CSE_TOOLSET.equals(typeValue)) {
-                return EnvironmentType.CSE_TOOLSET;
-            }
-            return EnvironmentType.ENVIRONMENT;
-        }
-        if (LABEL_LEVEL_INFRA.equals(levelValue)) {
-            return EnvironmentType.INFRASTRUCTURE;
-        }
-        return defaultEnvType;
-    }
 }

@@ -2,7 +2,6 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Box, Chip} from "@mui/material";
 import {DataGrid, GridColDef, useGridApiRef} from '@mui/x-data-grid';
 import {
-    DEPLOYMENT_STATUS_MAPPING, DeploymentStatus,
     Environment,
     ENVIRONMENT_TYPES_MAPPING,
     EnvironmentStatus,
@@ -133,22 +132,18 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const handleSaveAction = useCallback(async (changedEnv: Environment) => {
         try {
             const formData = new FormData();
-            if (changedEnv.owner) {
-                formData.append("owner", changedEnv.owner);
+            if (changedEnv.owners) {
+                changedEnv.owners.forEach(owner => formData.append("owners", owner.trim()));
             }
-            if (changedEnv.team) {
-                formData.append("team", changedEnv.team);
+            if (changedEnv.teams) {
+                changedEnv.teams.forEach(team => formData.append("teams", team.trim()));
             }
             if (changedEnv.description) {
                 formData.append("description", changedEnv.description);
             }
-            if (changedEnv.ticketLinks) {
-                formData.append("ticketLinks", changedEnv.ticketLinks);
-            }
             formData.append("status", changedEnv.status);
             formData.append("type", changedEnv.type);
             formData.append("name", changedEnv.name);
-            formData.append("deploymentStatus", changedEnv.deploymentStatus);
 
             formData.append("expirationDate", changedEnv.expirationDate ? dayjs(changedEnv.expirationDate).format("YYYY-MM-DD") : "");
             changedEnv.labels.forEach(label => formData.append("labels", label));
@@ -174,8 +169,8 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         name: env.name,
         namespaces: env.namespaces.filter((namespace: Namespace) => showAllNamespaces || namespace.existsInK8s),
         cluster: env.cluster?.name,
-        owner: env.owner,
-        team: env.team,
+        owners: env.owners,
+        teams: env.teams,
         status: env.status,
         expirationDate: env.expirationDate,
         type: ENVIRONMENT_TYPES_MAPPING[env.type] || env.type,
@@ -183,8 +178,6 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         description: env.description,
         deploymentVersion: env.deploymentVersion,
         cleanInstallationDate: env.cleanInstallationDate,
-        deploymentStatus: env.deploymentStatus,
-        ticketLinks: env.ticketLinks,
         ...(env.monitoringData || {}),
         raw: env
     })), [environments, showAllNamespaces]);
@@ -213,8 +206,22 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 )
             },
             {field: "cluster", headerName: "Cluster", width: 150},
-            {field: "owner", headerName: "Owner", width: 120},
-            {field: "team", headerName: "Team", width: 120},
+            {
+                field: "owners", headerName: "Owner(s)", width: 120,
+                valueFormatter: (value: string[]) => {
+                    if (value == null) {
+                        return '';
+                    }
+                    return value.join(', ');
+                }
+            },
+            {field: "teams", headerName: "Team(s)", width: 120,
+                valueFormatter: (value: string[]) => {
+                    if (value == null) {
+                        return '';
+                    }
+                    return value.join(', ');
+                }},
             {
                 field: "expirationDate", headerName: "Expiration Date",
                 valueFormatter: (value?: string) => {
@@ -240,15 +247,6 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     </>
             },
             {field: "description", headerName: "Description", width: 300},
-            {field: "deploymentStatus", headerName: "Deployment Status",
-                renderCell: (params: { row: { deploymentStatus: DeploymentStatus; }; }) => {
-                    if (params.row.deploymentStatus == null) {
-                        return '';
-                    }
-                    return DEPLOYMENT_STATUS_MAPPING[params.row.deploymentStatus];
-                },
-                width: 150},
-            {field: "ticketLinks", headerName: "Linked Tickets", width: 150},
             {field: "deploymentVersion", headerName: "Version", width: 150},
             {
                 field: "cleanInstallationDate", headerName: "Clean Installation Date",

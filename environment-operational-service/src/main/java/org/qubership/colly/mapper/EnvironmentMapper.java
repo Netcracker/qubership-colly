@@ -4,7 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
@@ -43,18 +42,17 @@ public class EnvironmentMapper {
                 entity.getName(),
                 toNamespaceDTOs(entity.getNamespaceIds()),
                 clusterMapper.toDTO(clusterRepository.findByName(entity.getClusterId()).orElse(null)),
-                cloudPassportEnvironment.owner(),
-                entity.getTeam(),
-                entity.getStatus(),
-                entity.getExpirationDate(),
-                entity.getType(),
-                entity.getLabels(),
+                cloudPassportEnvironment.owners(),
+                cloudPassportEnvironment.teams(),
+                cloudPassportEnvironment.status(),
+                cloudPassportEnvironment.expirationDate(),
+                cloudPassportEnvironment.environmentType(),
+                cloudPassportEnvironment.role(),
+                cloudPassportEnvironment.labels(),
                 cloudPassportEnvironment.description(),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),
-                entity.getMonitoringData(),
-                entity.getDeploymentStatus(),
-                entity.getTicketLinks()
+                entity.getMonitoringData()
         );
     }
 
@@ -78,7 +76,7 @@ public class EnvironmentMapper {
         List<NamespaceDTO> namespaceDTOs = new ArrayList<>();
         for (String nsId : namespaceIds) {
             namespaceRepository.findByUid(nsId).ifPresent(ns ->
-                namespaceDTOs.add(new NamespaceDTO(ns.getUid(), ns.getName(), ns.getExistsInK8s()))
+                    namespaceDTOs.add(new NamespaceDTO(ns.getUid(), ns.getName(), ns.getExistsInK8s()))
             );
         }
         return namespaceDTOs;

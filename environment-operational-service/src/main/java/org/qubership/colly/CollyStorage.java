@@ -111,24 +111,15 @@ public class CollyStorage {
 
 
     //@Transactional - removed for Redis
-    public void saveEnvironment(String id, String name, String owner, String description, String status, List<String> labels, String type, String team, LocalDate expirationDate, String deploymentStatus, String tickets) {
+    public void saveEnvironment(String id, String name, List<String> owner, String description, String status,
+                                List<String> labels, String type, List<String> teams, LocalDate expirationDate, String role) {
         Environment environment = environmentRepository.findById(id).orElse(null);
         if (environment == null) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
         }
-        Log.info("Saving environment with id " + id + " name " + name + " owner " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
-        //todo refactor logic for update environment in cache when commit feature for all properties implemented in inventory service
-        environment.setStatus(EnvironmentStatus.fromString(status));
-        environment.setType(EnvironmentType.fromString(type));
-        environment.setTeam(team);
-        environment.setExpirationDate(expirationDate);
-        environment.setLabels(labels);
-        environment.setTicketLinks(tickets);
-        environment.setDeploymentStatus(DeploymentStatus.fromString(deploymentStatus));
-        environmentRepository.save(environment);
-
+        Log.info("Saving environment with id " + id + " name " + name + " owners " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
         envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(),
-                new CloudPassportEnvironment(environment.getName(), owner, description, null));
+                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams, status, expirationDate, type, role));
         Log.info("Successfully updated environment in inventory service: " + environment.getName());
     }
 
@@ -147,7 +138,7 @@ public class CollyStorage {
     //@Transactional - removed for Redis
     //todo update inventory service first then remove from cache
     public void deleteEnvironment(String id) {
-        if (!environmentRepository.findById(id).isPresent()) {
+        if (environmentRepository.findById(id).isEmpty()) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");
         }
         environmentRepository.delete(id);

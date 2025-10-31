@@ -1,9 +1,6 @@
 package org.qubership.colly.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import org.qubership.colly.db.data.DeploymentStatus;
-import org.qubership.colly.db.data.EnvironmentStatus;
-import org.qubership.colly.db.data.EnvironmentType;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -15,18 +12,17 @@ public record EnvironmentDTO(
         String name,
         List<NamespaceDTO> namespaces,
         ClusterDTO cluster,
-        String owner,
-        String team,
-        EnvironmentStatus status,
+        List<String> owners,
+        List<String> teams,
+        String status,
         @JsonFormat(pattern = "yyyy-MM-dd")
         LocalDate expirationDate,
-        EnvironmentType type,
+        String type,
+        String role,
         List<String> labels,
         String description,
         String deploymentVersion,
         Instant cleanInstallationDate,
-        Map<String, String> monitoringData,
-        DeploymentStatus deploymentStatus,
-        String ticketLinks) {
+        Map<String, String> monitoringData) {
 
 }

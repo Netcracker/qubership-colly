@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ApplicationScoped
@@ -60,10 +62,24 @@ public class UpdateEnvironmentService {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
         Log.info("Updating yaml file " + yamlPath);
-        executeYqCommand(yamlPath, ".inventory.description", environmentUpdate.getDescription());
-        Log.info("Updated description to " + environmentUpdate.getDescription());
-        executeYqCommand(yamlPath, ".inventory.owners", environmentUpdate.getOwner());
-        Log.info("Updated owners to " + environmentUpdate.getOwner());
+        deleteYamlField(yamlPath, ".inventory.description");
+        updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
+        Log.info("Updated metadata description to " + environmentUpdate.getDescription());
+        deleteYamlField(yamlPath, ".inventory.owners");
+        updateYamlArrayField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwners());
+        Log.info("Updated metadata owners to " + environmentUpdate.getOwners());
+        updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
+        Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
+        updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
+        Log.info("Updated metadata teams to " + environmentUpdate.getTeams());
+        updateYamlField(yamlPath, ".inventory.metadata.status", environmentUpdate.getStatus().name());
+        Log.info("Updated status to " + environmentUpdate.getStatus().name());
+        updateYamlField(yamlPath, ".inventory.metadata.expirationDate", environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
+        Log.info("Updated expirationDate to " + environmentUpdate.getExpirationDate());
+        updateYamlField(yamlPath, ".inventory.metadata.type", environmentUpdate.getType().name());
+        Log.info("Updated type to " + environmentUpdate.getType().name());
+        updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
+        Log.info("Updated role to " + environmentUpdate.getRole());
     }
 
     private boolean isYqAvailable() {
@@ -78,17 +94,52 @@ public class UpdateEnvironmentService {
         }
     }
 
-    private void executeYqCommand(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
-        String escapedValue = value == null ? null : "\"" + escapeForYq(value) + "\"";
+    private void deleteYamlField(Path yamlPath, String yamlFieldPath) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(
                 "yq",
                 "eval",
-                yamlFieldPath + " = " + escapedValue,
+                "del(" + yamlFieldPath + ")",
                 yamlPath.toString(),
                 "--inplace"
         );
+        executeYqCommand(pb);
+    }
 
-        Process process = pb.start();
+    private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
+        if (value == null) {
+            deleteYamlField(yamlPath, yamlFieldPath);
+            return;
+        }
+        ProcessBuilder pb = new ProcessBuilder(
+                "yq",
+                "eval",
+                yamlFieldPath + " = " + "\"" + escapeForYq(value) + "\"",
+                yamlPath.toString(),
+                "--inplace"
+        );
+        executeYqCommand(pb);
+    }
+
+    private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException, InterruptedException {
+        if (values == null || values.isEmpty()) {
+            deleteYamlField(yamlPath, yamlFieldPath);
+            return;
+        }
+        String arrayValue = values.stream()
+                .map(value -> "\"" + escapeForYq(value) + "\"")
+                .collect(Collectors.joining(", ", "[", "]"));
+        ProcessBuilder pb = new ProcessBuilder(
+                "yq",
+                "eval",
+                yamlFieldPath + " = " + arrayValue,
+                yamlPath.toString(),
+                "--inplace"
+        );
+        executeYqCommand(pb);
+    }
+
+    private void executeYqCommand(ProcessBuilder processBuilder) throws IOException, InterruptedException {
+        Process process = processBuilder.start();
         boolean finished = process.waitFor(30, TimeUnit.SECONDS);
 
         if (!finished) {

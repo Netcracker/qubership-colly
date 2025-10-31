@@ -1,5 +1,6 @@
 package org.qubership.colly;
 
+import io.quarkus.logging.Log;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -8,9 +9,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.dto.ApplicationMetadata;
-import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.dto.ClusterDTO;
-import org.qubership.colly.mapper.EnvironmentMapper;
+import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.ClusterMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
@@ -25,19 +25,16 @@ public class ClusterResourcesRest {
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final MonitoringService monitoringService;
-    private final EnvironmentMapper environmentMapper;
     private final ClusterMapper clusterMapper;
 
     @Inject
     public ClusterResourcesRest(CollyStorage collyStorage,
-                               SecurityIdentity securityIdentity,
-                               MonitoringService monitoringService,
-                               EnvironmentMapper environmentMapper,
-                               ClusterMapper clusterMapper) {
+                                SecurityIdentity securityIdentity,
+                                MonitoringService monitoringService,
+                                ClusterMapper clusterMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.monitoringService = monitoringService;
-        this.environmentMapper = environmentMapper;
         this.clusterMapper = clusterMapper;
     }
 
@@ -68,20 +65,20 @@ public class ClusterResourcesRest {
     @RolesAllowed("admin")
     public void saveEnvironment(@PathParam("envId") String id,
                                 @FormParam("name") String name,
-                                @FormParam("owner") String owner,
+                                @FormParam("owners") List<String> owner,
                                 @FormParam("description") String description,
                                 @FormParam("status") String status,
                                 @FormParam("labels") List<String> labels,
                                 @FormParam("type") String type,
-                                @FormParam("team") String team,
-                                @FormParam("deploymentStatus") String deploymentStatus,
-                                @FormParam("ticketLinks") String ticketLinks,
+                                @FormParam("teams") List<String> teams,
+                                @FormParam("role") String role,
                                 @FormParam("expirationDate") String expirationDate) {
         LocalDate date = null;
         if (expirationDate != null && !expirationDate.isEmpty()) {
             date = LocalDate.parse(expirationDate);
         }
-        collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, team, date, deploymentStatus, ticketLinks);
+        Log.info("Saving environment " + name + " in cluster " + id + " ownersCount=" + owner.size());
+        collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, teams, date, role);
     }
 
     @DELETE
