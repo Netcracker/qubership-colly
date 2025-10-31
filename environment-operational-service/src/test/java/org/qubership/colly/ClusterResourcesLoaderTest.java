@@ -18,8 +18,6 @@ import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.data.Environment;
-//import org.qubership.colly.db.data.EnvironmentStatus;
-//import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
@@ -36,7 +34,6 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.qubership.colly.ClusterResourcesLoader.*;
 
 @QuarkusTest
 @ConnectWireMock
@@ -167,48 +164,6 @@ class ClusterResourcesLoaderTest {
         List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
         assertThat(allNamespaces, hasItems(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("name", equalTo(NAMESPACE_NAME_2))));
     }
-
-//    @Test
-//    void load_env_with_infrastructure_type() throws ApiException {
-//        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME), Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_INFRA));
-//
-//        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-//        List<Environment> envs = environmentRepository.findByName(ENV_1);
-//        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
-//        assertThat(testEnv.getType(), equalTo(EnvironmentType.INFRASTRUCTURE));
-//    }
-
-//    @Test
-//    void load_env_with_cse_toolset_type() throws ApiException {
-//        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME),
-//                Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
-//                        LABEL_DISCOVERY_CLI_IO_TYPE, LABEL_TYPE_CSE_TOOLSET));
-//
-//        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-//        List<Environment> envs = environmentRepository.findByName(ENV_1);
-//        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
-//        assertThat(testEnv.getType(), equalTo(EnvironmentType.CSE_TOOLSET));
-//    }
-
-//    @Test
-//    void type_should_not_be_changed_if_it_was_manually_set() throws ApiException {
-//        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME),
-//                Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
-//                        LABEL_DISCOVERY_CLI_IO_TYPE, LABEL_TYPE_CSE_TOOLSET));
-//
-//        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-//
-//        List<Environment> envs = environmentRepository.findByName(ENV_1);
-//        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
-//        Assertions.assertNotNull(testEnv);
-//        assertThat(testEnv.getType(), equalTo(EnvironmentType.CSE_TOOLSET));
-//        testEnv.setType(EnvironmentType.DESIGN_TIME);
-//        environmentRepository.save(testEnv);
-//
-//        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-//
-//        assertThat(testEnv.getType(), equalTo(EnvironmentType.DESIGN_TIME));
-//    }
 
     @Test
     void load_resources_for_env_after_update() throws ApiException {
@@ -371,9 +326,7 @@ class ClusterResourcesLoaderTest {
     }
 
     private void mockNamespaceLoading(String clusterName, List<String> namespaceNames) throws ApiException {
-        mockNamespaceLoading(clusterName, namespaceNames,
-                Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
-                        LABEL_DISCOVERY_CLI_IO_TYPE, LABEL_TYPE_CORE));
+        mockNamespaceLoading(clusterName, namespaceNames, Map.of());
     }
 
     private void mockNamespaceLoading(String clusterName, List<String> namespaceNames, Map<String, String> labels) throws ApiException {
