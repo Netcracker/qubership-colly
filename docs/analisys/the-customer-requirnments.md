@@ -181,7 +181,7 @@ This is not the full list of attributes of these objects, but only those that wi
   - [+] Add `role` attribute on Environment
   - [ ] Add deployment parameter to extend `role` valid values
   - [+] Remove default value for `role`
-  - [ ] Implement an interface (/colly/operational-service/v2/environment-roles) that returns the list of `role` valid values (Low priority)
+  - [ ] Implement an interface (/colly/operational-service/v2/metadata) that returns the list of `role` valid values (Low priority)
 - [+] `type`
   - [+] Remove the functionality for auto-generating the `type` attribute. Users should be able to set this value themselves by selecting from a list of allowed values. The list of values should be specified as a deployment parameter.
 - [ ] Include the current Colly API version in the X-API-Version HTTP response header for every API response (Low priority)

@@ -110,30 +110,8 @@ paths:
               properties:
                 name:
                   type: string
-                owners:
-                  type: array
-                  items:
-                    type: string
-                description:
-                  type: string
-                status:
-                  type: string
-                labels:
-                  type: array
-                  items:
-                    type: string
-                type:
-                  type: string
-                teams:
-                  type: array
-                  items:
-                    type: string
-                deploymentStatus:
-                  type: string
-                expirationDate:
-                  type: string
-                role:
-                  type: string
+                # deploymentStatus:
+                #   type: string
         required: true
       responses:
         "201":
@@ -242,10 +220,18 @@ components:
       properties:
         name:
           type: string
+          description: >-
+            Cluster name, cannot be changed after creation.
         description:
           type: string
+          description: >-
+            Cluster description.
+            Provided by inventory-service.
         clusterInfoUpdateStatus:
           type: object
+          description: >-
+            Cluster information update status.
+            Provided by operational-service.
           properties:
             lastResult:
               type: boolean
@@ -287,8 +273,9 @@ components:
           $ref: "#/components/schemas/ClusterDTO"
         owners:
           type: array
-          description: >
+          description: >-
             Users responsible for the Environment. This attribute is user-defined.
+            Provided by inventory-service.
           items:
             type: string
           default: []
@@ -296,8 +283,9 @@ components:
             - Alice
         teams:
           type: array
-          description: >
+          description: >-
             Teams assigned to the Environment. This attribute is user-defined.
+            Provided by inventory-service.
           items:
             type: string
           default: []
@@ -309,10 +297,12 @@ components:
             Current status of the Environment. Values: PLANNED, FREE, IN_USE, RESERVED, DEPRECATED.
             Indicates the environment's lifecycle state, e.g. planned but not yet deployed,
             ready for use, in use by a team, reserved, or marked for deprecation.
+            Provided by inventory-service.
         expirationDate:
           $ref: "#/components/schemas/LocalDate"
           description: >-
             Date until which Environment is allocated. This attribute is user-defined.
+            Provided by inventory-service.
           default: ""
           example:
             - 2025-12-31
@@ -320,6 +310,7 @@ components:
           $ref: "#/components/schemas/EnvironmentType"
           description: >-
             Defines the technical category of the Environment. This attribute is user-defined.
+            Provided by inventory-service.
           example:
             - INFRASTRUCTURE
         role:
@@ -327,12 +318,13 @@ components:
           description: >-
             Defines the usage role of the Environment within the project.
             The list of allowed values is configured via deployment parameters.
-            The list of available roles can be retrieved via /colly/operational-service/v2/metadata
+            Provided by inventory-service.
           default: ""
         labels:
           type: array
           description: >-
             Custom labels for the Environment. This attribute is user-defined.
+            Provided by inventory-service.
           items:
             type: string
           default: []
@@ -340,26 +332,38 @@ components:
           type: string
           description: >-
             Free-form Environment description. This attribute is user-defined.
+            Provided by inventory-service.
           default: ""
         cleanInstallationDate:
           $ref: "#/components/schemas/Instant"
+          description: >-
+            Date when the environment was cleanly installed.
+            Provided by operational-service.
         monitoringData:
           type: object
+          description: >-
+            Monitoring data collected from the cluster and monitoring systems.
+            Provided by operational-service.
           additionalProperties:
             type: string
         deploymentStatus:
           $ref: "#/components/schemas/DeploymentStatus"
+          description: >-
+            Current deployment status of the environment.
+            Provided by operational-service.
         lastSDDeploymentOperation:
           $ref: "#/components/schemas/LastSDDeploymentOperation"
           description: >-
             Information about the most recent SD deployment operation on any namespace that is part of the environment,
             regardless of the deployment result. DD deployments are out of scope.
+            Provided by operational-service.
         lastDeployedSDsByType:
           $ref: "#/components/schemas/LastDeployedSDsByType"
           description: >-
             Map of SD type to the latest successfully deployed SD in the format "<name>:<version>".
             Determines the latest SD of a given type that was successfully deployed to one of the
             namespaces included in the environment.
+            Provided by operational-service.
       required:
         - id
         - name
@@ -438,14 +442,22 @@ components:
       properties:
         uid:
           type: string
+          description: >-
+            Namespace UID.
         name:
           type: string
-        existsInK8s:
-          type: boolean
+          description: >-
+            Namespace name.
         deployPostfix:
           type: string
           description: >-
-            Deploy postfix, namespace role in solution
+            Deploy postfix, namespace role in solution.
+            Provided by inventory-service.
+        existsInK8s:
+          type: boolean
+          description: >-
+            Whether the namespace exists in Kubernetes cluster.
+            Provided by operational-service.
     Duration:
       type: string
       format: duration

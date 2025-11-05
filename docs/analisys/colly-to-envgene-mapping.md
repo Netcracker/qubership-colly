@@ -67,6 +67,13 @@ metadata:
 
 - [ ] Do we keep `cleanInstallationDate`? Is it computed based on SD_VERSIONS?
 
+- [ ] How do we uniquely identify cluster, environment, and namespace in both services?
+
+- [ ] How do we separate the two services?
+  - Both services should return a unified schema for cluster, environment, and namespace, with all fields, but fill in only their own data. For example, for Environment:
+    - inventory-service: owners, teams, status, type, role, labels, description, expirationDate
+    - operational-service: cleanInstallationDate, monitoringData, deploymentStatus, lastSDDeploymentOperation, lastDeployedSDsByType
+
 ## To Implement
 
 1. Change the formation of the macros `current_env.description` and `current_env.owners` taking into account the metadata section and migration
