@@ -120,3 +120,7 @@ template-cred:
 
 - [+] Use case for Colly using its own project repository:
   1. Read all projects and extract the URL, token, and branches from the `envgeneInstance` repositories in order to display the environments from these projects.
+
+- [ ] Need a mapping from environment to project. For example, an environment attribute `project`.
+  - Use case: find the DCL pipeline repository by environment
+  - Requestor - The Customer

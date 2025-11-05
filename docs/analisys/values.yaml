@@ -1,0 +1,50 @@
+---
+CLOUD_PUBLIC_HOST:
+NAMESPACE: qubership-colly
+colly:
+  global:
+  envgeneInventoryService:
+    image: ghcr.io/netcracker/envgene-inventory-service:latest
+    serviceName: envgene-inventory-service
+    instancesRepo:
+    gitToken:
+    cronSchedule: 0 0/1 * * * ?
+    idp:
+      url:
+      clientId: envgene-inventory-service
+      clientSecret:
+    redis:
+      hosts: redis://redis:6379
+      username: ""
+      password: ""
+    ports:
+      http: 8080
+  environmentOperationalService:
+    image: ghcr.io/netcracker/environment-operational-service:latest
+    serviceName: environment-operational-service
+    cronSchedule: 0 0/1 * * * ?
+    idp:
+      url:
+      clientId: environment-operational-service
+      clientSecret:
+    redis:
+      hosts: redis://redis:6379
+      username: ""
+      password: ""
+    ports:
+      http: 8080
+    ingress:
+      className: alb
+      http:
+        annotations:
+          alb.ingress.kubernetes.io/scheme: internet-facing
+          alb.ingress.kubernetes.io/target-type: ip
+    environmentRoles:
+      - DEV
+      - QA
+      - PROJECT_CI
+      - JOINT_CI
+    monitoringData:
+      lastIdpLoginDate:
+        name: Last IDP Login Date
+        query: count(kube_pod_status_phase{namespace=~"{namespace}",phase="Running"})
