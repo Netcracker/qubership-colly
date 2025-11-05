@@ -95,7 +95,7 @@ public class CollyStorage {
                     Log.error("Inconsistent state: envgene-inventory-storage has environment: " + inventoryEnv.name() + " in cluster: " + cloudPassport.name() + " but environment-operational-service does not have it");
                     continue;
                 }
-                result.add(environmentMapper.toDTO(operationalEnv, inventoryEnv));
+                result.add(environmentMapper.toDTO(operationalEnv));
             }
         }
 
@@ -107,20 +107,6 @@ public class CollyStorage {
 
     public List<Cluster> getClusters() {
         return clusterRepository.findAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
-    }
-
-
-    //@Transactional - removed for Redis
-    public void saveEnvironment(String id, String name, List<String> owner, String description, String status,
-                                List<String> labels, String type, List<String> teams, LocalDate expirationDate, String role) {
-        Environment environment = environmentRepository.findById(id).orElse(null);
-        if (environment == null) {
-            throw new IllegalArgumentException("Environment with id " + id + " not found");
-        }
-        Log.info("Saving environment with id " + id + " name " + name + " owners " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
-        envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(),
-                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams, status, expirationDate, type, role));
-        Log.info("Successfully updated environment in inventory service: " + environment.getName());
     }
 
     //@Transactional - removed for Redis

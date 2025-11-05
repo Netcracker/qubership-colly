@@ -17,12 +17,4 @@ public interface EnvgeneInventoryServiceRest {
     @Path("/clusters")
     List<CloudPassport> getCloudPassports();
 
-    @PUT
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("/clusters/{clusterName}/environments/{environmentName}")
-    void updateEnvironment(@PathParam("clusterName") String clusterName,
-                           @PathParam("environmentName") String environmentName,
-                           CloudPassportEnvironment environment);
-
 }

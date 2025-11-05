@@ -1,6 +1,5 @@
 package org.qubership.colly;
 
-import io.quarkus.logging.Log;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -14,7 +13,6 @@ import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.ClusterMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,26 +58,6 @@ public class ClusterResourcesRest {
         collyStorage.executeTask();
     }
 
-    @POST
-    @Path("/environments/{envId}")
-    @RolesAllowed("admin")
-    public void saveEnvironment(@PathParam("envId") String id,
-                                @FormParam("name") String name,
-                                @FormParam("owners") List<String> owner,
-                                @FormParam("description") String description,
-                                @FormParam("status") String status,
-                                @FormParam("labels") List<String> labels,
-                                @FormParam("type") String type,
-                                @FormParam("teams") List<String> teams,
-                                @FormParam("role") String role,
-                                @FormParam("expirationDate") String expirationDate) {
-        LocalDate date = null;
-        if (expirationDate != null && !expirationDate.isEmpty()) {
-            date = LocalDate.parse(expirationDate);
-        }
-        Log.info("Saving environment " + name + " in cluster " + id + " ownersCount=" + owner.size());
-        collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, teams, date, role);
-    }
 
     @DELETE
     @Path("/environments/{envId}")
