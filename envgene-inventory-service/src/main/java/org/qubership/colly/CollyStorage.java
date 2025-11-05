@@ -58,6 +58,7 @@ public class CollyStorage {
         Environment environment = cluster.getEnvironments().stream().filter(env -> env.getName().equals(cloudPassportEnvironment.name())).findFirst().orElse(null);
         if (environment == null) {
             environment = new Environment(cloudPassportEnvironment.name());
+            environment.setId(UUID.randomUUID().toString());
             cluster.addEnvironment(environment);
             Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }

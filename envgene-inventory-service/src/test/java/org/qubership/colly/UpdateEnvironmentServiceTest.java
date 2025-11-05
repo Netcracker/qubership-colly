@@ -57,6 +57,7 @@ class UpdateEnvironmentServiceTest {
         testCluster.setName("test-cluster");
         testCluster.setGitInfo(gitInfo);
         testEnvironment = new Environment("env-test");
+        testEnvironment.setId("env-test");
         testEnvironment.setDescription("new description");
         testEnvironment.setOwners(List.of("new owner"));
         testEnvironment.setTeams(List.of("new test-team"));

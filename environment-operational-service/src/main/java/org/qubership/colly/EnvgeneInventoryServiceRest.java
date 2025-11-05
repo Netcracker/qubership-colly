@@ -4,12 +4,11 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.qubership.colly.cloudpassport.CloudPassport;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 
 import java.util.List;
 
 @RegisterRestClient(configKey = "envgene-inventory-service")
-@Path("/colly/envgene-inventory-service")
+@Path("/colly/inventory-service")
 public interface EnvgeneInventoryServiceRest {
 
     @GET

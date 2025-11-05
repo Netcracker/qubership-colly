@@ -67,7 +67,7 @@ class ClusterResourcesLoaderTest {
     RedisDataSource redisDataSource;
 
     private static @NotNull CloudPassportEnvironment createEnvForTests(String name, List<CloudPassportNamespace> namespaces) {
-        return new CloudPassportEnvironment(name, "some env for tests", namespaces);
+        return new CloudPassportEnvironment(name, name, "some env for tests", namespaces);
     }
 
     @BeforeEach

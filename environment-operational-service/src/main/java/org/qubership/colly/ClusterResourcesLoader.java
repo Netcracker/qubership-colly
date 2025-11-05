@@ -112,7 +112,7 @@ public class ClusterResourcesLoader {
                     .findFirst().orElse(null);
             Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName() + ". Env exists in db? " + (environment != null));
             if (environment == null) {
-                environment = new Environment(cloudPassportEnvironment.name());
+                environment = new Environment(cloudPassportEnvironment.id(), cloudPassportEnvironment.name());
                 environment.setClusterId(cluster.getName());
                 environmentRepository.save(environment);
                 Log.info("env created in db: " + environment.getName());

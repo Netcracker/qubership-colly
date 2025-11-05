@@ -39,7 +39,7 @@ class EnvgeneInventoryServiceRestTest {
     @Disabled("Skip because auth was turned off for service")
     void load_environments_without_auth() {
         given()
-                .when().get("/colly/envgene-inventory-service/environments")
+                .when().get("/colly/inventory-service/environments")
                 .then()
                 .statusCode(401);
     }
@@ -49,7 +49,7 @@ class EnvgeneInventoryServiceRestTest {
     @Disabled("Skip because auth was turned off for service")
     void load_clusters_without_auth() {
         given()
-                .when().get("/colly/envgene-inventory-service/clusters")
+                .when().get("/colly/inventory-service/clusters")
                 .then()
                 .statusCode(401);
     }
@@ -58,11 +58,11 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "test")
     void load_clusters() {
         given()
-                .when().post("/colly/envgene-inventory-service/tick")
+                .when().post("/colly/inventory-service/tick")
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/envgene-inventory-service/clusters")
+                .when().get("/colly/inventory-service/clusters")
                 .then()
                 .statusCode(200)
                 .body("name", contains("test-cluster", "unreachable-cluster"))
@@ -97,7 +97,7 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "test")
     void get_authStatus_for_regular_user() {
         given()
-                .when().get("/colly/envgene-inventory-service/auth-status")
+                .when().get("/colly/inventory-service/auth-status")
                 .then()
                 .statusCode(200)
                 .body("username", equalTo("test"))
@@ -109,7 +109,7 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void get_authStatus_for_admin() {
         given()
-                .when().get("/colly/envgene-inventory-service/auth-status")
+                .when().get("/colly/inventory-service/auth-status")
                 .then()
                 .statusCode(200)
                 .body("username", equalTo("admin"))
@@ -121,7 +121,7 @@ class EnvgeneInventoryServiceRestTest {
     @Test
     void get_authStatus_without_auth() {
         given()
-                .when().get("/colly/envgene-inventory-service/auth-status")
+                .when().get("/colly/inventory-service/auth-status")
                 .then()
                 .statusCode(401)
                 .body("authenticated", equalTo(false));
@@ -132,14 +132,14 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void update_environment_with_auth() {
         given()
-                .when().post("/colly/envgene-inventory-service/tick")
+                .when().post("/colly/inventory-service/tick")
                 .then()
                 .statusCode(204);
 
         given()
                 .contentType("application/json")
                 .body("{\"name\":\"env-test\",\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
-                .when().put("/colly/envgene-inventory-service/clusters/test-cluster/environments/env-test")
+                .when().put("/colly/inventory-service/clusters/test-cluster/environments/env-test")
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("env-test"))
@@ -148,7 +148,7 @@ class EnvgeneInventoryServiceRestTest {
                 .body("labels", contains("test", "test2"));
 
         given()
-                .when().get("/colly/envgene-inventory-service/clusters")
+                .when().get("/colly/inventory-service/clusters")
                 .then()
                 .statusCode(200)
                 .body("environments.flatten()", hasItem(

@@ -11,6 +11,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class Environment {
 
+    private String id;
     private String name;
     private List<String> owners;
     private List<String> teams;
@@ -18,7 +19,6 @@ public class Environment {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expirationDate;
     private EnvironmentStatus status = EnvironmentStatus.FREE;
-
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
     private String role;
     private List<String> labels;
@@ -31,6 +31,14 @@ public class Environment {
     }
 
     public Environment() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public List<Namespace> getNamespaces() {

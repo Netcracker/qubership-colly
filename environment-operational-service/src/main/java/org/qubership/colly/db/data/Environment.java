@@ -16,7 +16,8 @@ public class Environment {
     private String deploymentVersion;
     private List<String> namespaceIds;
 
-    public Environment(String name) {
+    public Environment(String id, String name) {
+        this.setId(id);
         this.setName(name);
         this.namespaceIds = new ArrayList<>();
     }
