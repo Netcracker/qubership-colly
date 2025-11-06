@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Path("/colly/inventory-service")
+@Path("/colly/v2/inventory-service")
 public class EnvgeneInventoryServiceRest {
 
     private final CollyStorage collyStorage;

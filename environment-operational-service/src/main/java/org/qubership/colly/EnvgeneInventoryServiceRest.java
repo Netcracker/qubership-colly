@@ -8,7 +8,7 @@ import org.qubership.colly.cloudpassport.CloudPassport;
 import java.util.List;
 
 @RegisterRestClient(configKey = "envgene-inventory-service")
-@Path("/colly/inventory-service")
+@Path("/colly/v2/inventory-service")
 public interface EnvgeneInventoryServiceRest {
 
     @GET

@@ -14,7 +14,6 @@ import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.EnvironmentMapper;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -122,7 +121,6 @@ public class CollyStorage {
     }
 
     //@Transactional - removed for Redis
-    //todo update inventory service first then remove from cache
     public void deleteEnvironment(String id) {
         if (environmentRepository.findById(id).isEmpty()) {
             throw new IllegalArgumentException("Environment with id " + id + " not found");

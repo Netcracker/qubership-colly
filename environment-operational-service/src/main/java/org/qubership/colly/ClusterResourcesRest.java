@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Path("/colly/environment-operational-service")
+@Path("/colly/v2/operational-service")
 public class ClusterResourcesRest {
 
     private final CollyStorage collyStorage;
