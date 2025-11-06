@@ -31,6 +31,7 @@ This is not the full list of attributes of these objects, but only those that wi
 | `namespaces`                            | list of [Namespace](#namespace) objects                            | List of associated namespaces                                                                                                                    |
 | `cluster`                               | [Cluster](#cluster) object                                         | Associated cluster                                                                                                                               |
 | `monitoringData.lastIdpLoginDate`       | string, date-time                                                  | Time of the last successful login to the IDP associated with the Environment                                                                     |
+| `region`                                | string                                                             | Geographical region associated with the Environment. This attribute is user-defined                                                              |
 
 ## Namespace
 
@@ -172,6 +173,12 @@ This is not the full list of attributes of these objects, but only those that wi
 
 - [ ] It should be possible to get a list of environments per project
 
+- [ ] What does the TheCustomer->Colly->EnvGene integration look like when creating an Environment?
+
+- [ ] A separate interface to provide the list of clusters
+
+- [ ] How to aggregate DeploymentOperations across the namespaces of the environment
+
 ## To implement
 
 - [+] Change environment attributes
@@ -190,3 +197,5 @@ This is not the full list of attributes of these objects, but only those that wi
 - [+] Remove `ticketLinks` attribute
 - [ ] Add `lastDeployedSDsByType`
 - [ ] Add `lastSDDeploymentOperation`
+- [ ] Add `region` attribute
+- [ ] Remove cleanInstallationDate attribute
