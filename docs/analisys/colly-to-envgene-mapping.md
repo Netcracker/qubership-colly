@@ -13,18 +13,18 @@ This document details how Colly attributes are persisted within the EnvGene Inst
 
 ## Mapping table
 
-| Colly Object | Colly Attribute    | Attribute Type in Colly                                                                           | EnvGene Repository  | Location in EnvGene                        | Attribute Type in EnvGene | Description                                       |
-|--------------|--------------------|---------------------------------------------------------------------------------------------------|---------------------|--------------------------------------------|---------------------------|---------------------------------------------------|
-| Environment  | `owners`           | array of string                                                                                   | instance            | `env_definition.metadata.owners`           | array of string           | Users responsible for the Environment             |
-| Environment  | `teams`            | array of string                                                                                   | instance            | `env_definition.metadata.teams`            | array of string           | Teams assigned to the Environment                 |
-| Environment  | `status`           | enum [`IN_USE`, `RESERVED`, `FREE`, `MIGRATING`]                                                  | instance            | `env_definition.metadata.status`           | string                    | Current status of the Environment                 |
-| Environment  | `expirationDate`   | string (LocalDate "yyyy-MM-dd")                                                                   | instance            | `env_definition.metadata.expirationDate`   | string                    | Date until which Environment is allocated         |
-| Environment  | `type`             | enum [`ENVIRONMENT`, `CSE_TOOLSET`, `DESIGN_TIME`, `APP_DEPLOYER`, `INFRASTRUCTURE`, `UNDEFINED`] | instance            | `env_definition.metadata.type`             | string                    | Defines the technical category of the Environment |
-| Environment  | `role`             | string (the valid values is configured via a deployment parameter)                                | instance            | `env_definition.metadata.role`             | string                    | Defines usage role of the Environment             |
-| Environment  | `labels`           | array of string                                                                                   | instance            | `env_definition.metadata.labels`           | array of string           | Custom labels for the Environment                 |
-| Environment  | `description`      | string                                                                                            | instance            | `env_definition.metadata.description`      | string                    | Free-form Environment description                 |
-| Environment  | `deploymentStatus` | enum [`DEPLOYED`, `FAILED`, `IN_PROGRESS`, `NOT_STARTED`]                                         | None                | None                                       | string                    | Environment deployment status                     |
-| Cluster      | `description`      | string                                                                                            | instance            | **TBD**                                    | string                    | Free-form Cluster description                     |
+| Colly Object | Colly Attribute    | Attribute Type in Colly                                                                           | EnvGene Repository  | Location in EnvGene                        | Attribute Type in EnvGene | Description                                                                         |
+|--------------|--------------------|---------------------------------------------------------------------------------------------------|---------------------|--------------------------------------------|---------------------------|-------------------------------------------------------------------------------------|
+| Environment  | `owners`           | array of string                                                                                   | instance            | `env_definition.metadata.owners`           | array of string           | Users responsible for the Environment                                               |
+| Environment  | `teams`            | array of string                                                                                   | instance            | `env_definition.metadata.teams`            | array of string           | Teams assigned to the Environment                                                   |
+| Environment  | `status`           | enum [`IN_USE`, `RESERVED`, `FREE`, `MIGRATING`]                                                  | instance            | `env_definition.metadata.status`           | string                    | Current status of the Environment                                                   |
+| Environment  | `expirationDate`   | string (LocalDate "yyyy-MM-dd")                                                                   | instance            | `env_definition.metadata.expirationDate`   | string                    | Date until which Environment is allocated                                           |
+| Environment  | `type`             | enum [`ENVIRONMENT`, `CSE_TOOLSET`, `DESIGN_TIME`, `APP_DEPLOYER`, `INFRASTRUCTURE`, `UNDEFINED`] | instance            | `env_definition.metadata.type`             | string                    | Defines the technical category of the Environment                                   |
+| Environment  | `role`             | string (the valid values is configured via a deployment parameter)                                | instance            | `env_definition.metadata.role`             | string                    | Defines usage role of the Environment                                               |
+| Environment  | `labels`           | array of string                                                                                   | instance            | `env_definition.metadata.labels`           | array of string           | Custom labels for the Environment                                                   |
+| Environment  | `description`      | string                                                                                            | instance            | `env_definition.metadata.description`      | string                    | Free-form Environment description                                                   |
+| Environment  | `region`           | string                                                                                            | instance            | `env_definition.metadata.region`           | string                    | Geographical region associated with the Environment. This attribute is user-defined |
+| Cluster      | `description`      | string                                                                                            | instance            | **TBD**                                    | string                    | Free-form Cluster description                                                       |
 
 ### `env_definition.yml` example
 
@@ -44,6 +44,7 @@ metadata:
     - "prod"
     - "priority-high"
   description: "very important env"
+  region: cm
 ```
 
 ## To Discuss
@@ -63,9 +64,11 @@ metadata:
 
 - [ ] Using the OpenAPI specification as documentation
 
-- [ ] What is `deploymentStatus`?
+- [+] What is `deploymentStatus`?
+  - it is removed
 
-- [ ] Do we keep `cleanInstallationDate`? Is it computed based on SD_VERSIONS?
+- [+] Do we keep `cleanInstallationDate`? Is it computed based on SD_VERSIONS?
+  - it will be removed at MS2 (as part of https://github.com/Netcracker/qubership-colly/issues/153)
 
 - [ ] How do we uniquely identify cluster, environment, and namespace in both services?
 
@@ -73,6 +76,7 @@ metadata:
   - Both services should return a unified schema for cluster, environment, and namespace, with all fields, but fill in only their own data. For example, for Environment:
     - inventory-service: owners, teams, status, type, role, labels, description, expirationDate
     - operational-service: cleanInstallationDate, monitoringData, deploymentStatus, lastSDDeploymentOperation, lastDeployedSDsByType
+  - Two different models
 
 ## To Implement
 

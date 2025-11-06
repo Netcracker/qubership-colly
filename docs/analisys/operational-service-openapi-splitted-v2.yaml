@@ -110,8 +110,6 @@ paths:
               properties:
                 name:
                   type: string
-                # deploymentStatus:
-                #   type: string
         required: true
       responses:
         "201":
@@ -243,13 +241,6 @@ components:
               description: >-
                 Time of the last successful update information from the cluster
               $ref: "#/components/schemas/Instant"
-    DeploymentStatus:
-      type: string
-      enum:
-        - DEPLOYED
-        - FAILED
-        - IN_PROGRESS
-        - NOT_STARTED
     EnvironmentDTO:
       type: object
       properties:
@@ -346,11 +337,6 @@ components:
             Provided by operational-service.
           additionalProperties:
             type: string
-        deploymentStatus:
-          $ref: "#/components/schemas/DeploymentStatus"
-          description: >-
-            Current deployment status of the environment.
-            Provided by operational-service.
         lastSDDeploymentOperation:
           $ref: "#/components/schemas/LastSDDeploymentOperation"
           description: >-
@@ -364,6 +350,10 @@ components:
             Determines the latest SD of a given type that was successfully deployed to one of the
             namespaces included in the environment.
             Provided by operational-service.
+        region:
+          type: string
+          description: >-
+            Geographical region associated with the Environment. This attribute is user-defined.
       required:
         - id
         - name

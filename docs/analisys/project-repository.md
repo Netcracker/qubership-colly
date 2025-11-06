@@ -3,8 +3,12 @@
 - [Project Repository](#project-repository)
   - [Description](#description)
   - [Repository Structure](#repository-structure)
-    - [`parameters.yaml`](#parametersyaml)
-    - [`credentials.yaml`](#credentialsyaml)
+    - [Global](#global)
+      - [\[Global\] `parameters.yaml`](#global-parametersyaml)
+      - [\[Global\] `credentials.yaml`](#global-credentialsyaml)
+    - [Projects](#projects)
+      - [\[Projects\] `parameters.yaml`](#projects-parametersyaml)
+      - [\[Projects\] `credentials.yaml`](#projects-credentialsyaml)
   - [To discuss](#to-discuss)
 
 ## Description
@@ -14,6 +18,9 @@ This document describes the structure and contents of the Project repository.
 ## Repository Structure
 
 ```text
+├── global
+|   ├── parameters.yaml
+|   └── credentials.yaml
 └── projects
     ├── <customer-name>
     |   └── <project-name>
@@ -32,7 +39,29 @@ Only two levels of folders are allowed (max depth: 2).
 
 Any folder (within this folder depth limit) that contains a `parameters.yaml` file is considered a project folder.
 
-### `parameters.yaml`
+### Global
+
+#### [Global] `parameters.yaml`
+
+```yaml
+# Optional
+# Global list of users with access permissions for all projects
+users:
+  - # Mandatory
+    # User name
+    name: string
+    # Mandatory
+    # User permissions
+    permissions: enum[RO, RW]
+```
+
+#### [Global] `credentials.yaml`
+
+Сurrently, this file has no contents
+
+### Projects
+
+#### [Projects] `parameters.yaml`
 
 ```yaml
 # Mandatory
@@ -46,7 +75,7 @@ projectPhase: <???>
 repositories:
   - # Mandatory
     # In MS1 only envgeneInstance is supported
-    type: enum[ envgeneInstance, envgeneTemplate, envgeneDiscovery ]
+    type: enum[ envgeneInstance, envgeneTemplate, envgeneDiscovery, pipeline ]
     # Mandatory
     url: string
     # Pointer to Credential in credentials.yaml
@@ -55,6 +84,10 @@ repositories:
     # Optional
     # If not set, the "default" branch is used (as in GitLab/GitHub)
     branches: list of strings # To discuss. Do we need mapping by phase? For discovery, to get template names from different branches
+    # Optional
+    # Geographical region associated with the Environment. This attribute is user-defined
+    # Used in cases where specific `pipeline` repositories need to be used for certain environments
+    region: string
 # Optional
 # This is for MS1, we will do discovery later somehow
 # Needs further thought because the same <artifact-template-name> can contain different templates in different versions
@@ -65,7 +98,7 @@ envgeneTemplates:
   <artifact-template-name>: list of strings
 ```
 
-### `credentials.yaml`
+#### [Projects] `credentials.yaml`
 
 Contains [Credential](https://github.com/Netcracker/qubership-envgene/blob/main/docs/envgene-objects.md#credential) objects
 
@@ -90,6 +123,14 @@ repositories:
   - type: envgeneInstance
     url: https://git.acme.com/instance
     token: instance-cred
+  - region: offsite-cn
+    type: pipeline
+    url: https://git.acme.com/pipeline
+    token: offsite-cn-pipeline-cred
+  - region: offsite-mb
+    type: pipeline
+    url: https://git.acmemb.com/pipelines
+    token: offsite-mb-pipeline-cred
   - type: envgeneTemplate
     url: https://git.acme.com/template
     token: template-cred
@@ -112,6 +153,14 @@ template-cred:
   type: secret
   data:
     secret: "MGE3MjYwNTQtZGE4My00MTlkLWIzN2MtZjU5YTg3NDA2Yzk0MzlmZmViZGUtYWY4_PF84_bb"
+offsite-cn-pipeline-cred:
+  type: secret
+  data:
+    secret: "MGE3MjYwNTQtZGE4My00MTlkLWIzN2MtZjU5YTg3NDA2Yzk0MzlmZmViZGUtYWY4_PF84_bb"
+offsite-mb-pipeline-cred:
+  type: secret
+  data:
+    secret: "MGE3MjYwNTQtZGE4My00MTlkLWIzN2MtZjU5YTg3NDA2Yzk0MzlmZmViZGUtYWY4_PF84_bb"
 ```
 
 ## To discuss
@@ -124,3 +173,7 @@ template-cred:
 - [ ] Need a mapping from environment to project. For example, an environment attribute `project`.
   - Use case: find the DCL pipeline repository by environment
   - Requestor - The Customer
+
+- [ ] global configuration
+
+- [ ] `pipeline` is too generic, we need to specify the exact type of pipeline

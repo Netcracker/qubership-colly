@@ -128,8 +128,6 @@ paths:
                   type: array
                   items:
                     type: string
-                deploymentStatus:
-                  type: string
                 expirationDate:
                   type: string
                 role:
@@ -257,13 +255,6 @@ components:
               description: >-
                 Time of the last successful update information from the cluster
               $ref: "#/components/schemas/Instant"
-    DeploymentStatus:
-      type: string
-      enum:
-        - DEPLOYED
-        - FAILED
-        - IN_PROGRESS
-        - NOT_STARTED
     EnvironmentDTO:
       type: object
       properties:
@@ -347,8 +338,6 @@ components:
           type: object
           additionalProperties:
             type: string
-        deploymentStatus:
-          $ref: "#/components/schemas/DeploymentStatus"
         lastSDDeploymentOperation:
           $ref: "#/components/schemas/LastSDDeploymentOperation"
           description: >-
@@ -360,6 +349,12 @@ components:
             Map of SD type to the latest successfully deployed SD in the format "<name>:<version>".
             Determines the latest SD of a given type that was successfully deployed to one of the
             namespaces included in the environment.
+        region:
+          type: string
+          description: >-
+            Geographical region associated with the Environment. This attribute is user-defined.
+        deploymentOperations:
+          $ref: "#/components/schemas/DeploymentOperations"
       required:
         - id
         - name
@@ -389,6 +384,92 @@ components:
       format: date-time
       examples:
         - 2022-03-10T16:15:50Z
+    DeploymentOperations:
+      type: array
+      description: >-
+        Array of deployment operations for all namespaces related to the Environment.
+        Each element represents a separate deployment operation that may involve one or more
+        namespaces and consists of multiple SD (Solution Descriptor) deployments.
+      items:
+        type: object
+        properties:
+          completedAt:
+            type: string
+            format: date-time
+            description: >-
+              Time when the deployment operation finished. This operation may involve one or more
+              namespaces that are part of the Environment. The time reflects when all deployment
+              items in this operation completed, regardless of their individual outcomes.
+            example: 2022-03-10T16:15:50Z
+          status:
+            type: string
+            enum:
+              - SUCCESS
+              - FAILURE
+              - PARTIAL
+            description: >-
+              Overall status of the deployment operation:
+              - SUCCESS: all deployment items completed successfully
+              - FAILURE: all deployment items failed
+              - PARTIAL: some deployment items succeeded, some failed
+            example: SUCCESS
+          deploymentItems:
+            type: array
+            description: >-
+              List of SD (Solution Descriptor) deployments that are part of this deployment operation.
+              Each entry represents a single SD deployment with its details.
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: >-
+                    Name and version of the SD in format "<name>:<version>".
+                  example: product-sd:1.2.3
+                type:
+                  type: string
+                  description: >-
+                    Type of SD (e.g., "product", "project", etc.).
+                  example: product
+                mode:
+                  type: string
+                  enum:
+                    - CLEAN_INSTALL
+                    - ROLLING_UPDATE
+                  description: >-
+                    Deployment mode for the SD:
+                    - CLEAN_INSTALL: remove all existing resources before deployment
+                    - ROLLING_UPDATE: deploy on top of existing resources
+                  example: CLEAN_INSTALL
+                status:
+                  type: string
+                  enum:
+                    - SUCCESS
+                    - FAILURE
+                  description: >-
+                    Result of the deployment operation for this SD.
+                  example: SUCCESS
+              required:
+                - name
+                - type
+                - mode
+                - status
+      required:
+        - completedAt
+        - status
+        - deploymentItems
+      example:
+        - completedAt: 2022-03-10T16:15:50Z
+          status: PARTIAL
+          deploymentItems:
+            - name: product-sd:1.2.3
+              type: product
+              mode: ROLLING_UPDATE
+              status: SUCCESS
+            - name: project-sd:2.1.0
+              type: project
+              mode: ROLLING_UPDATE
+              status: FAILURE
     LastSDDeploymentOperation:
       type: object
       description: >-
