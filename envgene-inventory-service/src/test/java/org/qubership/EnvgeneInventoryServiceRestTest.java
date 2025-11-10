@@ -92,6 +92,20 @@ class EnvgeneInventoryServiceRestTest {
                 .body("environments.flatten().find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void load_environments() {
+        given()
+                .when().post("/colly/v2/inventory-service/tick")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("env-test", "env-metadata-test", "env-1"));
+    }
+
 
     @Test
     @TestSecurity(user = "test")

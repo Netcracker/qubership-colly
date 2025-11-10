@@ -8,6 +8,7 @@ import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.ClusterRepository;
+import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
@@ -20,14 +21,17 @@ import java.util.UUID;
 public class CollyStorage {
 
     private final ClusterRepository clusterRepository;
+    private final EnvironmentRepository environmentRepository;
     private final CloudPassportLoader cloudPassportLoader;
     private final UpdateEnvironmentService updateEnvironmentService;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
+            EnvironmentRepository environmentRepository,
             CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService) {
         this.clusterRepository = clusterRepository;
+        this.environmentRepository = environmentRepository;
         this.cloudPassportLoader = cloudPassportLoader;
         this.updateEnvironmentService = updateEnvironmentService;
     }
@@ -49,31 +53,57 @@ public class CollyStorage {
         cluster.setCloudApiHost(cloudPassport.cloudApiHost());
         cluster.setMonitoringUrl(cloudPassport.monitoringUrl());
         cluster.setGitInfo(cloudPassport.gitInfo());
+
+        // Persist cluster first to ensure it has an ID
+        clusterRepository.persist(cluster);
+
+        // Now save environments with cluster ID
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToDatabase(env, finalCluster));
+
+        // Persist cluster again after environments are added
         clusterRepository.persist(finalCluster);
     }
 
     private void saveEnvironmentToDatabase(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
-        Environment environment = cluster.getEnvironments().stream().filter(env -> env.getName().equals(cloudPassportEnvironment.name())).findFirst().orElse(null);
+        // Find existing environment by name and cluster
+        Environment environment = null;
+        if (cluster.getId() != null) {
+            environment = environmentRepository.findByNameAndClusterId(cloudPassportEnvironment.name(), cluster.getId());
+        }
+
         if (environment == null) {
-            environment = new Environment(cloudPassportEnvironment.name());
-            environment.setId(UUID.randomUUID().toString());
-            cluster.addEnvironment(environment);
+            environment = new Environment(UUID.randomUUID().toString(), cloudPassportEnvironment.name());
             Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }
-        environment.setDescription(cloudPassportEnvironment.description());
-        environment.setOwners(cloudPassportEnvironment.owners());
-        environment.setLabels(cloudPassportEnvironment.labels());
-        environment.setTeams(cloudPassportEnvironment.teams());
-        environment.setStatus(cloudPassportEnvironment.status());
-        environment.setExpirationDate(cloudPassportEnvironment.expirationDate());
-        environment.setType(cloudPassportEnvironment.type());
-        environment.setRole(cloudPassportEnvironment.role());
 
-        Log.info("Environment " + environment.getName() + " has been loaded from CloudPassport");
-        Environment finalEnvironment = environment;
+        // Always add/update environment in cluster for backward compatibility
+        // First remove if it exists, then add the updated one
+        final Environment finalEnvironment = environment;
+        cluster.getEnvironments().removeIf(env -> env.getName().equals(finalEnvironment.getName()));
+        cluster.addEnvironment(finalEnvironment);
+
+        // Set cluster information
+        if (cluster.getId() != null) {
+            finalEnvironment.setClusterId(cluster.getId());
+        }
+        finalEnvironment.setClusterName(cluster.getName());
+
+        // Update environment properties
+        finalEnvironment.setDescription(cloudPassportEnvironment.description());
+        finalEnvironment.setOwners(cloudPassportEnvironment.owners());
+        finalEnvironment.setLabels(cloudPassportEnvironment.labels());
+        finalEnvironment.setTeams(cloudPassportEnvironment.teams());
+        finalEnvironment.setStatus(cloudPassportEnvironment.status());
+        finalEnvironment.setExpirationDate(cloudPassportEnvironment.expirationDate());
+        finalEnvironment.setType(cloudPassportEnvironment.type());
+        finalEnvironment.setRole(cloudPassportEnvironment.role());
+
+        Log.info("Environment " + finalEnvironment.getName() + " has been loaded from CloudPassport");
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
+
+        // Persist environment separately for fast access
+        environmentRepository.persist(finalEnvironment);
     }
 
     private void saveNamespaceToDatabase(CloudPassportNamespace cloudPassportNamespace, Environment environment) {
@@ -97,8 +127,13 @@ public class CollyStorage {
         if (cluster == null) {
             throw new IllegalArgumentException("Cluster not found: " + clusterName);
         }
-        Environment existingEnv = cluster.getEnvironments().stream().filter(env -> env.getName().equals(environmentName)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName));
+
+        // Find environment using the new repository
+        Environment existingEnv = environmentRepository.findByNameAndClusterId(environmentName, cluster.getId());
+        if (existingEnv == null) {
+            throw new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName);
+        }
+
         Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
         existingEnv.setOwners(updatedEnvironment.getOwners());
         existingEnv.setDescription(updatedEnvironment.getDescription());
@@ -108,8 +143,27 @@ public class CollyStorage {
         existingEnv.setExpirationDate(updatedEnvironment.getExpirationDate());
         existingEnv.setType(updatedEnvironment.getType());
         existingEnv.setRole(updatedEnvironment.getRole());
+
+        // Update environment in cluster for backward compatibility
+        cluster.getEnvironments().removeIf(env -> env.getName().equals(existingEnv.getName()));
+        cluster.addEnvironment(existingEnv);
+
+        // Update both cluster (for backward compatibility) and environment repository
         clusterRepository.persist(cluster);
+        environmentRepository.persist(existingEnv);
+
         return existingEnv;
     }
 
+    public List<Environment> getEnvironments() {
+        return environmentRepository.listAll();
+    }
+
+    public List<Environment> getEnvironmentsByCluster(String clusterName) {
+        Cluster cluster = clusterRepository.findByName(clusterName);
+        if (cluster == null) {
+            throw new IllegalArgumentException("Cluster not found: " + clusterName);
+        }
+        return environmentRepository.findByClusterId(cluster.getId());
+    }
 }

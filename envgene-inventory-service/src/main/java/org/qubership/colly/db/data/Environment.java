@@ -13,6 +13,8 @@ public class Environment {
 
     private String id;
     private String name;
+    private String clusterId;
+    private String clusterName;
     private List<String> owners;
     private List<String> teams;
     private String description;
@@ -25,7 +27,8 @@ public class Environment {
     private List<Namespace> namespaces;
 
 
-    public Environment(String name) {
+    public Environment(String id, String name) {
+        this.setId(id);
         this.setName(name);
         this.namespaces = new ArrayList<>();
     }
@@ -126,6 +129,22 @@ public class Environment {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getClusterId() {
+        return clusterId;
+    }
+
+    public void setClusterId(String clusterId) {
+        this.clusterId = clusterId;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 }
 

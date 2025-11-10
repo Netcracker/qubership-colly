@@ -56,8 +56,7 @@ class UpdateEnvironmentServiceTest {
         testCluster = new Cluster();
         testCluster.setName("test-cluster");
         testCluster.setGitInfo(gitInfo);
-        testEnvironment = new Environment("env-test");
-        testEnvironment.setId("env-test");
+        testEnvironment = new Environment("1", "env-test");
         testEnvironment.setDescription("new description");
         testEnvironment.setOwners(List.of("new owner"));
         testEnvironment.setTeams(List.of("new test-team"));
@@ -65,7 +64,7 @@ class UpdateEnvironmentServiceTest {
         testEnvironment.setType(EnvironmentType.DESIGN_TIME);
         testEnvironment.setRole("Dev");
         testEnvironment.setStatus(EnvironmentStatus.IN_USE);
-        testEnvironment.setExpirationDate(LocalDate.of(2025,12,31));
+        testEnvironment.setExpirationDate(LocalDate.of(2025, 12, 31));
     }
 
     @Test
@@ -91,7 +90,7 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateEnvironment_shouldHandleNonExistentEnvironment() {
         // Given
-        Environment nonExistentEnv = new Environment("non-existent-env");
+        Environment nonExistentEnv = new Environment("2", "non-existent-env");
         nonExistentEnv.setDescription("Non-existent environment");
 
         assertThrows(IllegalArgumentException.class, () -> updateEnvironmentService.updateEnvironment(testCluster, nonExistentEnv));
