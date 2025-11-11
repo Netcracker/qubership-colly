@@ -10,7 +10,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.qubership.colly.cloudpassport.CloudPassport;
+import org.qubership.colly.cloudpassport.ClusterInfo;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.repository.ClusterRepository;
@@ -56,37 +56,37 @@ public class ClusterResourcesLoader {
 
 
     //@Transactional - removed for Redis
-    public void loadClusterResources(CloudPassport cloudPassport) {
-        AccessTokenAuthentication authentication = new AccessTokenAuthentication(cloudPassport.token());
+    public void loadClusterResources(ClusterInfo clusterInfo) {
+        AccessTokenAuthentication authentication = new AccessTokenAuthentication(clusterInfo.token());
         try {
             ApiClient client = ClientBuilder.standard()
                     .setAuthentication(authentication)
-                    .setBasePath(cloudPassport.cloudApiHost())
+                    .setBasePath(clusterInfo.cloudApiHost())
                     .setVerifyingSsl(false)
                     .build();
             CoreV1Api coreV1Api = new CoreV1Api(client);
-            loadClusterResources(coreV1Api, cloudPassport);
+            loadClusterResources(coreV1Api, clusterInfo);
         } catch (RuntimeException | IOException e) {
-            Log.error("Can't load resources from cluster " + cloudPassport.name(), e);
+            Log.error("Can't load resources from cluster " + clusterInfo.name(), e);
         }
     }
 
     //for testing purposes
-    void loadClusterResources(CoreV1Api coreV1Api, CloudPassport cloudPassport) {
-        Log.info("Start Loading cluster resources for: " + cloudPassport.name());
-        Optional<Cluster> clusterOpt = clusterRepository.findByName(cloudPassport.name());
+    void loadClusterResources(CoreV1Api coreV1Api, ClusterInfo clusterInfo) {
+        Log.info("Start Loading cluster resources for: " + clusterInfo.name());
+        Optional<Cluster> clusterOpt = clusterRepository.findByName(clusterInfo.name());
         Cluster cluster = clusterOpt.orElse(null);
         if (cluster == null) {
-            cluster = new Cluster(cloudPassport.name());
-            Log.info("Cluster " + cloudPassport.name() + " not found in db. Creating new one.");
+            cluster = new Cluster(clusterInfo.id(), clusterInfo.name());
+            Log.info("Cluster " + clusterInfo.name() + " not found in db. Creating new one.");
             clusterRepository.save(cluster);
         }
 
         //it is requirzed to set links to cluster only if it was saved to db. so need to invoke persist two
-        List<Environment> environments = loadEnvironments(coreV1Api, cluster, cloudPassport.environments(), cloudPassport.monitoringUrl());
+        List<Environment> environments = loadEnvironments(coreV1Api, cluster, clusterInfo.environments(), clusterInfo.monitoringUrl());
         cluster.setEnvironmentIds(environments.stream().map(Environment::getId).collect(Collectors.toList()));
         clusterRepository.save(cluster);
-        Log.info("Cluster " + cloudPassport.name() + " loaded successfully.");
+        Log.info("Cluster " + clusterInfo.name() + " loaded successfully.");
     }
 
     private List<Environment> loadEnvironments(CoreV1Api coreV1Api, Cluster cluster, Collection<CloudPassportEnvironment> environments, URI monitoringUri) {

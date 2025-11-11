@@ -6,7 +6,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.dto.CloudPassportDto;
+import org.qubership.colly.dto.ClusterDto;
+import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.EnvironmentDto;
 
 import java.util.HashMap;
@@ -31,9 +32,16 @@ public class EnvgeneInventoryServiceRest {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/internal/cluster-infos")
+    public List<InternalClusterInfoDto> getInternalClusterInfo() {
+        return dtoMapper.toClusterInfoDtos(collyStorage.getClusters());
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters")
-    public List<CloudPassportDto> getCloudPassports() {
-        return dtoMapper.toCloudPassportDtos(collyStorage.getClusters());
+    public List<ClusterDto> getClusters() {
+        return dtoMapper.toClusterDtos(collyStorage.getClusters());
     }
 
     @GET
@@ -46,12 +54,11 @@ public class EnvgeneInventoryServiceRest {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/clusters/{clusterName}/environments/{environmentName}")
-    public Response updateEnvironment(@PathParam("clusterName") String clusterName,
-                                      @PathParam("environmentName") String environmentName,
+    @Path("/environments/{environmentId}")
+    public Response updateEnvironment(@PathParam("environmentId") String id,
                                       Environment environment) {
         try {
-            EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(clusterName, environmentName, environment));
+            EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, environment));
             return Response.ok(updatedEnvironment).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.NOT_FOUND)
@@ -66,9 +73,9 @@ public class EnvgeneInventoryServiceRest {
 
 
     @POST
-    @Path("/tick")
+    @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
-    public void loadEnvironmentsManually() {
+    public void syncEnvironmentsWithGit() {
         collyStorage.executeTask();
     }
 

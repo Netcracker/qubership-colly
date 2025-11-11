@@ -16,7 +16,7 @@ public class DtoMapper {
                 environment.getName(),
                 environment.getDescription(),
                 environment.getNamespaces().stream().map(this::toDto).toList(),
-                new ClusterDto(environment.getId(), environment.getName()),
+                new ClusterDto(environment.getClusterId(), environment.getClusterName()),
                 environment.getOwners(),
                 environment.getLabels(),
                 environment.getTeams(),
@@ -31,14 +31,18 @@ public class DtoMapper {
         return new NamespaceDto(namespace.getUid(), namespace.getName());
     }
 
-    public CloudPassportDto toDto(Cluster cluster) {
-        return new CloudPassportDto(cluster.getId(),
+    public InternalClusterInfoDto toDto(Cluster cluster) {
+        return new InternalClusterInfoDto(cluster.getId(),
                 cluster.getName(),
                 cluster.getToken(),
                 cluster.getCloudApiHost(),
                 toLightDtos(cluster.getEnvironments()),
                 cluster.getMonitoringUrl()
         );
+    }
+
+    public ClusterDto toClusterDto(Cluster cluster) {
+        return new ClusterDto(cluster.getId(), cluster.getName());
     }
 
     private List<LightEnvironmentDto> toLightDtos(List<Environment> environments) {
@@ -51,12 +55,16 @@ public class DtoMapper {
                 environment.getNamespaces().stream().map(this::toDto).toList());
     }
 
-    public List<CloudPassportDto> toCloudPassportDtos(List<? extends Cluster> clusters) {
+    public List<InternalClusterInfoDto> toClusterInfoDtos(List<? extends Cluster> clusters) {
         return clusters.stream().map(this::toDto).toList();
     }
 
     public List<EnvironmentDto> toDtos(List<? extends Environment> environments) {
         return environments.stream().map(this::toDto).toList();
+    }
+
+    public List<ClusterDto> toClusterDtos(List<Cluster> clusters) {
+        return clusters.stream().map(this::toClusterDto).toList();
     }
 }
 

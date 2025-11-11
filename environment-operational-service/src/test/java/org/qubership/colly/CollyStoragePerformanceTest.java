@@ -5,7 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
-import org.qubership.colly.cloudpassport.CloudPassport;
+import org.qubership.colly.cloudpassport.ClusterInfo;
 
 import java.util.List;
 import java.util.Set;
@@ -34,11 +34,11 @@ class CollyStoragePerformanceTest {
         final int clusterCount = 10;
         final int simulatedWorkTimeMs = 200;
 
-        List<CloudPassport> cloudPassports = IntStream.range(0, clusterCount)
-                .mapToObj(i -> new CloudPassport("cluster" + i, "token" + i, "host" + i, Set.of(), null))
+        List<ClusterInfo> clusterInfos = IntStream.range(0, clusterCount)
+                .mapToObj(i -> new ClusterInfo("cluster" + i, "cluster" + i, "token" + i, "host" + i, Set.of(), null))
                 .toList();
 
-        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
 
         AtomicInteger executionCount = new AtomicInteger(0);
         doAnswer(invocation -> {
@@ -46,7 +46,7 @@ class CollyStoragePerformanceTest {
             // Simulate network/IO work
             Thread.sleep(simulatedWorkTimeMs);
             return null;
-        }).when(clusterResourcesLoader).loadClusterResources(any(CloudPassport.class));
+        }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
         long startTime = System.currentTimeMillis();
         collyStorage.executeTask();
@@ -77,11 +77,11 @@ class CollyStoragePerformanceTest {
         final int clusterCount = 50;
         final int simulatedWorkTimeMs = 100;
 
-        List<CloudPassport> cloudPassports = IntStream.range(0, clusterCount)
-                .mapToObj(i -> new CloudPassport("stress-cluster" + i, "token" + i, "host" + i, Set.of(), null))
+        List<ClusterInfo> clusterInfos = IntStream.range(0, clusterCount)
+                .mapToObj(i -> new ClusterInfo("stress-cluster" + i, "stress-cluster" + i, "token" + i, "host" + i, Set.of(), null))
                 .toList();
 
-        when(envgeneInventoryService.getCloudPassports()).thenReturn(cloudPassports);
+        when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
 
         AtomicInteger maxConcurrentExecutions = new AtomicInteger(0);
         AtomicInteger currentConcurrentExecutions = new AtomicInteger(0);
@@ -94,14 +94,14 @@ class CollyStoragePerformanceTest {
 
             currentConcurrentExecutions.decrementAndGet();
             return null;
-        }).when(clusterResourcesLoader).loadClusterResources(any(CloudPassport.class));
+        }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
         // Act
         long startTime = System.currentTimeMillis();
         collyStorage.executeTask();
         long endTime = System.currentTimeMillis();
 
-        verify(clusterResourcesLoader, times(clusterCount)).loadClusterResources(any(CloudPassport.class));
+        verify(clusterResourcesLoader, times(clusterCount)).loadClusterResources(any(ClusterInfo.class));
 
         // Should handle high concurrency
         assertTrue(maxConcurrentExecutions.get() >= Math.min(clusterCount, 5),

@@ -49,7 +49,7 @@ class EnvgeneInventoryServiceRestTest {
     @Disabled("Skip because auth was turned off for service")
     void load_clusters_without_auth() {
         given()
-                .when().get("/colly/v2/inventory-service/clusters")
+                .when().get("/colly/v2/inventory-service/internal/cluster-infos")
                 .then()
                 .statusCode(401);
     }
@@ -58,11 +58,11 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "test")
     void load_clusters() {
         given()
-                .when().post("/colly/v2/inventory-service/tick")
+                .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/v2/inventory-service/clusters")
+                .when().get("/colly/v2/inventory-service/internal/cluster-infos")
                 .then()
                 .statusCode(200)
                 .body("name", contains("test-cluster", "unreachable-cluster"))
@@ -77,7 +77,7 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "test")
     void load_environments() {
         given()
-                .when().post("/colly/v2/inventory-service/tick")
+                .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
                 .statusCode(204);
         given()
@@ -152,14 +152,14 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void update_environment_with_auth() {
         given()
-                .when().post("/colly/v2/inventory-service/tick")
+                .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
                 .statusCode(204);
 
         given()
                 .contentType("application/json")
                 .body("{\"id\":\"42\", \"name\":\"env-test\",\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
-                .when().put("/colly/v2/inventory-service/clusters/test-cluster/environments/env-test")
+                .when().put("/colly/v2/inventory-service/environments/42")
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("env-test"))

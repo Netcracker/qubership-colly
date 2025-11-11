@@ -1,7 +1,6 @@
 package org.qubership.colly;
 
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -52,27 +51,12 @@ public class ClusterResourcesRest {
     }
 
     @POST
-    @Path("/tick")
+    @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
     public void loadEnvironmentsManually() {
         collyStorage.executeTask();
     }
 
-
-    @DELETE
-    @Path("/environments/{envId}")
-    @RolesAllowed("admin")
-    public void deleteEnvironment(@PathParam("envId") String id) {
-        collyStorage.deleteEnvironment(id);
-    }
-
-    @POST
-    @Path("/clusters/{clusterName}")
-    @RolesAllowed("admin")
-    public void saveCluster(@PathParam("clusterName") String clusterName,
-                            @FormParam("description") String description) {
-        collyStorage.saveCluster(clusterName, description);
-    }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)

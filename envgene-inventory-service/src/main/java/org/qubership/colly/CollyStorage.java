@@ -121,19 +121,15 @@ public class CollyStorage {
         return clusterRepository.listAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
     }
 
-    public Environment updateEnvironment(String clusterName, String environmentName, Environment environmentUpdate) {
-        Log.info("Updating environment " + environmentName + " in cluster " + clusterName);
-        Cluster cluster = clusterRepository.findByName(clusterName);
-        if (cluster == null) {
-            throw new IllegalArgumentException("Cluster not found: " + clusterName);
-        }
+    public Environment updateEnvironment(String environmentId, Environment environmentUpdate) {
 
-        // Find environment using the new repository
-        Environment existingEnv = environmentRepository.findByNameAndClusterId(environmentName, cluster.getId());
+        // Find an environment using the new repository
+        Log.info("Updating environment with id= " + environmentId);
+        Environment existingEnv = environmentRepository.findById(environmentId);
         if (existingEnv == null) {
-            throw new IllegalArgumentException("Environment not found: " + environmentName + " in cluster: " + clusterName);
+            throw new IllegalArgumentException("Environment with id= " + environmentId + " not found ");
         }
-
+        Cluster cluster = clusterRepository.findById(existingEnv.getClusterId());
         Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
         existingEnv.setOwners(updatedEnvironment.getOwners());
         existingEnv.setDescription(updatedEnvironment.getDescription());
