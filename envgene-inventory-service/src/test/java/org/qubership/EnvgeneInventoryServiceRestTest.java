@@ -67,6 +67,26 @@ class EnvgeneInventoryServiceRestTest {
                 .statusCode(200)
                 .body("name", contains("test-cluster", "unreachable-cluster"))
                 .body("environments.flatten()", containsInAnyOrder(
+                        hasEntry("name", "env-test"),
+                        hasEntry("name", "env-metadata-test"),
+                        hasEntry("name", "env-1")
+                ));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void load_environments() {
+        given()
+                .when().post("/colly/v2/inventory-service/tick")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("id", everyItem(notNullValue()))
+                .body("namespaces", everyItem(notNullValue()))
+                .body(".", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "env-test"),
                                 hasEntry("description", "some env for tests"),
@@ -88,22 +108,8 @@ class EnvgeneInventoryServiceRestTest {
                                 hasEntry("description", "some env for tests")
                         )
                 ))
-                .body("environments.flatten().find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
-                .body("environments.flatten().find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
-    }
-
-    @Test
-    @TestSecurity(user = "test")
-    void load_environments() {
-        given()
-                .when().post("/colly/v2/inventory-service/tick")
-                .then()
-                .statusCode(204);
-        given()
-                .when().get("/colly/v2/inventory-service/environments")
-                .then()
-                .statusCode(200)
-                .body("name", containsInAnyOrder("env-test", "env-metadata-test", "env-1"));
+                .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
+                .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
     }
 
 
@@ -152,7 +158,7 @@ class EnvgeneInventoryServiceRestTest {
 
         given()
                 .contentType("application/json")
-                .body("{\"name\":\"env-test\",\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
+                .body("{\"id\":\"42\", \"name\":\"env-test\",\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
                 .when().put("/colly/v2/inventory-service/clusters/test-cluster/environments/env-test")
                 .then()
                 .statusCode(200)
@@ -162,16 +168,16 @@ class EnvgeneInventoryServiceRestTest {
                 .body("labels", contains("test", "test2"));
 
         given()
-                .when().get("/colly/v2/inventory-service/clusters")
+                .when().get("/colly/v2/inventory-service/environments")
                 .then()
                 .statusCode(200)
-                .body("environments.flatten()", hasItem(
+                .body("flatten()", hasItem(
                         allOf(
                                 hasEntry("name", "env-test"),
                                 hasEntry("description", "Updated description")
                         )
                 ))
-                .body("environments.flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"))
-                .body("environments.flatten().find { it.name == 'env-test' }.owners", contains("new-owner"));
+                .body("flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"))
+                .body("flatten().find { it.name == 'env-test' }.owners", contains("new-owner"));
     }
 }

@@ -11,7 +11,7 @@ public class Cluster {
     private String name;
     private String token;
     private String cloudApiHost;
-    private URI monitoringUrl;
+    private String monitoringUrl;
     private List<Environment> environments;
     private String description;
     private GitInfo gitInfo;
@@ -64,11 +64,11 @@ public class Cluster {
         this.cloudApiHost = cloudApiHost;
     }
 
-    public URI getMonitoringUrl() {
+    public String getMonitoringUrl() {
         return monitoringUrl;
     }
 
-    public void setMonitoringUrl(URI monitoringUrl) {
+    public void setMonitoringUrl(String monitoringUrl) {
         this.monitoringUrl = monitoringUrl;
     }
 

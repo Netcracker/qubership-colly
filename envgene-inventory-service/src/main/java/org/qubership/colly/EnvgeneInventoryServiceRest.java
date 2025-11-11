@@ -5,8 +5,9 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.dto.CloudPassportDto;
+import org.qubership.colly.dto.EnvironmentDto;
 
 import java.util.HashMap;
 import java.util.List;
@@ -17,26 +18,29 @@ public class EnvgeneInventoryServiceRest {
 
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
+    private final DtoMapper dtoMapper;
 
     @Inject
     public EnvgeneInventoryServiceRest(CollyStorage collyStorage,
-                                       SecurityIdentity securityIdentity) {
+                                       SecurityIdentity securityIdentity,
+                                       DtoMapper dtoMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
+        this.dtoMapper = dtoMapper;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters")
-    public List<Cluster> getClusters() {
-        return collyStorage.getClusters();
+    public List<CloudPassportDto> getCloudPassports() {
+        return dtoMapper.toCloudPassportDtos(collyStorage.getClusters());
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
-    public List<Environment> getEnvironments() {
-        return collyStorage.getEnvironments();
+    public List<EnvironmentDto> getEnvironments() {
+        return dtoMapper.toDtos(collyStorage.getEnvironments());
     }
 
     @PUT
@@ -47,7 +51,7 @@ public class EnvgeneInventoryServiceRest {
                                       @PathParam("environmentName") String environmentName,
                                       Environment environment) {
         try {
-            Environment updatedEnvironment = collyStorage.updateEnvironment(clusterName, environmentName, environment);
+            EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(clusterName, environmentName, environment));
             return Response.ok(updatedEnvironment).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.NOT_FOUND)
