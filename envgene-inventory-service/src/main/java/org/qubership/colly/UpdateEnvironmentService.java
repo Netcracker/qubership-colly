@@ -106,7 +106,7 @@ public class UpdateEnvironmentService {
     }
 
     private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
-        if (value == null) {
+        if (value == null || value.isEmpty()) {
             deleteYamlField(yamlPath, yamlFieldPath);
             return;
         }

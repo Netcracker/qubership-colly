@@ -186,4 +186,62 @@ class EnvgeneInventoryServiceRestTest {
                 .body("flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"))
                 .body("flatten().find { it.name == 'env-test' }.owners", contains("new-owner"));
     }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_with_empty_fields() {
+        // Setup: sync to get env-metadata-test which has expirationDate = "2025-12-31"
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        // Verify initial state
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == 'env-metadata-test' }.description", equalTo("description from metadata"))
+                .body("find { it.name == 'env-metadata-test' }.labels", contains("label1", "label2"))
+                .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
+                .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
+                .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
+                .body("find { it.name == 'env-metadata-test' }.role", equalTo("QA"))
+                .body("find { it.name == 'env-metadata-test' }.expirationDate", equalTo("2025-12-31"))
+                .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
+
+
+        // Also test clearing owners, expiration date with empty values
+        given()
+                .contentType("application/json")
+                .body("{\"description\":\"\"," +
+                        "\"labels\":[], " +
+                        "\"teams\": []," +
+                        "\"status\": null," +
+                        "\"type\": null," +
+                        "\"role\": \"\"," +
+                        "\"owners\": [], " +
+                        "\"expirationDate\": \"\"}")
+                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(200);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == 'env-metadata-test' }.description", equalTo("")) //todo
+                .body("find { it.name == 'env-metadata-test' }.labels", emptyIterable())
+                .body("find { it.name == 'env-metadata-test' }.teams", emptyIterable())
+                .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
+                .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
+                .body("find { it.name == 'env-metadata-test' }.role", equalTo("")) //todo
+                .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
+                .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
+    }
 }

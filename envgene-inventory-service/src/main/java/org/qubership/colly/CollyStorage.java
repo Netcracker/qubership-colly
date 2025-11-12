@@ -136,7 +136,16 @@ public class CollyStorage {
         updateDto.labels().ifPresent(existingEnv::setLabels);
         updateDto.teams().ifPresent(existingEnv::setTeams);
         updateDto.status().ifPresent(existingEnv::setStatus);
-        updateDto.expirationDate().ifPresent(existingEnv::setExpirationDate);
+
+        // Special handling for expirationDate: empty string means clear (set to null)
+        updateDto.expirationDate().ifPresent(dateStr -> {
+            if (dateStr.isEmpty()) {
+                existingEnv.setExpirationDate(null);
+            } else {
+                existingEnv.setExpirationDate(java.time.LocalDate.parse(dateStr));
+            }
+        });
+
         updateDto.type().ifPresent(existingEnv::setType);
         updateDto.role().ifPresent(existingEnv::setRole);
 

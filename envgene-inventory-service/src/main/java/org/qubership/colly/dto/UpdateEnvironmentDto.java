@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +12,11 @@ import java.util.Optional;
  * Fields are wrapped in Optional to support partial updates:
  * - Optional.empty() = field not provided OR field is null (don't update)
  * - Optional.of(value) = field should be updated to this value
+ *
+ * Special handling for expirationDate:
+ * - Optional.empty() = don't update
+ * - Optional.of("") = clear the field (set to null)
+ * - Optional.of("2025-12-31") = set to this date
  *
  * Note: Jackson cannot distinguish between absent fields and explicit null values.
  */
@@ -23,7 +27,7 @@ public record UpdateEnvironmentDto(
         Optional<List<String>> labels,
         Optional<List<String>> teams,
         Optional<EnvironmentStatus> status,
-        Optional<LocalDate> expirationDate,
+        Optional<String> expirationDate,
         Optional<EnvironmentType> type,
         Optional<String> role
 ) {
