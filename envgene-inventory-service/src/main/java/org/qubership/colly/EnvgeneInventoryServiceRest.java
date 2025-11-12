@@ -5,10 +5,10 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.ClusterDto;
 import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.EnvironmentDto;
+import org.qubership.colly.dto.UpdateEnvironmentDto;
 
 import java.util.HashMap;
 import java.util.List;
@@ -51,14 +51,14 @@ public class EnvgeneInventoryServiceRest {
         return dtoMapper.toDtos(collyStorage.getEnvironments());
     }
 
-    @PUT
+    @PATCH
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments/{environmentId}")
-    public Response updateEnvironment(@PathParam("environmentId") String id,
-                                      Environment environment) {
+    public Response patchEnvironment(@PathParam("environmentId") String id,
+                                     UpdateEnvironmentDto updateDto) {
         try {
-            EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, environment));
+            EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, updateDto));
             return Response.ok(updatedEnvironment).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.NOT_FOUND)

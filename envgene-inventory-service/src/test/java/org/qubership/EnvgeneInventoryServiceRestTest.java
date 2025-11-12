@@ -4,11 +4,14 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import jakarta.inject.Inject;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.GitService;
+import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.data.Environment;
 
 import java.io.File;
 
@@ -25,6 +28,9 @@ class EnvgeneInventoryServiceRestTest {
 
     @InjectMock
     GitService gitService;
+
+    @Inject
+    EnvironmentRepository environmentRepository;
 
     @BeforeEach
     void setUp() {
@@ -155,11 +161,11 @@ class EnvgeneInventoryServiceRestTest {
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
                 .statusCode(204);
-
+        Environment environment = environmentRepository.listAll().stream().filter(e -> e.getName().equals("env-test")).findFirst().orElseThrow();
         given()
                 .contentType("application/json")
-                .body("{\"id\":\"42\", \"name\":\"env-test\",\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
-                .when().put("/colly/v2/inventory-service/environments/42")
+                .body("{\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
+                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("env-test"))

@@ -12,6 +12,7 @@ import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
+import org.qubership.colly.dto.UpdateEnvironmentDto;
 
 import java.util.Comparator;
 import java.util.List;
@@ -121,30 +122,33 @@ public class CollyStorage {
         return clusterRepository.listAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
     }
 
-    public Environment updateEnvironment(String environmentId, Environment environmentUpdate) {
-
-        // Find an environment using the new repository
+    public Environment updateEnvironment(String environmentId, UpdateEnvironmentDto updateDto) {
+        // Find existing environment
         Log.info("Updating environment with id= " + environmentId);
         Environment existingEnv = environmentRepository.findById(environmentId);
         if (existingEnv == null) {
             throw new IllegalArgumentException("Environment with id= " + environmentId + " not found ");
         }
+
+        // Apply partial updates to existing environment (only update provided fields)
+        updateDto.description().ifPresent(existingEnv::setDescription);
+        updateDto.owners().ifPresent(existingEnv::setOwners);
+        updateDto.labels().ifPresent(existingEnv::setLabels);
+        updateDto.teams().ifPresent(existingEnv::setTeams);
+        updateDto.status().ifPresent(existingEnv::setStatus);
+        updateDto.expirationDate().ifPresent(existingEnv::setExpirationDate);
+        updateDto.type().ifPresent(existingEnv::setType);
+        updateDto.role().ifPresent(existingEnv::setRole);
+
+        // Update YAML files in Git with the updated environment
         Cluster cluster = clusterRepository.findById(existingEnv.getClusterId());
-        Environment updatedEnvironment = updateEnvironmentService.updateEnvironment(cluster, environmentUpdate);
-        existingEnv.setOwners(updatedEnvironment.getOwners());
-        existingEnv.setDescription(updatedEnvironment.getDescription());
-        existingEnv.setLabels(updatedEnvironment.getLabels());
-        existingEnv.setTeams(updatedEnvironment.getTeams());
-        existingEnv.setStatus(updatedEnvironment.getStatus());
-        existingEnv.setExpirationDate(updatedEnvironment.getExpirationDate());
-        existingEnv.setType(updatedEnvironment.getType());
-        existingEnv.setRole(updatedEnvironment.getRole());
+        updateEnvironmentService.updateEnvironment(cluster, existingEnv);
 
         // Update environment in cluster for backward compatibility
         cluster.getEnvironments().removeIf(env -> env.getName().equals(existingEnv.getName()));
         cluster.addEnvironment(existingEnv);
 
-        // Update both cluster (for backward compatibility) and environment repository
+        // Persist changes
         clusterRepository.persist(cluster);
         environmentRepository.persist(existingEnv);
 
