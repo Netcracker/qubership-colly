@@ -3,7 +3,6 @@ package org.qubership;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
-import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,14 +10,14 @@ import org.mockito.Mockito;
 import org.qubership.colly.EnvgeneInventoryServiceRest;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.ClusterInfo;
-import org.qubership.colly.db.repository.EnvironmentRepository;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 // @TestTransaction - removed for Redis
@@ -134,7 +133,6 @@ class ClusterResourcesRestTest {
                 .statusCode(401)
                 .body("authenticated", equalTo(false));
     }
-
 
 
 }
