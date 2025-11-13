@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class ClusterRepository {
 
     private static final String CLUSTER_KEY_PREFIX = "inventory:cluster:";
-    private static final String CLUSTER_NAME_INDEX_PREFIX = "inventory:cluster:name:";
+    private static final String CLUSTER_NAME_INDEX_PREFIX = "inventory:idx:clusters:by-name:";
     @Inject
     RedisDataSource redisDataSource;
     @Inject
@@ -78,17 +78,9 @@ public class ClusterRepository {
     public List<Cluster> listAll() {
         try {
             List<String> keys = keyCommands().keys(CLUSTER_KEY_PREFIX + "*");
+            Log.info("Found " + keys.size() + " cluster keys: " + keys);
             return keys.stream()
-                    .filter(key -> !key.startsWith(CLUSTER_NAME_INDEX_PREFIX)) // Skip name index keys
-                    .map(key -> {
-                        try {
-                            return hashCommands().hget(key, "data");
-                        } catch (Exception e) {
-                            //todo
-                            Log.error("Unexpected behavior. Need research" + e);// Skip keys that are not hash type (might be old data or indexes)
-                            return null;
-                        }
-                    })
+                    .map(key -> hashCommands().hget(key, "data"))
                     .filter(Objects::nonNull)
                     .map(json -> {
                         try {

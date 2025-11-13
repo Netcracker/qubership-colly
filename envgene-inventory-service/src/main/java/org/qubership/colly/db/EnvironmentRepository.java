@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 public class EnvironmentRepository {
 
     private static final String ENVIRONMENT_KEY_PREFIX = "inventory:environment:";
-    private static final String CLUSTER_ENVIRONMENTS_INDEX_PREFIX = "inventory:cluster:environments:";
-    private static final String ALL_ENVIRONMENTS_SET = "inventory:environments:all";
+    private static final String CLUSTER_ENVIRONMENTS_INDEX_PREFIX = "inventory:idx:environments:by-cluster:";
+    private static final String ALL_ENVIRONMENTS_SET = "inventory:idx:environments:all";
 
     @Inject
     RedisDataSource redisDataSource;
