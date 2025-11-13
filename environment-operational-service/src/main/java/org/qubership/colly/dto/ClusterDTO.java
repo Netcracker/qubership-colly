@@ -1,5 +1,5 @@
 package org.qubership.colly.dto;
 
 
-public record ClusterDTO(String name, String description, boolean synced) {
+public record ClusterDTO(String id, String name, boolean synced) {
 }

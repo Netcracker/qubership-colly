@@ -32,7 +32,7 @@ public class EnvironmentMapper {
     /**
      * Convert Environment entity to DTO
      */
-    public EnvironmentDTO toDTO(Environment entity, CloudPassportEnvironment cloudPassportEnvironment) {
+    public EnvironmentDTO toDTO(Environment entity) {
         if (entity == null) {
             return null;
         }
@@ -42,14 +42,6 @@ public class EnvironmentMapper {
                 entity.getName(),
                 toNamespaceDTOs(entity.getNamespaceIds()),
                 clusterMapper.toDTO(clusterRepository.findByName(entity.getClusterId()).orElse(null)),
-                cloudPassportEnvironment.owners(),
-                cloudPassportEnvironment.teams(),
-                cloudPassportEnvironment.status(),
-                cloudPassportEnvironment.expirationDate(),
-                cloudPassportEnvironment.environmentType(),
-                cloudPassportEnvironment.role(),
-                cloudPassportEnvironment.labels(),
-                cloudPassportEnvironment.description(),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),
                 entity.getMonitoringData()
@@ -63,7 +55,7 @@ public class EnvironmentMapper {
         return entities.stream()
                 .map(env -> {
                     Environment environment = environmentRepository.findById(env.name()).orElse(null);
-                    return toDTO(environment, env);
+                    return toDTO(environment);
                 })
                 .toList();
     }
@@ -76,7 +68,7 @@ public class EnvironmentMapper {
         List<NamespaceDTO> namespaceDTOs = new ArrayList<>();
         for (String nsId : namespaceIds) {
             namespaceRepository.findByUid(nsId).ifPresent(ns ->
-                    namespaceDTOs.add(new NamespaceDTO(ns.getUid(), ns.getName(), ns.getExistsInK8s()))
+                    namespaceDTOs.add(new NamespaceDTO(ns.getId(), ns.getName(), ns.getExistsInK8s()))
             );
         }
         return namespaceDTOs;

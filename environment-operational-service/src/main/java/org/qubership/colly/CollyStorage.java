@@ -6,7 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.qubership.colly.cloudpassport.CloudPassport;
+import org.qubership.colly.cloudpassport.ClusterInfo;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.db.data.*;
 import org.qubership.colly.db.repository.ClusterRepository;
@@ -14,7 +14,6 @@ import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.EnvironmentMapper;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -52,11 +51,11 @@ public class CollyStorage {
     void executeTask() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();
-        List<CloudPassport> cloudPassports = envgeneInventoryServiceRest.getCloudPassports();
-        List<String> clusterNames = cloudPassports.stream().map(CloudPassport::name).toList();
+        List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
+        List<String> clusterNames = clusterInfos.stream().map(ClusterInfo::name).toList();
         Log.info("Cloud passports loaded for clusters: " + clusterNames);
 
-        List<CompletableFuture<Void>> futures = cloudPassports.stream()
+        List<CompletableFuture<Void>> futures = clusterInfos.stream()
                 .map(cloudPassport -> CompletableFuture.runAsync(
                         () -> {
                             Log.info("Starting to load resources for cluster: " + cloudPassport.name());
@@ -79,23 +78,23 @@ public class CollyStorage {
     }
 
     public List<EnvironmentDTO> getEnvironments() {
-        List<CloudPassport> cloudPassports = envgeneInventoryServiceRest.getCloudPassports();
+        List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
 
         List<Environment> operationalEnvironments = environmentRepository.findAll();
         List<EnvironmentDTO> result = new ArrayList<>();
 
-        for (CloudPassport cloudPassport : cloudPassports) {
-            for (CloudPassportEnvironment inventoryEnv : cloudPassport.environments()) {
+        for (ClusterInfo clusterInfo : clusterInfos) {
+            for (CloudPassportEnvironment inventoryEnv : clusterInfo.environments()) {
                 Environment operationalEnv = operationalEnvironments.stream()
                         .filter(env -> env.getName().equals(inventoryEnv.name()) &&
-                                cloudPassport.name().equals(env.getClusterId()))
+                                clusterInfo.name().equals(env.getClusterId()))
                         .findFirst()
                         .orElse(null);
                 if (operationalEnv == null) {
-                    Log.error("Inconsistent state: envgene-inventory-storage has environment: " + inventoryEnv.name() + " in cluster: " + cloudPassport.name() + " but environment-operational-service does not have it");
+                    Log.error("Inconsistent state: envgene-inventory-storage has environment: " + inventoryEnv.name() + " in cluster: " + clusterInfo.name() + " but environment-operational-service does not have it");
                     continue;
                 }
-                result.add(environmentMapper.toDTO(operationalEnv, inventoryEnv));
+                result.add(environmentMapper.toDTO(operationalEnv));
             }
         }
 
@@ -109,38 +108,4 @@ public class CollyStorage {
         return clusterRepository.findAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
     }
 
-
-    //@Transactional - removed for Redis
-    public void saveEnvironment(String id, String name, List<String> owner, String description, String status,
-                                List<String> labels, String type, List<String> teams, LocalDate expirationDate, String role) {
-        Environment environment = environmentRepository.findById(id).orElse(null);
-        if (environment == null) {
-            throw new IllegalArgumentException("Environment with id " + id + " not found");
-        }
-        Log.info("Saving environment with id " + id + " name " + name + " owners " + owner + " description " + description + " status " + status + " labels " + labels + " date " + expirationDate);
-        envgeneInventoryServiceRest.updateEnvironment(environment.getClusterId(), environment.getName(),
-                new CloudPassportEnvironment(environment.getName(), description, null, owner, labels, teams, status, expirationDate, type, role));
-        Log.info("Successfully updated environment in inventory service: " + environment.getName());
-    }
-
-    //@Transactional - removed for Redis
-    public void saveCluster(String clusterName, String description) {
-        Cluster cluster = clusterRepository.findByName(clusterName).orElse(null);
-        if (cluster == null) {
-            throw new IllegalArgumentException("Cluster with name " + clusterName + " not found");
-        }
-        Log.info("Saving cluster with name " + clusterName + " description " + description);
-        cluster.setDescription(description);
-
-        clusterRepository.save(cluster);
-    }
-
-    //@Transactional - removed for Redis
-    //todo update inventory service first then remove from cache
-    public void deleteEnvironment(String id) {
-        if (environmentRepository.findById(id).isEmpty()) {
-            throw new IllegalArgumentException("Environment with id " + id + " not found");
-        }
-        environmentRepository.delete(id);
-    }
 }

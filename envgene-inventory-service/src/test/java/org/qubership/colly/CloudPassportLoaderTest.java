@@ -60,7 +60,7 @@ class CloudPassportLoaderTest {
                             LocalDate.of(2025, 12, 31),
                             EnvironmentType.DESIGN_TIME,
                             "QA")),
-            URI.create("http://localhost:8428"),
+            "http://localhost:8428",
             new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
@@ -76,7 +76,7 @@ class CloudPassportLoaderTest {
                     null,
                     EnvironmentType.ENVIRONMENT,
                     null)),
-            URI.create("http://vmsingle-k8s.victoria:8429"),
+            "http://vmsingle-k8s.victoria:8429",
             new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")
     );
 

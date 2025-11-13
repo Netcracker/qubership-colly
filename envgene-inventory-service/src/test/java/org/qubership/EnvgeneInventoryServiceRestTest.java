@@ -4,11 +4,14 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import jakarta.inject.Inject;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.GitService;
+import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.data.Environment;
 
 import java.io.File;
 
@@ -26,6 +29,9 @@ class EnvgeneInventoryServiceRestTest {
     @InjectMock
     GitService gitService;
 
+    @Inject
+    EnvironmentRepository environmentRepository;
+
     @BeforeEach
     void setUp() {
         doAnswer(invocation -> {
@@ -39,7 +45,7 @@ class EnvgeneInventoryServiceRestTest {
     @Disabled("Skip because auth was turned off for service")
     void load_environments_without_auth() {
         given()
-                .when().get("/colly/envgene-inventory-service/environments")
+                .when().get("/colly/v2/inventory-service/environments")
                 .then()
                 .statusCode(401);
     }
@@ -49,7 +55,7 @@ class EnvgeneInventoryServiceRestTest {
     @Disabled("Skip because auth was turned off for service")
     void load_clusters_without_auth() {
         given()
-                .when().get("/colly/envgene-inventory-service/clusters")
+                .when().get("/colly/v2/inventory-service/internal/cluster-infos")
                 .then()
                 .statusCode(401);
     }
@@ -58,15 +64,35 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "test")
     void load_clusters() {
         given()
-                .when().post("/colly/envgene-inventory-service/tick")
+                .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
                 .statusCode(204);
         given()
-                .when().get("/colly/envgene-inventory-service/clusters")
+                .when().get("/colly/v2/inventory-service/internal/cluster-infos")
                 .then()
                 .statusCode(200)
                 .body("name", contains("test-cluster", "unreachable-cluster"))
                 .body("environments.flatten()", containsInAnyOrder(
+                        hasEntry("name", "env-test"),
+                        hasEntry("name", "env-metadata-test"),
+                        hasEntry("name", "env-1")
+                ));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void load_environments() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("id", everyItem(notNullValue()))
+                .body("namespaces", everyItem(notNullValue()))
+                .body(".", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "env-test"),
                                 hasEntry("description", "some env for tests"),
@@ -88,8 +114,8 @@ class EnvgeneInventoryServiceRestTest {
                                 hasEntry("description", "some env for tests")
                         )
                 ))
-                .body("environments.flatten().find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
-                .body("environments.flatten().find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
+                .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
+                .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
     }
 
 
@@ -97,7 +123,7 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "test")
     void get_authStatus_for_regular_user() {
         given()
-                .when().get("/colly/envgene-inventory-service/auth-status")
+                .when().get("/colly/v2/inventory-service/auth-status")
                 .then()
                 .statusCode(200)
                 .body("username", equalTo("test"))
@@ -109,7 +135,7 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void get_authStatus_for_admin() {
         given()
-                .when().get("/colly/envgene-inventory-service/auth-status")
+                .when().get("/colly/v2/inventory-service/auth-status")
                 .then()
                 .statusCode(200)
                 .body("username", equalTo("admin"))
@@ -121,7 +147,7 @@ class EnvgeneInventoryServiceRestTest {
     @Test
     void get_authStatus_without_auth() {
         given()
-                .when().get("/colly/envgene-inventory-service/auth-status")
+                .when().get("/colly/v2/inventory-service/auth-status")
                 .then()
                 .statusCode(401)
                 .body("authenticated", equalTo(false));
@@ -132,14 +158,14 @@ class EnvgeneInventoryServiceRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void update_environment_with_auth() {
         given()
-                .when().post("/colly/envgene-inventory-service/tick")
+                .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
                 .statusCode(204);
-
+        Environment environment = environmentRepository.listAll().stream().filter(e -> e.getName().equals("env-test")).findFirst().orElseThrow();
         given()
                 .contentType("application/json")
-                .body("{\"name\":\"env-test\",\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
-                .when().put("/colly/envgene-inventory-service/clusters/test-cluster/environments/env-test")
+                .body("{\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
+                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
                 .then()
                 .statusCode(200)
                 .body("name", equalTo("env-test"))
@@ -148,16 +174,74 @@ class EnvgeneInventoryServiceRestTest {
                 .body("labels", contains("test", "test2"));
 
         given()
-                .when().get("/colly/envgene-inventory-service/clusters")
+                .when().get("/colly/v2/inventory-service/environments")
                 .then()
                 .statusCode(200)
-                .body("environments.flatten()", hasItem(
+                .body("flatten()", hasItem(
                         allOf(
                                 hasEntry("name", "env-test"),
                                 hasEntry("description", "Updated description")
                         )
                 ))
-                .body("environments.flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"))
-                .body("environments.flatten().find { it.name == 'env-test' }.owners", contains("new-owner"));
+                .body("flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"))
+                .body("flatten().find { it.name == 'env-test' }.owners", contains("new-owner"));
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_with_empty_fields() {
+        // Setup: sync to get env-metadata-test which has expirationDate = "2025-12-31"
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        // Verify initial state
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == 'env-metadata-test' }.description", equalTo("description from metadata"))
+                .body("find { it.name == 'env-metadata-test' }.labels", contains("label1", "label2"))
+                .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
+                .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
+                .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
+                .body("find { it.name == 'env-metadata-test' }.role", equalTo("QA"))
+                .body("find { it.name == 'env-metadata-test' }.expirationDate", equalTo("2025-12-31"))
+                .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
+
+
+        // Also test clearing owners, expiration date with empty values
+        given()
+                .contentType("application/json")
+                .body("{\"description\":\"\"," +
+                        "\"labels\":[], " +
+                        "\"teams\": []," +
+                        "\"status\": null," +
+                        "\"type\": null," +
+                        "\"role\": \"\"," +
+                        "\"owners\": [], " +
+                        "\"expirationDate\": \"\"}")
+                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(200);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == 'env-metadata-test' }.description", equalTo(""))
+                .body("find { it.name == 'env-metadata-test' }.labels", emptyIterable())
+                .body("find { it.name == 'env-metadata-test' }.teams", emptyIterable())
+                .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
+                .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
+                .body("find { it.name == 'env-metadata-test' }.role", equalTo(""))
+                .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
+                .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
     }
 }

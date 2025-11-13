@@ -1,8 +1,6 @@
 package org.qubership.colly;
 
-import io.quarkus.logging.Log;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -14,12 +12,11 @@ import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.ClusterMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Path("/colly/environment-operational-service")
+@Path("/colly/v2/operational-service")
 public class ClusterResourcesRest {
 
     private final CollyStorage collyStorage;
@@ -54,47 +51,12 @@ public class ClusterResourcesRest {
     }
 
     @POST
-    @Path("/tick")
+    @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
     public void loadEnvironmentsManually() {
         collyStorage.executeTask();
     }
 
-    @POST
-    @Path("/environments/{envId}")
-    @RolesAllowed("admin")
-    public void saveEnvironment(@PathParam("envId") String id,
-                                @FormParam("name") String name,
-                                @FormParam("owners") List<String> owner,
-                                @FormParam("description") String description,
-                                @FormParam("status") String status,
-                                @FormParam("labels") List<String> labels,
-                                @FormParam("type") String type,
-                                @FormParam("teams") List<String> teams,
-                                @FormParam("role") String role,
-                                @FormParam("expirationDate") String expirationDate) {
-        LocalDate date = null;
-        if (expirationDate != null && !expirationDate.isEmpty()) {
-            date = LocalDate.parse(expirationDate);
-        }
-        Log.info("Saving environment " + name + " in cluster " + id + " ownersCount=" + owner.size());
-        collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, teams, date, role);
-    }
-
-    @DELETE
-    @Path("/environments/{envId}")
-    @RolesAllowed("admin")
-    public void deleteEnvironment(@PathParam("envId") String id) {
-        collyStorage.deleteEnvironment(id);
-    }
-
-    @POST
-    @Path("/clusters/{clusterName}")
-    @RolesAllowed("admin")
-    public void saveCluster(@PathParam("clusterName") String clusterName,
-                            @FormParam("description") String description) {
-        collyStorage.saveCluster(clusterName, description);
-    }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)

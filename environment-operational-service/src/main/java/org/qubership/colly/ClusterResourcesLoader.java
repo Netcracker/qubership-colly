@@ -10,7 +10,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.qubership.colly.cloudpassport.CloudPassport;
+import org.qubership.colly.cloudpassport.ClusterInfo;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.repository.ClusterRepository;
@@ -56,37 +56,37 @@ public class ClusterResourcesLoader {
 
 
     //@Transactional - removed for Redis
-    public void loadClusterResources(CloudPassport cloudPassport) {
-        AccessTokenAuthentication authentication = new AccessTokenAuthentication(cloudPassport.token());
+    public void loadClusterResources(ClusterInfo clusterInfo) {
+        AccessTokenAuthentication authentication = new AccessTokenAuthentication(clusterInfo.token());
         try {
             ApiClient client = ClientBuilder.standard()
                     .setAuthentication(authentication)
-                    .setBasePath(cloudPassport.cloudApiHost())
+                    .setBasePath(clusterInfo.cloudApiHost())
                     .setVerifyingSsl(false)
                     .build();
             CoreV1Api coreV1Api = new CoreV1Api(client);
-            loadClusterResources(coreV1Api, cloudPassport);
+            loadClusterResources(coreV1Api, clusterInfo);
         } catch (RuntimeException | IOException e) {
-            Log.error("Can't load resources from cluster " + cloudPassport.name(), e);
+            Log.error("Can't load resources from cluster " + clusterInfo.name(), e);
         }
     }
 
     //for testing purposes
-    void loadClusterResources(CoreV1Api coreV1Api, CloudPassport cloudPassport) {
-        Log.info("Start Loading cluster resources for: " + cloudPassport.name());
-        Optional<Cluster> clusterOpt = clusterRepository.findByName(cloudPassport.name());
+    void loadClusterResources(CoreV1Api coreV1Api, ClusterInfo clusterInfo) {
+        Log.info("Start Loading cluster resources for: " + clusterInfo.name());
+        Optional<Cluster> clusterOpt = clusterRepository.findByName(clusterInfo.name());
         Cluster cluster = clusterOpt.orElse(null);
         if (cluster == null) {
-            cluster = new Cluster(cloudPassport.name());
-            Log.info("Cluster " + cloudPassport.name() + " not found in db. Creating new one.");
+            cluster = new Cluster(clusterInfo.id(), clusterInfo.name());
+            Log.info("Cluster " + clusterInfo.name() + " not found in db. Creating new one.");
             clusterRepository.save(cluster);
         }
 
         //it is requirzed to set links to cluster only if it was saved to db. so need to invoke persist two
-        List<Environment> environments = loadEnvironments(coreV1Api, cluster, cloudPassport.environments(), cloudPassport.monitoringUrl());
+        List<Environment> environments = loadEnvironments(coreV1Api, cluster, clusterInfo.environments(), clusterInfo.monitoringUrl());
         cluster.setEnvironmentIds(environments.stream().map(Environment::getId).collect(Collectors.toList()));
         clusterRepository.save(cluster);
-        Log.info("Cluster " + cloudPassport.name() + " loaded successfully.");
+        Log.info("Cluster " + clusterInfo.name() + " loaded successfully.");
     }
 
     private List<Environment> loadEnvironments(CoreV1Api coreV1Api, Cluster cluster, Collection<CloudPassportEnvironment> environments, URI monitoringUri) {
@@ -112,7 +112,7 @@ public class ClusterResourcesLoader {
                     .findFirst().orElse(null);
             Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName() + ". Env exists in db? " + (environment != null));
             if (environment == null) {
-                environment = new Environment(cloudPassportEnvironment.name());
+                environment = new Environment(cloudPassportEnvironment.id(), cloudPassportEnvironment.name());
                 environment.setClusterId(cluster.getName());
                 environmentRepository.save(environment);
                 Log.info("env created in db: " + environment.getName());
@@ -129,19 +129,10 @@ public class ClusterResourcesLoader {
                         .filter(ns -> cloudPassportNamespace.name().equals(ns.getName()))
                         .findFirst().orElse(null);
 
-                if (v1Namespace == null) {
-                    Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " is not found in cluster " + cluster.getName());
-                    if (namespace == null) {
-                        namespace = createNamespace(UUID.randomUUID().toString(), cluster, environment);
-                    }
-                    namespace.setExistsInK8s(false);
-                } else {
-                    if (namespace == null) {
-                        namespace = createNamespace(v1Namespace.getMetadata().getUid(), cluster, environment);
-                    }
-                    namespace.setExistsInK8s(true);
+                if (namespace == null) {
+                    namespace = createNamespace(cloudPassportNamespace, cluster, environment);
                 }
-                namespace.setName(cloudPassportNamespace.name());
+                namespace.setExistsInK8s(v1Namespace != null);
                 namespaceRepository.save(namespace);
                 if (!namespace.getExistsInK8s()) {
                     Log.warn("Namespace " + namespace.getName() + " does not exist in k8s. Skipping it.");
@@ -181,13 +172,14 @@ public class ClusterResourcesLoader {
         return envs;
     }
 
-    private Namespace createNamespace(String uuid, Cluster cluster, Environment environment) {
+    private Namespace createNamespace(CloudPassportNamespace cloudPassportNamespace, Cluster cluster, Environment environment) {
         Namespace namespace;
         namespace = new Namespace();
-        namespace.setUid(uuid);
+        namespace.setId(cloudPassportNamespace.id());
+        namespace.setName(cloudPassportNamespace.name());
         namespace.setClusterId(cluster.getName());
         namespace.setEnvironmentId(environment.getId());
-        environment.addNamespaceId(namespace.getUid());
+        environment.addNamespaceId(namespace.getId());
         return namespace;
     }
 

@@ -11,7 +11,6 @@ import org.qubership.colly.db.data.Environment;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -32,10 +31,6 @@ public class EnvironmentRepository {
     }
 
     public Environment save(Environment environment) {
-        if (environment.getId() == null) {
-            environment.setId(UUID.randomUUID().toString());
-        }
-
         try {
             String key = ENVIRONMENT_KEY_PREFIX + environment.getId();
             String json = objectMapper.writeValueAsString(environment);

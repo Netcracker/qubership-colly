@@ -2,9 +2,11 @@ package org.qubership.colly.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.logging.Log;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.hash.HashCommands;
 import io.quarkus.redis.datasource.keys.KeyCommands;
+import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.db.data.Cluster;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 public class ClusterRepository {
 
     private static final String CLUSTER_KEY_PREFIX = "inventory:cluster:";
+    private static final String CLUSTER_NAME_INDEX_PREFIX = "inventory:idx:clusters:by-name:";
     @Inject
     RedisDataSource redisDataSource;
     @Inject
@@ -32,6 +35,10 @@ public class ClusterRepository {
         return redisDataSource.key(String.class);
     }
 
+    private ValueCommands<String, String> valueCommands() {
+        return redisDataSource.value(String.class, String.class);
+    }
+
     public void persist(Cluster cluster) {
         if (cluster.getId() == null) {
             cluster.setId(UUID.randomUUID().toString());
@@ -41,6 +48,10 @@ public class ClusterRepository {
             String key = CLUSTER_KEY_PREFIX + cluster.getId();
             String json = objectMapper.writeValueAsString(cluster);
             hashCommands().hset(key, "data", json);
+
+            // Create name index for fast lookup
+            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + cluster.getName();
+            valueCommands().set(nameIndexKey, cluster.getId());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize cluster:" + cluster, e);
         }
@@ -67,6 +78,7 @@ public class ClusterRepository {
     public List<Cluster> listAll() {
         try {
             List<String> keys = keyCommands().keys(CLUSTER_KEY_PREFIX + "*");
+            Log.info("Found " + keys.size() + " cluster keys: " + keys);
             return keys.stream()
                     .map(key -> hashCommands().hget(key, "data"))
                     .filter(Objects::nonNull)
@@ -83,23 +95,17 @@ public class ClusterRepository {
         }
     }
 
-    public void delete(Cluster cluster) {
-        if (cluster.getId() != null) {
-            String key = CLUSTER_KEY_PREFIX + cluster.getId();
-            keyCommands().del(key);
-        }
-    }
-
-    public void deleteById(String id) {
-        String key = CLUSTER_KEY_PREFIX + id;
-        keyCommands().del(key);
-    }
-
     public Cluster findByName(String name) {
-        return listAll().stream()
-                .filter(cluster -> name.equals(cluster.getName()))
-                .findFirst()
-                .orElse(null);
+        try {
+            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + name;
+            String clusterId = valueCommands().get(nameIndexKey);
+            if (clusterId == null) {
+                return null;
+            }
+            return findById(clusterId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to find cluster by name: " + name, e);
+        }
     }
 
 }

@@ -1,7 +1,7 @@
 package org.qubership.colly.db.data;
 
 public class Namespace {
-    private String uid;
+    private String id;
     private String name;
     private String clusterId;
     private String environmentId;
@@ -15,12 +15,12 @@ public class Namespace {
         this.existsInK8s = existsInK8s;
     }
 
-    public String getUid() {
-        return uid;
+    public String getId() {
+        return id;
     }
 
-    public void setUid(String uid) {
-        this.uid = uid;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getName() {

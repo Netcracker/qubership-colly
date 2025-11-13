@@ -11,26 +11,37 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class Environment {
 
+    private String id;
     private String name;
+    private String clusterId;
+    private String clusterName;
     private List<String> owners;
     private List<String> teams;
     private String description;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expirationDate;
     private EnvironmentStatus status = EnvironmentStatus.FREE;
-
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
     private String role;
     private List<String> labels;
     private List<Namespace> namespaces;
 
 
-    public Environment(String name) {
+    public Environment(String id, String name) {
+        this.setId(id);
         this.setName(name);
         this.namespaces = new ArrayList<>();
     }
 
     public Environment() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public List<Namespace> getNamespaces() {
@@ -118,6 +129,22 @@ public class Environment {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getClusterId() {
+        return clusterId;
+    }
+
+    public void setClusterId(String clusterId) {
+        this.clusterId = clusterId;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 }
 

@@ -11,13 +11,13 @@ public class Environment {
     private String id;
     private String name;
     private Instant cleanInstallationDate;
-//    private EnvironmentType type = EnvironmentType.ENVIRONMENT;//todo discuss and remove
     private String clusterId;
     private Map<String, String> monitoringData;
     private String deploymentVersion;
     private List<String> namespaceIds;
 
-    public Environment(String name) {
+    public Environment(String id, String name) {
+        this.setId(id);
         this.setName(name);
         this.namespaceIds = new ArrayList<>();
     }
@@ -64,14 +64,6 @@ public class Environment {
     public void setName(String name) {
         this.name = name;
     }
-
-//    public EnvironmentType getType() {
-//        return type;
-//    }
-//
-//    public void setType(EnvironmentType type) {
-//        this.type = type;
-//    }
 
     public String getClusterId() {
         return clusterId;

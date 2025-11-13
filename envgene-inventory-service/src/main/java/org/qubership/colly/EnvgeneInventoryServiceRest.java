@@ -5,43 +5,60 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.dto.ClusterDto;
+import org.qubership.colly.dto.InternalClusterInfoDto;
+import org.qubership.colly.dto.EnvironmentDto;
+import org.qubership.colly.dto.PatchEnvironmentDto;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Path("/colly/envgene-inventory-service")
+@Path("/colly/v2/inventory-service")
 public class EnvgeneInventoryServiceRest {
 
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
+    private final DtoMapper dtoMapper;
 
     @Inject
     public EnvgeneInventoryServiceRest(CollyStorage collyStorage,
-                                       SecurityIdentity securityIdentity) {
+                                       SecurityIdentity securityIdentity,
+                                       DtoMapper dtoMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
+        this.dtoMapper = dtoMapper;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/internal/cluster-infos")
+    public List<InternalClusterInfoDto> getInternalClusterInfo() {
+        return dtoMapper.toClusterInfoDtos(collyStorage.getClusters());
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters")
-    public List<Cluster> getClusters() {
-        return collyStorage.getClusters();
+    public List<ClusterDto> getClusters() {
+        return dtoMapper.toClusterDtos(collyStorage.getClusters());
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments")
+    public List<EnvironmentDto> getEnvironments() {
+        return dtoMapper.toDtos(collyStorage.getEnvironments());
+    }
 
-    @PUT
+    @PATCH
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/clusters/{clusterName}/environments/{environmentName}")
-    public Response updateEnvironment(@PathParam("clusterName") String clusterName,
-                                      @PathParam("environmentName") String environmentName,
-                                      Environment environment) {
+    @Path("/environments/{environmentId}")
+    public Response patchEnvironment(@PathParam("environmentId") String id,
+                                     PatchEnvironmentDto updateDto) {
         try {
-            Environment updatedEnvironment = collyStorage.updateEnvironment(clusterName, environmentName, environment);
+            EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, updateDto));
             return Response.ok(updatedEnvironment).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.NOT_FOUND)
@@ -56,9 +73,9 @@ public class EnvgeneInventoryServiceRest {
 
 
     @POST
-    @Path("/tick")
+    @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
-    public void loadEnvironmentsManually() {
+    public void syncEnvironmentsWithGit() {
         collyStorage.executeTask();
     }
 
