@@ -8,7 +8,7 @@ import jakarta.ws.rs.core.Response;
 import org.qubership.colly.dto.ClusterDto;
 import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.EnvironmentDto;
-import org.qubership.colly.dto.UpdateEnvironmentDto;
+import org.qubership.colly.dto.PatchEnvironmentDto;
 
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +56,7 @@ public class EnvgeneInventoryServiceRest {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments/{environmentId}")
     public Response patchEnvironment(@PathParam("environmentId") String id,
-                                     UpdateEnvironmentDto updateDto) {
+                                     PatchEnvironmentDto updateDto) {
         try {
             EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, updateDto));
             return Response.ok(updatedEnvironment).build();

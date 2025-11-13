@@ -21,7 +21,7 @@ import java.util.Optional;
  * Note: Jackson cannot distinguish between absent fields and explicit null values.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record UpdateEnvironmentDto(
+public record PatchEnvironmentDto(
         Optional<String> description,
         Optional<List<String>> owners,
         Optional<List<String>> labels,

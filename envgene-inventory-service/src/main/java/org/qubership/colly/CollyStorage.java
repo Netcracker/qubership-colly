@@ -12,7 +12,7 @@ import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
-import org.qubership.colly.dto.UpdateEnvironmentDto;
+import org.qubership.colly.dto.PatchEnvironmentDto;
 
 import java.util.Comparator;
 import java.util.List;
@@ -122,7 +122,7 @@ public class CollyStorage {
         return clusterRepository.listAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
     }
 
-    public Environment updateEnvironment(String environmentId, UpdateEnvironmentDto updateDto) {
+    public Environment updateEnvironment(String environmentId, PatchEnvironmentDto updateDto) {
         // Find existing environment
         Log.info("Updating environment with id= " + environmentId);
         Environment existingEnv = environmentRepository.findById(environmentId);
