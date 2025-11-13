@@ -235,12 +235,12 @@ class EnvgeneInventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments")
                 .then()
                 .statusCode(200)
-                .body("find { it.name == 'env-metadata-test' }.description", equalTo("")) //todo
+                .body("find { it.name == 'env-metadata-test' }.description", equalTo(""))
                 .body("find { it.name == 'env-metadata-test' }.labels", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.teams", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
                 .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
-                .body("find { it.name == 'env-metadata-test' }.role", equalTo("")) //todo
+                .body("find { it.name == 'env-metadata-test' }.role", equalTo(""))
                 .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
     }
