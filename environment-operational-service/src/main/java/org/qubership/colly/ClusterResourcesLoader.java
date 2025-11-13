@@ -129,19 +129,10 @@ public class ClusterResourcesLoader {
                         .filter(ns -> cloudPassportNamespace.name().equals(ns.getName()))
                         .findFirst().orElse(null);
 
-                if (v1Namespace == null) {
-                    Log.warn("Namespace with name=" + cloudPassportNamespace.name() + " is not found in cluster " + cluster.getName());
-                    if (namespace == null) {
-                        namespace = createNamespace(UUID.randomUUID().toString(), cluster, environment);
-                    }
-                    namespace.setExistsInK8s(false);
-                } else {
-                    if (namespace == null) {
-                        namespace = createNamespace(v1Namespace.getMetadata().getUid(), cluster, environment);
-                    }
-                    namespace.setExistsInK8s(true);
+                if (namespace == null) {
+                    namespace = createNamespace(cloudPassportNamespace, cluster, environment);
                 }
-                namespace.setName(cloudPassportNamespace.name());
+                namespace.setExistsInK8s(v1Namespace != null);
                 namespaceRepository.save(namespace);
                 if (!namespace.getExistsInK8s()) {
                     Log.warn("Namespace " + namespace.getName() + " does not exist in k8s. Skipping it.");
@@ -181,13 +172,14 @@ public class ClusterResourcesLoader {
         return envs;
     }
 
-    private Namespace createNamespace(String uuid, Cluster cluster, Environment environment) {
+    private Namespace createNamespace(CloudPassportNamespace cloudPassportNamespace, Cluster cluster, Environment environment) {
         Namespace namespace;
         namespace = new Namespace();
-        namespace.setUid(uuid);
+        namespace.setId(cloudPassportNamespace.id());
+        namespace.setName(cloudPassportNamespace.name());
         namespace.setClusterId(cluster.getName());
         namespace.setEnvironmentId(environment.getId());
-        environment.addNamespaceId(namespace.getUid());
+        environment.addNamespaceId(namespace.getId());
         return namespace;
     }
 

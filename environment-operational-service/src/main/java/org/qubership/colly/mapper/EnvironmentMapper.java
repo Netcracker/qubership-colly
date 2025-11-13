@@ -68,7 +68,7 @@ public class EnvironmentMapper {
         List<NamespaceDTO> namespaceDTOs = new ArrayList<>();
         for (String nsId : namespaceIds) {
             namespaceRepository.findByUid(nsId).ifPresent(ns ->
-                    namespaceDTOs.add(new NamespaceDTO(ns.getUid(), ns.getName(), ns.getExistsInK8s()))
+                    namespaceDTOs.add(new NamespaceDTO(ns.getId(), ns.getName(), ns.getExistsInK8s()))
             );
         }
         return namespaceDTOs;
