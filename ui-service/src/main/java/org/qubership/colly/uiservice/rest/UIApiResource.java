@@ -1,5 +1,6 @@
 package org.qubership.colly.uiservice.rest;
 
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -9,6 +10,7 @@ import org.qubership.colly.uiservice.aggregator.DataAggregatorService;
 import org.qubership.colly.uiservice.client.InventoryServiceClient;
 import org.qubership.colly.uiservice.client.OperationalServiceClient;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -17,6 +19,9 @@ import java.util.Map;
 @Path("/colly/v2/ui-service")
 @Produces(MediaType.APPLICATION_JSON)
 public class UIApiResource {
+
+    @Inject
+    SecurityIdentity securityIdentity;
 
     @Inject
     DataAggregatorService aggregatorService;
@@ -32,16 +37,20 @@ public class UIApiResource {
     // ========== Auth & Metadata ==========
 
     @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
     public Response getAuthStatus() {
-        try {
-            Map<String, Object> authStatus = operationalServiceClient.getAuthStatus();
-            return Response.ok(authStatus).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Failed to fetch auth status: " + e.getMessage()))
+        if (securityIdentity.isAnonymous()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("authenticated", false))
                     .build();
         }
+
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("authenticated", true);
+        userInfo.put("username", securityIdentity.getPrincipal().getName());
+        userInfo.put("isAdmin", securityIdentity.hasRole("admin"));
+        return Response.ok(userInfo).build();
     }
 
     @GET
