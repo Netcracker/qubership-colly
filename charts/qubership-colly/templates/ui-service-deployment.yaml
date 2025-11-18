@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Values.colly.uiService.serviceName }}
+    app.kubernetes.io/version: {{ .Chart.Version }}
+    name: {{ .Values.colly.uiService.serviceName }}
+  name: {{ .Values.colly.uiService.serviceName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: {{ .Values.colly.uiService.serviceName }}
+  template:
+    metadata:
+      annotations:
+        app.quarkus.io/quarkus-version: 3.18.2
+      labels:
+        name: {{ .Values.colly.uiService.serviceName }}
+        app.kubernetes.io/name: {{ .Values.colly.uiService.serviceName }}
+        app.kubernetes.io/version: {{ .Chart.Version }}
+    spec:
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: QUARKUS_REST_CLIENT_INVENTORY_SERVICE_URL
+              value: "http://{{ .Values.colly.envgeneInventoryService.serviceName }}:8080"
+            - name: QUARKUS_REST_CLIENT_OPERATIONAL_SERVICE_URL
+              value: "http://{{ .Values.colly.environmentOperationalService.serviceName }}:8080"
+            - name: QUARKUS_OIDC_AUTH_SERVER_URL
+              value: {{ .Values.colly.uiService.idp.url }}
+            - name: QUARKUS_OIDC_CLIENT_ID
+              value: {{ .Values.colly.uiService.idp.clientId }}
+            - name: QUARKUS_OIDC_TLS_VERIFICATION
+              value: none
+          image: {{ .Values.colly.uiService.image }}
+          imagePullPolicy: Always
+          name: qubership-colly
+          ports:
+            - containerPort: {{ .Values.colly.uiService.ports.http }}
+              name: web
+              protocol: TCP
