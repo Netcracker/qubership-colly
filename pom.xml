@@ -18,6 +18,7 @@
             <modules>
                 <module>environment-operational-service</module>
                 <module>envgene-inventory-service</module>
+                <module>ui-service</module>
             </modules>
         </profile>
     </profiles>
