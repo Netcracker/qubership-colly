@@ -1,447 +1,190 @@
 ---
 openapi: 3.1.0
-info:
-  title: inventory-service API
-  version: 2.0.0
-paths:
-  /colly/inventory-service/v2/auth-status:
-    get:
-      responses:
-        "200":
-          description: OK
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-      summary: Get Auth Status
-      tags:
-        - Cluster Resources Rest
-  /colly/inventory-service/v2/clusters:
-    get:
-      responses:
-        "200":
-          description: OK
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ClusterDTO"
-      summary: Get Clusters
-      tags:
-        - Cluster Resources Rest
-  /colly/inventory-service/v2/clusters/{clusterName}:
-    post:
-      parameters:
-        - name: clusterName
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              properties:
-                description:
-                  type: string
-        required: true
-      responses:
-        "201":
-          description: Created
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-        "401":
-          description: Not Authorized
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-        "403":
-          description: Not Allowed
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-      summary: Save Cluster
-      tags:
-        - Cluster Resources Rest
-      security:
-        - SecurityScheme:
-            - admin
-  /colly/inventory-service/v2/environments:
-    get:
-      responses:
-        "200":
-          description: OK
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EnvironmentDTO"
-      summary: Get Environments
-      tags:
-        - Cluster Resources Rest
-  /colly/inventory-service/v2/environments/{envId}:
-    post:
-      parameters:
-        - name: envId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                owners:
-                  type: array
-                  items:
-                    type: string
-                description:
-                  type: string
-                status:
-                  type: string
-                labels:
-                  type: array
-                  items:
-                    type: string
-                type:
-                  type: string
-                teams:
-                  type: array
-                  items:
-                    type: string
-                expirationDate:
-                  type: string
-                role:
-                  type: string
-        required: true
-      responses:
-        "201":
-          description: Created
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-        "401":
-          description: Not Authorized
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-        "403":
-          description: Not Allowed
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-      summary: Save Environment
-      tags:
-        - Cluster Resources Rest
-      security:
-        - SecurityScheme:
-            - admin
-    delete:
-      parameters:
-        - name: envId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: No Content
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-        "401":
-          description: Not Authorized
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-        "403":
-          description: Not Allowed
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-      summary: Delete Environment
-      tags:
-        - Cluster Resources Rest
-      security:
-        - SecurityScheme:
-            - admin
-  /colly/inventory-service/v2/tick:
-    post:
-      responses:
-        "201":
-          description: Created
-          headers:
-            X-API-Version:
-              schema:
-                type: string
-      summary: Load Environments Manually
-      tags:
-        - Cluster Resources Rest
 components:
   schemas:
-    ClusterDTO:
-      type: object
-      properties:
-        name:
-          type: string
-          description: >-
-            Cluster name, cannot be changed after creation.
-        description:
-          type: string
-          description: >-
-            Cluster description.
-            Provided by inventory-service.
-        clusterInfoUpdateStatus:
-          type: object
-          description: >-
-            Cluster information update status.
-            Provided by operational-service.
-          properties:
-            lastResult:
-              type: boolean
-              description: >-
-                Determines the information update status for cluster: if at
-                least one object from the cluster was successfully read,
-                the update is considered successful
-            lastCompletedAt:
-              description: >-
-                Time of the last successful update information from the cluster
-              $ref: "#/components/schemas/Instant"
-    EnvironmentDTO:
+    ClusterDto:
       type: object
       properties:
         id:
           type: string
-          description: >-
-            Unique identifier of the Environment in the service instance.
-            Generated automatically upon creation.
-          readOnly: true
         name:
           type: string
-          description: >-
-            Human-readable Environment name. For example, env-1
-        namespaces:
-          type: array
-          description: >-
-            List of namespace objects included in the Environment
-          items:
-            $ref: "#/components/schemas/NamespaceDTO"
-        cluster:
-          $ref: "#/components/schemas/ClusterDTO"
-        owners:
-          type: array
-          description: >-
-            Users responsible for the Environment. This attribute is user-defined.
-            Provided by inventory-service.
-          items:
-            type: string
-          default: []
-          example:
-            - Alice
-        teams:
-          type: array
-          description: >-
-            Teams assigned to the Environment. This attribute is user-defined.
-            Provided by inventory-service.
-          items:
-            type: string
-          default: []
-          example:
-            - QA alpha team
-        status:
-          $ref: "#/components/schemas/EnvironmentStatus"
-          description: >-
-            Current status of the Environment. Values: PLANNED, FREE, IN_USE, RESERVED, DEPRECATED.
-            Indicates the environment's lifecycle state, e.g. planned but not yet deployed,
-            ready for use, in use by a team, reserved, or marked for deprecation.
-            Provided by inventory-service.
-        expirationDate:
-          $ref: "#/components/schemas/LocalDate"
-          description: >-
-            Date until which Environment is allocated. This attribute is user-defined.
-            Provided by inventory-service.
-          default: ""
-          example:
-            - 2025-12-31
-        type:
-          $ref: "#/components/schemas/EnvironmentType"
-          description: >-
-            Defines the technical category of the Environment. This attribute is user-defined.
-            Provided by inventory-service.
-          example:
-            - INFRASTRUCTURE
-        role:
+    EnvironmentDto:
+      type: object
+      properties:
+        id:
           type: string
-          description: >-
-            Defines the usage role of the Environment within the project.
-            The list of allowed values is configured via deployment parameters.
-            Provided by inventory-service.
-          default: ""
-        labels:
-          type: array
-          description: >-
-            Custom labels for the Environment. This attribute is user-defined.
-            Provided by inventory-service.
-          items:
-            type: string
-          default: []
+        name:
+          type: string
         description:
           type: string
-          description: >-
-            Free-form Environment description. This attribute is user-defined.
-            Provided by inventory-service.
-          default: ""
-        cleanInstallationDate:
-          $ref: "#/components/schemas/Instant"
-          description: >-
-            Date when the environment was cleanly installed.
-            Provided by operational-service.
-        monitoringData:
-          type: object
-          description: >-
-            Monitoring data collected from the cluster and monitoring systems.
-            Provided by operational-service.
-          additionalProperties:
+        namespaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/NamespaceDto"
+        cluster:
+          $ref: "#/components/schemas/ClusterDto"
+        owners:
+          type: array
+          items:
             type: string
-        lastSDDeploymentOperation:
-          $ref: "#/components/schemas/LastSDDeploymentOperation"
-          description: >-
-            Information about the most recent SD deployment operation on any namespace that is part of the environment,
-            regardless of the deployment result. DD deployments are out of scope.
-            Provided by operational-service.
-        lastDeployedSDsByType:
-          $ref: "#/components/schemas/LastDeployedSDsByType"
-          description: >-
-            Map of SD type to the latest successfully deployed SD in the format "<name>:<version>".
-            Determines the latest SD of a given type that was successfully deployed to one of the
-            namespaces included in the environment.
-            Provided by operational-service.
-        region:
+        labels:
+          type: array
+          items:
+            type: string
+        teams:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/EnvironmentStatus"
+        expirationDate:
+          $ref: "#/components/schemas/LocalDate"
+        type:
+          $ref: "#/components/schemas/EnvironmentType"
+        role:
           type: string
-          description: >-
-            Geographical region associated with the Environment. This attribute is user-defined.
-      required:
-        - id
-        - name
-        - namespaces
-        - cluster
     EnvironmentStatus:
       type: string
       enum:
-        - PLANNED
-        - FREE
-        - IN_USE
-        - RESERVED
-        - DEPRECATED
-      default: FREE
+      - IN_USE
+      - RESERVED
+      - FREE
+      - MIGRATING
     EnvironmentType:
       type: string
       enum:
-        - ENVIRONMENT
-        - CSE_TOOLSET
-        - DESIGN_TIME
-        - APP_DEPLOYER
-        - INFRASTRUCTURE
-        - UNDEFINED
-      default: ENVIRONMENT
-    Instant:
-      type: string
-      format: date-time
-      examples:
-        - 2022-03-10T16:15:50Z
-    LastSDDeploymentOperation:
+      - ENVIRONMENT
+      - CSE_TOOLSET
+      - DESIGN_TIME
+      - APP_DEPLOYER
+      - INFRASTRUCTURE
+      - PORTAL
+      - UNDEFINED
+    InternalClusterInfoDto:
       type: object
-      description: >-
-        Information about the most recent SD deployment operation on any namespace that is part of the environment,
-        regardless of the deployment result
       properties:
-        status:
+        id:
           type: string
-          description: >-
-            Status of the most recent SD deployment operation on any namespace that is part of the environment.
-          enum:
-            - SUCCESS
-            - FAILURE
-          example: SUCCESS
-        completedAt:
+        name:
           type: string
-          description: >-
-            Time when the most recent SD deployment operation finished on any namespace that is part of the environment,
-            regardless of the deployment result.
-          format: date-time
-          example: 2022-03-10T16:15:50Z
-      required:
-        - status
-        - completedAt
-      example:
-        status: SUCCESS
-        completedAt: 2022-03-10T16:15:50Z
-    LastDeployedSDsByType:
+        token:
+          type: string
+        cloudApiHost:
+          type: string
+        environments:
+          type: array
+          items:
+            $ref: "#/components/schemas/LightEnvironmentDto"
+        monitoringUrl:
+          type: string
+    LightEnvironmentDto:
       type: object
-      description: >-
-        Map of SD type to the latest successfully deployed SD in the format "<name>:<version>".
-        Determines the latest SD of a given type that was successfully deployed to one of the
-        namespaces included in the environment.
-      additionalProperties:
-        type: string
-        description: SD name and version in "<name>:<version>" format
-      example:
-        product: product-sd:1.2.3
-        project: my-project:1.2.3
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        namespaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/NamespaceDto"
     LocalDate:
       type: string
       format: date
       examples:
-        - 2022-03-10
-    NamespaceDTO:
+      - 2022-03-10
+    NamespaceDto:
       type: object
       properties:
-        uid:
+        id:
           type: string
-          description: >-
-            Namespace UID.
         name:
           type: string
-          description: >-
-            Namespace name.
-        deployPostfix:
-          type: string
-          description: >-
-            Deploy postfix, namespace role in solution.
-            Provided by inventory-service.
-        existsInK8s:
-          type: boolean
-          description: >-
-            Whether the namespace exists in Kubernetes cluster.
-            Provided by operational-service.
   securitySchemes:
     SecurityScheme:
       type: openIdConnect
       description: Authentication
-      openIdConnectUrl: >-
-        http://host.docker.internal:8180/realms/quarkus/.well-known/openid-configuration
+      openIdConnectUrl: http://host.docker.internal:8180/realms/quarkus/.well-known/openid-configuration
+paths:
+  /colly/v2/inventory-service/auth-status:
+    get:
+      responses:
+        "200":
+          description: OK
+      summary: Get Auth Status
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/clusters:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClusterDto"
+      summary: Get Clusters
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/environments:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EnvironmentDto"
+      summary: Get Environments
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}:
+    put:
+      parameters:
+      - name: environmentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnvironmentDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+      summary: Update Environment
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/internal/cluster-infos:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InternalClusterInfoDto"
+      summary: Get Internal Cluster Info
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/manual-sync:
+    post:
+      responses:
+        "201":
+          description: Created
+      summary: Sync Environments With Git
+      tags:
+      - Envgene Inventory Service Rest
+info:
+  title: envgene-inventory-service API
+  version: 1.0.0-SNAPSHOT
