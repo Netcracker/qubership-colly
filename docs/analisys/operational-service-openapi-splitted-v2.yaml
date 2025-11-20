@@ -1,0 +1,120 @@
+---
+openapi: 3.1.0
+info:
+  title: environment-operational-service API
+  version: 1.0.0-SNAPSHOT
+paths:
+  /colly/v2/operational-service/auth-status:
+    get:
+      responses:
+        "200":
+          description: OK
+      summary: Get Auth Status
+      tags:
+      - Cluster Resources Rest
+  /colly/v2/operational-service/clusters:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClusterDTO"
+      summary: Get Clusters
+      tags:
+      - Cluster Resources Rest
+  /colly/v2/operational-service/environments:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EnvironmentDTO"
+      summary: Get Environments
+      tags:
+      - Cluster Resources Rest
+  /colly/v2/operational-service/manual-sync:
+    post:
+      responses:
+        "201":
+          description: Created
+      summary: Load Environments Manually
+      tags:
+      - Cluster Resources Rest
+  /colly/v2/operational-service/metadata:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationMetadata"
+      summary: Get Metadata
+      tags:
+      - Cluster Resources Rest
+components:
+  schemas:
+    ApplicationMetadata:
+      type: object
+      properties:
+        monitoringColumns:
+          type: array
+          items:
+            type: string
+    ClusterDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        synced:
+          type: boolean
+    EnvironmentDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        namespaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/NamespaceDTO"
+        cluster:
+          $ref: "#/components/schemas/ClusterDTO"
+        deploymentVersion:
+          type: string
+        cleanInstallationDate:
+          $ref: "#/components/schemas/Instant"
+        monitoringData:
+          type: object
+          additionalProperties:
+            type: string
+    Instant:
+      type: string
+      format: date-time
+      examples:
+      - 2022-03-10T16:15:50Z
+    NamespaceDTO:
+      type: object
+      properties:
+        uid:
+          type: string
+        name:
+          type: string
+        existsInK8s:
+          type: boolean
+  securitySchemes:
+    SecurityScheme:
+      type: openIdConnect
+      description: Authentication
+      openIdConnectUrl: http://host.docker.internal:8180/realms/quarkus/.well-known/openid-configuration
