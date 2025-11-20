@@ -1,6 +1,8 @@
 package org.qubership.colly;
 
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 @Path("/colly/v2/operational-service")
+@Authenticated
 public class ClusterResourcesRest {
 
     private final CollyStorage collyStorage;
@@ -61,6 +64,7 @@ public class ClusterResourcesRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
+    @PermitAll
     public Response getAuthStatus() {
         if (securityIdentity.isAnonymous()) {
             return Response.status(Response.Status.UNAUTHORIZED)
