@@ -7,7 +7,6 @@ import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.GitService;
 import org.qubership.colly.db.EnvironmentRepository;
@@ -42,7 +41,6 @@ class EnvgeneInventoryServiceRestTest {
     }
 
     @Test
-    @Disabled("Skip because auth was turned off for service")
     void load_environments_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/environments")
@@ -52,7 +50,6 @@ class EnvgeneInventoryServiceRestTest {
 
 
     @Test
-    @Disabled("Skip because auth was turned off for service")
     void load_clusters_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/internal/cluster-infos")
@@ -185,6 +182,44 @@ class EnvgeneInventoryServiceRestTest {
                 ))
                 .body("flatten().find { it.name == 'env-test' }.labels", contains("test", "test2"))
                 .body("flatten().find { it.name == 'env-test' }.owners", contains("new-owner"));
+    }
+
+    @Test
+    void update_environment_without_auth() {
+        // Setup: sync to get some environments
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(401); // Even sync requires auth
+
+        // Try to update without authentication
+        given()
+                .contentType("application/json")
+                .body("{\"description\":\"Should not work\"}")
+                .when().patch("/colly/v2/inventory-service/environments/some-id")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void update_environment_without_admin_role() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .contentType("application/json")
+                .body("{\"description\":\"Should not work\"}")
+                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(403);
     }
 
     @Test

@@ -1,6 +1,9 @@
 package org.qubership.colly;
 
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -15,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @Path("/colly/v2/inventory-service")
+@Authenticated  // Require authentication for all methods in this class by default
 public class EnvgeneInventoryServiceRest {
 
     private final CollyStorage collyStorage;
@@ -55,6 +59,7 @@ public class EnvgeneInventoryServiceRest {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments/{environmentId}")
+    @RolesAllowed("admin")
     public Response patchEnvironment(@PathParam("environmentId") String id,
                                      PatchEnvironmentDto updateDto) {
         try {
@@ -82,6 +87,7 @@ public class EnvgeneInventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
+    @PermitAll
     public Response getAuthStatus() {
         if (securityIdentity.isAnonymous()) {
             return Response.status(Response.Status.UNAUTHORIZED)
