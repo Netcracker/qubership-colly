@@ -1,5 +1,5 @@
 ---
-CLOUD_PUBLIC_HOST:
+CLOUD_PUBLIC_HOST: fff
 NAMESPACE: qubership-colly
 colly:
   global:
@@ -7,7 +7,7 @@ colly:
     image: ghcr.io/netcracker/envgene-inventory-service:latest
     serviceName: envgene-inventory-service
     instancesRepo:
-    gitToken:
+    gitToken: fff
     cronSchedule: 0 0/1 * * * ?
     idp:
       url:
@@ -31,6 +31,14 @@ colly:
       hosts: redis://redis:6379
       username: ""
       password: ""
+    ports:
+      http: 8080
+  uiService:
+    image: ghcr.io/netcracker/ui-service:latest
+    serviceName: ui-service
+    idp:
+      url:
+      clientId: ui-service
     ports:
       http: 8080
     ingress:

@@ -34,7 +34,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
     const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
-        fetch("/colly/v2/operational-service/environments").then(res => res.json())
+        fetch("/colly/v2/ui-service/environments").then(res => res.json())
             .then(envData => setEnvironments(envData))
             .catch(err => console.error("Failed to fetch environments:", err))
             .finally(() => setLoading(false));
@@ -109,7 +109,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 console.error("selected env is null")
                 return;
             }
-            const response = await fetch(`/colly/v2/operational-service/environments/${selectedEnvironment.id}`, {
+            const response = await fetch(`/colly/v2/ui-service/environments/${selectedEnvironment.id}`, {
                 method: "DELETE",
             });
 
@@ -131,26 +131,24 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
 
     const handleSaveAction = useCallback(async (changedEnv: Environment) => {
         try {
-            const formData = new FormData();
-            if (changedEnv.owners) {
-                changedEnv.owners.forEach(owner => formData.append("owners", owner.trim()));
-            }
-            if (changedEnv.teams) {
-                changedEnv.teams.forEach(team => formData.append("teams", team.trim()));
-            }
-            if (changedEnv.description) {
-                formData.append("description", changedEnv.description);
-            }
-            formData.append("status", changedEnv.status);
-            formData.append("type", changedEnv.type);
-            formData.append("name", changedEnv.name);
+            const payload = {
+                description: changedEnv.description || null,
+                owners: changedEnv.owners || [],
+                teams: changedEnv.teams || [],
+                status: changedEnv.status,
+                type: changedEnv.type,
+                labels: changedEnv.labels || [],
+                expirationDate: changedEnv.expirationDate
+                    ? dayjs(changedEnv.expirationDate).format("YYYY-MM-DD")
+                    : null
+            };
 
-            formData.append("expirationDate", changedEnv.expirationDate ? dayjs(changedEnv.expirationDate).format("YYYY-MM-DD") : "");
-            changedEnv.labels.forEach(label => formData.append("labels", label));
-
-            const response = await fetch(`/colly/v2/operational-service/environments/${changedEnv.id}`, {
-                method: "POST",
-                body: formData
+            const response = await fetch(`/colly/v2/ui-service/environments/${changedEnv.id}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {

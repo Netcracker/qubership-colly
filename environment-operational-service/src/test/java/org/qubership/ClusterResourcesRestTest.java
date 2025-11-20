@@ -5,6 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.qubership.colly.EnvgeneInventoryServiceRest;
@@ -38,6 +39,7 @@ class ClusterResourcesRestTest {
     }
 
     @Test
+    @Disabled("Skip because auth was turned off for service")
     void load_environments_without_auth() {
         given()
                 .when().get("/colly/v2/operational-service/environments")
@@ -60,6 +62,7 @@ class ClusterResourcesRestTest {
     }
 
     @Test
+    @Disabled("Skip because auth was turned off for service")
     void load_metadata_without_auth() {
         given()
                 .when().get("/colly/v2/operational-service/metadata")
@@ -78,6 +81,7 @@ class ClusterResourcesRestTest {
     }
 
     @Test
+    @Disabled("Skip because auth was turned off for service")
     void load_clusters_without_auth() {
         given()
                 .when().get("/colly/v2/operational-service/clusters")
@@ -126,6 +130,7 @@ class ClusterResourcesRestTest {
 
 
     @Test
+    @Disabled("Skip because auth was turned off for service")
     void get_authStatus_without_auth() {
         given()
                 .when().get("/colly/v2/operational-service/auth-status")

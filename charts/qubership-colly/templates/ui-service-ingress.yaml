@@ -1,0 +1,24 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.colly.uiService.serviceName }}-http
+  labels:
+    name: {{ .Values.colly.uiService.serviceName }}
+    app.kubernetes.io/name: {{ .Values.colly.uiService.serviceName }}
+  {{- if .Values.colly.uiService.ingress.http.annotations }}
+  annotations:
+    {{- toYaml .Values.colly.uiService.ingress.http.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    - host: "{{ .Values.colly.uiService.serviceName }}-{{ .Values.NAMESPACE }}.{{ .Values.CLOUD_PUBLIC_HOST}}"
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                port:
+                  name: web
+                name: '{{ .Values.colly.uiService.serviceName }}'

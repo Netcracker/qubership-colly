@@ -9,6 +9,11 @@
       "name": "environment-operational-service",
       "file": "environment-operational-service/Dockerfile",
       "context": "environment-operational-service"
+    },
+    {
+      "name": "ui-service",
+      "file": "ui-service/Dockerfile",
+      "context": "ui-service"
     }
   ],
   "platforms": "linux/amd64"
