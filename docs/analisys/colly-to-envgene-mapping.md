@@ -51,24 +51,26 @@ metadata:
 
 - [ ] Where to store the `description` of a Cluster
 
-- [+] Is `ticketLinks` required?
+- [x] Is `ticketLinks` required?
   - The attribute is not needed by users, so it was decided to remove it
 
-- [+] Checkov [linting errors](https://github.com/Netcracker/qubership-envgene/actions/runs/18886399036/job/53902750553)
+- [x] Checkov [linting errors](https://github.com/Netcracker/qubership-envgene/actions/runs/18886399036/job/53902750553)
   - Decided to ignore
 
-- [ ] Add the `deployPostfix` attribute to the Namespace?
+- [x] Add the `deployPostfix` attribute to the Namespace?
+  - No
 
-- [+] Remove the `deploymentVersion` attribute from the Environment?
+- [x] Remove the `deploymentVersion` attribute from the Environment?
   - Yes
 
 - [ ] Using the OpenAPI specification as documentation
+  - How are descriptions and examples added to the OpenAPI spec?
 
-- [+] What is `deploymentStatus`?
+- [x] What is `deploymentStatus`?
   - it is removed
 
-- [+] Do we keep `cleanInstallationDate`? Is it computed based on SD_VERSIONS?
-  - it will be removed at MS2 (as part of https://github.com/Netcracker/qubership-colly/issues/153)
+- [x] Do we keep `cleanInstallationDate`? Is it computed based on SD_VERSIONS?
+  - it will be removed at [MS2](https://github.com/Netcracker/qubership-colly/issues/153)
 
 - [ ] How do we uniquely identify cluster, environment, and namespace in both services?
 

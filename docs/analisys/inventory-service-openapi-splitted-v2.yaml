@@ -1,5 +1,87 @@
 ---
 openapi: 3.1.0
+info:
+  title: envgene-inventory-service API
+  version: 1.0.0-SNAPSHOT
+paths:
+  /colly/v2/inventory-service/auth-status:
+    get:
+      responses:
+        "200":
+          description: OK
+      summary: Get Auth Status
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/clusters:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClusterDto"
+      summary: Get Clusters
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/environments:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EnvironmentDto"
+      summary: Get Environments
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}:
+    put:
+      parameters:
+      - name: environmentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnvironmentDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+      summary: Update Environment
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/internal/cluster-infos:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InternalClusterInfoDto"
+      summary: Get Internal Cluster Info
+      tags:
+      - Envgene Inventory Service Rest
+  /colly/v2/inventory-service/manual-sync:
+    post:
+      responses:
+        "201":
+          description: Created
+      summary: Sync Environments With Git
+      tags:
+      - Envgene Inventory Service Rest
 components:
   schemas:
     ClusterDto:
@@ -106,85 +188,3 @@ components:
       type: openIdConnect
       description: Authentication
       openIdConnectUrl: http://host.docker.internal:8180/realms/quarkus/.well-known/openid-configuration
-paths:
-  /colly/v2/inventory-service/auth-status:
-    get:
-      responses:
-        "200":
-          description: OK
-      summary: Get Auth Status
-      tags:
-      - Envgene Inventory Service Rest
-  /colly/v2/inventory-service/clusters:
-    get:
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ClusterDto"
-      summary: Get Clusters
-      tags:
-      - Envgene Inventory Service Rest
-  /colly/v2/inventory-service/environments:
-    get:
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EnvironmentDto"
-      summary: Get Environments
-      tags:
-      - Envgene Inventory Service Rest
-  /colly/v2/inventory-service/environments/{environmentId}:
-    put:
-      parameters:
-      - name: environmentId
-        in: path
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EnvironmentDto"
-        required: true
-      responses:
-        "200":
-          description: OK
-      summary: Update Environment
-      tags:
-      - Envgene Inventory Service Rest
-  /colly/v2/inventory-service/internal/cluster-infos:
-    get:
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/InternalClusterInfoDto"
-      summary: Get Internal Cluster Info
-      tags:
-      - Envgene Inventory Service Rest
-  /colly/v2/inventory-service/manual-sync:
-    post:
-      responses:
-        "201":
-          description: Created
-      summary: Sync Environments With Git
-      tags:
-      - Envgene Inventory Service Rest
-info:
-  title: envgene-inventory-service API
-  version: 1.0.0-SNAPSHOT

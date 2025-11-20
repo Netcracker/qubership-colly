@@ -332,23 +332,10 @@ components:
           description: >-
             Free-form Environment description. This attribute is user-defined.
           default: ""
-        cleanInstallationDate:
-          $ref: "#/components/schemas/Instant"
         monitoringData:
           type: object
           additionalProperties:
             type: string
-        lastSDDeploymentOperation:
-          $ref: "#/components/schemas/LastSDDeploymentOperation"
-          description: >-
-            Information about the most recent SD deployment operation on any namespace that is part of the environment,
-            regardless of the deployment result. DD deployments are out of scope.
-        lastDeployedSDsByType:
-          $ref: "#/components/schemas/LastDeployedSDsByType"
-          description: >-
-            Map of SD type to the latest successfully deployed SD in the format "<name>:<version>".
-            Determines the latest SD of a given type that was successfully deployed to one of the
-            namespaces included in the environment.
         region:
           type: string
           description: >-
@@ -401,18 +388,6 @@ components:
               namespaces that are part of the Environment. The time reflects when all deployment
               items in this operation completed, regardless of their individual outcomes.
             example: 2022-03-10T16:15:50Z
-          status:
-            type: string
-            enum:
-              - SUCCESS
-              - FAILURE
-              - PARTIAL
-            description: >-
-              Overall status of the deployment operation:
-              - SUCCESS: all deployment items completed successfully
-              - FAILURE: all deployment items failed
-              - PARTIAL: some deployment items succeeded, some failed
-            example: SUCCESS
           deploymentItems:
             type: array
             description: >-
@@ -460,7 +435,6 @@ components:
         - deploymentItems
       example:
         - completedAt: 2022-03-10T16:15:50Z
-          status: PARTIAL
           deploymentItems:
             - name: product-sd:1.2.3
               type: product
@@ -470,45 +444,11 @@ components:
               type: project
               mode: ROLLING_UPDATE
               status: FAILURE
-    LastSDDeploymentOperation:
-      type: object
-      description: >-
-        Information about the most recent SD deployment operation on any namespace that is part of the environment,
-        regardless of the deployment result
-      properties:
-        status:
-          type: string
-          description: >-
-            Status of the most recent SD deployment operation on any namespace that is part of the environment.
-          enum:
-            - SUCCESS
-            - FAILURE
-          example: SUCCESS
-        completedAt:
-          type: string
-          description: >-
-            Time when the most recent SD deployment operation finished on any namespace that is part of the environment,
-            regardless of the deployment result.
-          format: date-time
-          example: 2022-03-10T16:15:50Z
-      required:
-        - status
-        - completedAt
-      example:
-        status: SUCCESS
-        completedAt: 2022-03-10T16:15:50Z
-    LastDeployedSDsByType:
-      type: object
-      description: >-
-        Map of SD type to the latest successfully deployed SD in the format "<name>:<version>".
-        Determines the latest SD of a given type that was successfully deployed to one of the
-        namespaces included in the environment.
-      additionalProperties:
-        type: string
-        description: SD name and version in "<name>:<version>" format
-      example:
-        product: product-sd:1.2.3
-        project: my-project:1.2.3
+        - completedAt: 2022-03-10T17:16:40Z
+          deploymentItems:
+            - name: project-sd:2.1.0
+              type: project
+              status: SUCCESS
     LocalDate:
       type: string
       format: date

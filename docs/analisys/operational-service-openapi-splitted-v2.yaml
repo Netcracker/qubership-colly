@@ -1,5 +1,8 @@
 ---
 openapi: 3.1.0
+info:
+  title: environment-operational-service API
+  version: 1.0.0-SNAPSHOT
 paths:
   /colly/v2/operational-service/auth-status:
     get:
@@ -115,6 +118,3 @@ components:
       type: openIdConnect
       description: Authentication
       openIdConnectUrl: http://host.docker.internal:8180/realms/quarkus/.well-known/openid-configuration
-info:
-  title: environment-operational-service API
-  version: 1.0.0-SNAPSHOT
