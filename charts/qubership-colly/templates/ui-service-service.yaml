@@ -1,3 +1,4 @@
+{{- if .Values.colly.uiService.uiEnabled }}
 ---
 apiVersion: v1
 kind: Service
@@ -18,3 +19,4 @@ spec:
   selector:
     name: {{ .Values.colly.uiService.serviceName }}
   type: ClusterIP
+{{- end }}
