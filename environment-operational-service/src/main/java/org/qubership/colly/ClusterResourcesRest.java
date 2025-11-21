@@ -1,10 +1,12 @@
 package org.qubership.colly;
 
-import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.db.data.Cluster;
@@ -19,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 @Path("/colly/v2/operational-service")
-@Authenticated
 public class ClusterResourcesRest {
 
     private final CollyStorage collyStorage;

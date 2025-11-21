@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 @Path("/colly/v2/inventory-service")
-@Authenticated  // Require authentication for all methods in this class by default
 public class EnvgeneInventoryServiceRest {
 
     private final CollyStorage collyStorage;
