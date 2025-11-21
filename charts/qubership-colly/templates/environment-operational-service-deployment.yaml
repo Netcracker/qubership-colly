@@ -57,6 +57,12 @@ spec:
                   name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
+            {{- range .Values.colly.environmentOperationalService.monitoring }}
+            - name: COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_MONITORING_{{ .key | upper | replace "-" "_" }}_NAME
+              value: {{ .name | quote }}
+            - name: COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_MONITORING_{{ .key | upper | replace "-" "_" }}_QUERY
+              value: {{ .query | quote }}
+            {{- end }}
           image: {{ .Values.colly.environmentOperationalService.image }}
           imagePullPolicy: Always
           name: qubership-colly
