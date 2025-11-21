@@ -36,6 +36,7 @@ colly:
   uiService:
     image: ghcr.io/netcracker/ui-service:latest
     serviceName: ui-service
+    uiEnabled: false
     idp:
       url:
       clientId: ui-service
