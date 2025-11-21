@@ -148,6 +148,16 @@ class UIApiResourceTest {
                 .body("[0].synced", equalTo(true));
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void getMetadata_success() {
+        given()
+                .when().get("/colly/v2/ui-service/metadata")
+                .then()
+                .statusCode(200)
+                .body("version", equalTo("1.0.0"))
+                .body("status", equalTo("running"));
+    }
 
     @Test
     @TestSecurity(user = "test")

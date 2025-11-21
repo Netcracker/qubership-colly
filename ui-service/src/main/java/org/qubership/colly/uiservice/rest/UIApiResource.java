@@ -9,8 +9,11 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.uiservice.aggregator.DataAggregatorService;
 import org.qubership.colly.uiservice.client.InventoryServiceClient;
 import org.qubership.colly.uiservice.client.OperationalServiceClient;
+import org.qubership.colly.uiservice.dto.ClusterDto;
+import org.qubership.colly.uiservice.dto.EnvironmentDto;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -68,41 +71,23 @@ public class UIApiResource {
 
     @GET
     @Path("/environments")
-    public Response getEnvironments() {
-        try {
-            return Response.ok(aggregatorService.getAggregatedEnvironments()).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Failed to fetch environments: " + e.getMessage()))
-                    .build();
-        }
+    public List<EnvironmentDto> getEnvironments() {
+        return aggregatorService.getAggregatedEnvironments();
     }
 
     @PATCH
     @Path("/environments/{environmentId}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response updateEnvironment(@PathParam("environmentId") String environmentId, Map<String, Object> environmentData) {
-        try {
-            return Response.ok(inventoryServiceClient.updateEnvironment(environmentId, environmentData)).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Failed to update environment: " + e.getMessage()))
-                    .build();
-        }
+    public Map<String, Object> updateEnvironment(@PathParam("environmentId") String environmentId, Map<String, Object> environmentData) {
+        return inventoryServiceClient.updateEnvironment(environmentId, environmentData);
     }
 
     // ========== Clusters ==========
 
     @GET
     @Path("/clusters")
-    public Response getClusters() {
-        try {
-            return Response.ok(aggregatorService.getClusters()).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Failed to fetch clusters: " + e.getMessage()))
-                    .build();
-        }
+    public List<ClusterDto> getClusters() {
+        return aggregatorService.getClusters();
     }
 
     // ========== Health ==========
