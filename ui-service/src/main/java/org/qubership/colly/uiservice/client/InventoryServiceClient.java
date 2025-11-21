@@ -2,6 +2,7 @@ package org.qubership.colly.uiservice.client;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.annotation.RegisterClientHeaders;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.qubership.colly.uiservice.dto.inventory.InventoryClusterDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryEnvironmentDto;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @RegisterRestClient(configKey = "inventory-service")
+@RegisterClientHeaders(OidcClientHeadersFactory.class)
 @Path("/colly/v2/inventory-service")
 public interface InventoryServiceClient {
 

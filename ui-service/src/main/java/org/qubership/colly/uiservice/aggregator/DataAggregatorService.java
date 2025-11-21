@@ -14,7 +14,9 @@ import org.qubership.colly.uiservice.dto.operational.OperationalClusterDto;
 import org.qubership.colly.uiservice.dto.operational.OperationalEnvironmentDto;
 import org.qubership.colly.uiservice.mapper.DtoMapper;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -42,21 +44,11 @@ public class DataAggregatorService {
     public List<EnvironmentDto> getAggregatedEnvironments() {
         Log.info("Aggregating environments from inventory and operational services");
 
-        List<InventoryEnvironmentDto> inventoryEnvironments = new ArrayList<>();
-        try {
-            inventoryEnvironments = inventoryServiceClient.getEnvironments();
-            Log.info("Fetched " + inventoryEnvironments.size() + " environments from inventory service");
-        } catch (Exception e) {
-            Log.error("Failed to fetch environments from inventory service", e);
-        }
+        List<InventoryEnvironmentDto> inventoryEnvironments = inventoryServiceClient.getEnvironments();
+        Log.info("Fetched " + inventoryEnvironments.size() + " environments from inventory service");
 
-        List<OperationalEnvironmentDto> operationalEnvironments = new ArrayList<>();
-        try {
-            operationalEnvironments = operationalServiceClient.getEnvironments();
-            Log.info("Fetched " + operationalEnvironments.size() + " environments from operational service");
-        } catch (Exception e) {
-            Log.error("Failed to fetch environments from operational service", e);
-        }
+        List<OperationalEnvironmentDto> operationalEnvironments = operationalServiceClient.getEnvironments();
+        Log.info("Fetched " + operationalEnvironments.size() + " environments from operational service");
 
         Map<String, OperationalEnvironmentDto> operationalById = operationalEnvironments.stream()
                 .collect(Collectors.toMap(

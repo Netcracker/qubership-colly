@@ -52,25 +52,73 @@ The main interface displays environments in a comprehensive table with the follo
 
 ## Architecture Overview
 
+Qubership Colly uses a microservices architecture with three main services:
+
+```
+┌─────────────┐
+│   Browser   │
+└──────┬──────┘
+       │
+       v
+┌─────────────────┐
+│   ui-service    │ (Port 3000)
+│   - Serves UI   │
+│   - BFF pattern │
+│   - Aggregates  │
+│     data        │
+└────┬────┬───────┘
+     │    │
+     │    └──────────────────┐
+     v                       v
+┌──────────────┐    ┌────────────────────┐
+│ inventory-   │    │ operational-       │
+│ service      │    │ service            │
+│ (Port 8081)  │    │ (Port 8080)        │
+└──────────────┘    └────────────────────┘
+```
+
+### Services:
+- **ui-service** (Port 3000): React-based web interface that acts as a Backend for Frontend (BFF), aggregating data from both backend services
+- **inventory-service** (Port 8081): Manages environment inventory, metadata, and cluster information from Git repositories
+- **operational-service** (Port 8080): Handles operational data, Kubernetes synchronization, and monitoring metrics
+- **Redis**: Caching layer for improved performance
+- **Keycloak**: OIDC authentication provider
+- **PostgreSQL**: Database for keycloak only
+
+
 Key Points:
-- **Frontend**: React-based web interface with Material-UI components
-- **Backend**: Quarkus-based REST API with PostgreSQL database
-- **Scheduler**: Configurable cron jobs for cluster synchronization
+- **Separation of Concerns**: Each service has a single, well-defined responsibility
+- **BFF Pattern**: UI service aggregates data from multiple backend services
+- **Scheduler**: Configurable cron jobs for cluster synchronization in operational-service
 - **Authentication**: OIDC integration for secure access control
 
 
 ## Quick Start
 
-### Run with Docker
-```bash
-# Start PostgreSQL database
-docker run -d --rm --name colly-db -p 5432:5432 \
-  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres postgres:17
+### Run with Docker Compose
 
-# Run Qubership Colly
-docker run -v ~/.kube:/kubeconfigs \
-  -e ENV_INSTANCES_REPO=https://github.com/ormig/cloud-passport-samples.git \
-  -i --rm -p 8080:8080 ghcr.io/netcracker/qubership-colly:latest
+The easiest way to run all services together:
+
+```bash
+# Start all services (PostgreSQL, Redis, Keycloak, and all three Colly services)
+./docker-start.sh
+
+# Or manually with docker-compose
+docker-compose up --build -d
+```
+
+This will start:
+- **UI Service**: http://localhost:3000
+- **Inventory Service**: http://localhost:8081
+- **Operational Service**: http://localhost:8080
+- **Keycloak**: http://localhost:8180 (admin/admin)
+- PostgreSQL and Redis backends
+
+### Build Images Manually
+
+```bash
+# Build all Docker images
+./build-images.sh
 ```
 
 ### Deploy with Helm
@@ -97,29 +145,62 @@ For detailed configuration options including application properties, environment
 - Java 21+
 - Node.js 18+
 - PostgreSQL 12+
-- Docker (optional)
+- Docker and Docker Compose
 
-### Build and Run
+### Project Structure
+```
+qubership-colly-v2/
+├── envgene-inventory-service/   # Inventory management service
+├── environment-operational-service/  # Operational data service
+├── ui-service/                  # UI and BFF service
+├── docker-compose.yml           # Docker Compose configuration
+└── build-images.sh              # Build script for all services
+```
+
+### Build and Run Services
+
+#### Option 1: Using Docker Compose (Recommended)
 ```bash
-# Build the application
-./mvnw clean package
+# Start all services with dependencies
+./docker-start.sh
+```
 
-# Run in development mode
-./mvnw quarkus:dev
+#### Option 2: Run Services Individually in Dev Mode
 
-# Build frontend separately
-cd src/main/webui
+**Terminal 1 - Inventory Service:**
+```bash
+cd envgene-inventory-service
+./mvnw quarkus:dev -Dquarkus.http.port=8081
+```
+
+**Terminal 2 - Operational Service:**
+```bash
+cd environment-operational-service
+./mvnw quarkus:dev -Dquarkus.http.port=8080
+```
+
+**Terminal 3 - UI Service:**
+```bash
+cd ui-service
+./mvnw quarkus:dev -Dquarkus.http.port=3000
+```
+
+**Terminal 4 - Frontend Development Server (optional):**
+```bash
+cd ui-service/src/main/webui
 npm install
-npm run build
+npm start  # Runs on port 3001 with proxy to backend
 ```
 
 ### Testing
 ```bash
-# Run all tests
-./mvnw test
+# Test all services
+cd envgene-inventory-service && mvn test
+cd environment-operational-service && mvn test
+cd ui-service && mvn test
 
 # Run with coverage
-./mvnw test jacoco:report
+mvn test jacoco:report
 ```
 
 ## Contributing
