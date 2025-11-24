@@ -55,7 +55,7 @@ permissions:
 jobs:
   security-scan:
     name: "Run Security Scan"
-    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@main
+    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@477-bug-docker-images-addresses-should-use-netcracker-instead-of-netcracker-in-security-scan-job-re-security-scan
     strategy:
       fail-fast: true
       matrix:
