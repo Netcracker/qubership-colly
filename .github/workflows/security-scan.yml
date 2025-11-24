@@ -65,7 +65,7 @@ jobs:
           - ui-service
     with:
       target: ${{ github.event.inputs.target || 'docker' }}
-      image: ${{ github.event.inputs.image || format('ghcr.io/{0}:latest', matrix.component) }}
+      image: ${{ github.event.inputs.image || format('ghcr.io/netcracker/{0}:latest', matrix.component) }}
       only-high-critical: ${{ github.event.inputs.only-high-critical || true }}
       trivy-scan: ${{ github.event.inputs.trivy-scan || true }}
       grype-scan: ${{ github.event.inputs.grype-scan || true }}
