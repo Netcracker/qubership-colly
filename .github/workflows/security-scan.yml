@@ -1,5 +1,8 @@
 name: Security Scan
 on:
+  push:
+    branches:
+      - feature/configure-security-scan
   workflow_dispatch:
     inputs:
       target:
