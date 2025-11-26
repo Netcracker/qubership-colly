@@ -25,11 +25,18 @@ public class GitService {
         Log.info("Cloning repository from " + repositoryUrl + " to " + destinationPath);
         Git git = null;
         try {
-            git = Git.cloneRepository()
-                    .setURI(repositoryUrl)
-                    .setDirectory(destinationPath)
-                    .setCredentialsProvider(credentialsProvider)
-                    .call();
+            if (gitToken != null && !gitToken.isBlank()) {
+                git = Git.cloneRepository()
+                        .setURI(repositoryUrl)
+                        .setDirectory(destinationPath)
+                        .setCredentialsProvider(credentialsProvider)
+                        .call();
+            } else {
+                git = Git.cloneRepository()
+                        .setURI(repositoryUrl)
+                        .setDirectory(destinationPath)
+                        .call();
+            }
         } catch (GitAPIException e) {
             throw new IllegalStateException("Error during clone repository: " + repositoryUrl, e);
         } finally {
@@ -49,7 +56,7 @@ public class GitService {
                     .setMessage(commitMessage)
                     .call();
 
-            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(gitToken, "");
+            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider("", gitToken);
             git.push()
                     .setCredentialsProvider(credentialsProvider)
                     .call();
