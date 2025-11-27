@@ -11,7 +11,6 @@ import org.qubership.colly.EnvgeneInventoryServiceRest;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.ClusterInfo;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
@@ -31,9 +30,9 @@ class ClusterResourcesRestTest {
     void setUp() {
         Mockito.when(envgeneInventoryServiceRest.getClusterInfos()).thenReturn(List.of(
                 new ClusterInfo("1", "test-cluster", "cloud-deploy-sa-token", "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
-                        Set.of(new CloudPassportEnvironment("42", "env-test", "", List.of())), URI.create("http://localhost:8428")),
+                        Set.of(new CloudPassportEnvironment("42", "env-test", "", List.of())), "http://localhost:8428"),
                 new ClusterInfo("2", "unreachable-cluster", "cloud-deploy-sa-token", "https://some.unreachable.url:8443",
-                        Set.of(new CloudPassportEnvironment("43", "env-1", "", List.of())), URI.create("http://vmsingle-k8s.victoria:8429"))));
+                        Set.of(new CloudPassportEnvironment("43", "env-1", "", List.of())), "http://vmsingle-k8s.victoria:8429")));
 
     }
 

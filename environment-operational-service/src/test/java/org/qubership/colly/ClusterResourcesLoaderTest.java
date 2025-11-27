@@ -22,7 +22,6 @@ import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
 
-import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -88,7 +87,7 @@ class ClusterResourcesLoaderTest {
     @Test
     void loadClusterResources_from_cloud_passport() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), URI.create("http://localhost:" + port));
+                Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), "http://localhost:" + port);
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
 
         String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
@@ -247,7 +246,7 @@ class ClusterResourcesLoaderTest {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, "unreachable-cluster", "42", "https://some.unreachable.url",
                 Set.of(createEnvForTests("env-unreachable",
                         List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))),
-                URI.create("http://localhost:" + port));
+                "http://localhost:" + port);
 
         CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
         when(coreV1Api.listNamespace()).thenReturn(nsRequest);

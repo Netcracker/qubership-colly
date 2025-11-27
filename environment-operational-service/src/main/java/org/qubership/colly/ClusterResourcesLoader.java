@@ -10,19 +10,18 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.qubership.colly.cloudpassport.ClusterInfo;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
-import org.qubership.colly.db.repository.ClusterRepository;
-import org.qubership.colly.db.repository.EnvironmentRepository;
-import org.qubership.colly.db.repository.NamespaceRepository;
+import org.qubership.colly.cloudpassport.ClusterInfo;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
+import org.qubership.colly.db.repository.ClusterRepository;
+import org.qubership.colly.db.repository.EnvironmentRepository;
+import org.qubership.colly.db.repository.NamespaceRepository;
 import org.qubership.colly.monitoring.MonitoringService;
 
 import java.io.IOException;
-import java.net.URI;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
@@ -89,7 +88,7 @@ public class ClusterResourcesLoader {
         Log.info("Cluster " + clusterInfo.name() + " loaded successfully.");
     }
 
-    private List<Environment> loadEnvironments(CoreV1Api coreV1Api, Cluster cluster, Collection<CloudPassportEnvironment> environments, URI monitoringUri) {
+    private List<Environment> loadEnvironments(CoreV1Api coreV1Api, Cluster cluster, Collection<CloudPassportEnvironment> environments, String monitoringUri) {
         Log.info("Start loading environments for cluster " + cluster.getName());
         CoreV1Api.APIlistNamespaceRequest apilistNamespaceRequest = coreV1Api.listNamespace();
         Map<String, V1Namespace> k8sNamespaces;
@@ -162,7 +161,7 @@ public class ClusterResourcesLoader {
                     namespaceRepository.findByUid(nsId).ifPresent(ns -> namespaceNames.add(ns.getName()));
                 }
             }
-            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, namespaceNames));
+            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getName(), cluster.getName(), namespaceNames));
             environment.setDeploymentVersion(deploymentVersions.toString());
             environmentRepository.save(environment);
 
