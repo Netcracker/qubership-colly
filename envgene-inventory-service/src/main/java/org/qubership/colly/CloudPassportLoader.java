@@ -19,7 +19,6 @@ import org.qubership.colly.db.data.EnvironmentType;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -130,6 +129,9 @@ public class CloudPassportLoader {
         if (cse != null) {
             if (cse.getMonitoringExtMonitoringQueryUrl() != null && !cse.getMonitoringExtMonitoringQueryUrl().isEmpty()) {
                 monitoringUri = cse.getMonitoringExtMonitoringQueryUrl();
+                if (monitoringUri.contains("${MONITORING_NAMESPACE}") && cse.getMonitoringNamespace() != null) {
+                    monitoringUri = monitoringUri.replace("${MONITORING_NAMESPACE}", cse.getMonitoringNamespace());
+                }
             } else if (cse.getMonitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
                 monitoringUri = "http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429";
             }
