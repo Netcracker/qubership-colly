@@ -99,7 +99,7 @@ public class CollyStorage {
         finalEnvironment.setExpirationDate(cloudPassportEnvironment.expirationDate());
         finalEnvironment.setType(cloudPassportEnvironment.type());
         finalEnvironment.setRole(cloudPassportEnvironment.role());
-        finalEnvironment.setRole(cloudPassportEnvironment.region());
+        finalEnvironment.setRegion(cloudPassportEnvironment.region());
 
         Log.info("Environment " + finalEnvironment.getName() + " has been loaded from CloudPassport");
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
@@ -149,6 +149,7 @@ public class CollyStorage {
 
         updateDto.type().ifPresent(existingEnv::setType);
         updateDto.role().ifPresent(existingEnv::setRole);
+        updateDto.region().ifPresent(existingEnv::setRegion);
 
         // Update YAML files in Git with the updated environment
         Cluster cluster = clusterRepository.findById(existingEnv.getClusterId());

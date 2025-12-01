@@ -96,7 +96,8 @@ class EnvgeneInventoryServiceRestTest {
                                 hasEntry("status", "FREE"),
                                 hasEntry("expirationDate", null),
                                 hasEntry("type", "ENVIRONMENT"),
-                                hasEntry("role", null)
+                                hasEntry("role", null),
+                                hasEntry("region", null)
                         ),
                         allOf(
                                 hasEntry("name", "env-metadata-test"),
@@ -104,7 +105,8 @@ class EnvgeneInventoryServiceRestTest {
                                 hasEntry("status", "IN_USE"),
                                 hasEntry("expirationDate", "2025-12-31"),
                                 hasEntry("type", "DESIGN_TIME"),
-                                hasEntry("role", "QA")
+                                hasEntry("role", "QA"),
+                                hasEntry("region", "cm")
                         ),
                         allOf(
                                 hasEntry("name", "env-1"),
@@ -247,6 +249,7 @@ class EnvgeneInventoryServiceRestTest {
                 .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
                 .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
                 .body("find { it.name == 'env-metadata-test' }.role", equalTo("QA"))
+                .body("find { it.name == 'env-metadata-test' }.region", equalTo("cm"))
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", equalTo("2025-12-31"))
                 .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
 
@@ -260,6 +263,7 @@ class EnvgeneInventoryServiceRestTest {
                         "\"status\": null," +
                         "\"type\": null," +
                         "\"role\": \"\"," +
+                        "\"region\": \"\"," +
                         "\"owners\": [], " +
                         "\"expirationDate\": \"\"}")
                 .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
@@ -276,6 +280,7 @@ class EnvgeneInventoryServiceRestTest {
                 .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
                 .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
                 .body("find { it.name == 'env-metadata-test' }.role", equalTo(""))
+                .body("find { it.name == 'env-metadata-test' }.region", equalTo(""))
                 .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
     }

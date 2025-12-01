@@ -63,6 +63,7 @@ class UpdateEnvironmentServiceTest {
         testEnvironment.setLabels(List.of("ci", "dev"));
         testEnvironment.setType(EnvironmentType.DESIGN_TIME);
         testEnvironment.setRole("Dev");
+        testEnvironment.setRegion("cm");
         testEnvironment.setStatus(EnvironmentStatus.IN_USE);
         testEnvironment.setExpirationDate(LocalDate.of(2025, 12, 31));
     }

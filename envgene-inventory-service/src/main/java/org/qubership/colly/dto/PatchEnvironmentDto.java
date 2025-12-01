@@ -29,6 +29,7 @@ public record PatchEnvironmentDto(
         Optional<EnvironmentStatus> status,
         Optional<String> expirationDate,
         Optional<EnvironmentType> type,
-        Optional<String> role
+        Optional<String> role,
+        Optional<String> region
 ) {
 }
