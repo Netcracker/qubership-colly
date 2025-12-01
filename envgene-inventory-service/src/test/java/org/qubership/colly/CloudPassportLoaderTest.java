@@ -19,7 +19,6 @@ import org.qubership.colly.db.data.EnvironmentType;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -49,6 +48,7 @@ class CloudPassportLoaderTest {
                             EnvironmentStatus.FREE,
                             null,
                             EnvironmentType.ENVIRONMENT,
+                            null,
                             null),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
@@ -59,9 +59,10 @@ class CloudPassportLoaderTest {
                             EnvironmentStatus.IN_USE,
                             LocalDate.of(2025, 12, 31),
                             EnvironmentType.DESIGN_TIME,
-                            "QA")),
-            "http://localhost:8428",
-            new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
+                            "QA",
+                            "cm")),
+                    "http://localhost:8428",
+                    new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -75,6 +76,7 @@ class CloudPassportLoaderTest {
                     EnvironmentStatus.FREE,
                     null,
                     EnvironmentType.ENVIRONMENT,
+                    null,
                     null)),
             "http://vmsingle-k8s.victoria:8429",
             new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")

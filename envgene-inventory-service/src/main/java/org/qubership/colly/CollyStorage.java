@@ -99,6 +99,7 @@ public class CollyStorage {
         finalEnvironment.setExpirationDate(cloudPassportEnvironment.expirationDate());
         finalEnvironment.setType(cloudPassportEnvironment.type());
         finalEnvironment.setRole(cloudPassportEnvironment.role());
+        finalEnvironment.setRole(cloudPassportEnvironment.region());
 
         Log.info("Environment " + finalEnvironment.getName() + " has been loaded from CloudPassport");
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));

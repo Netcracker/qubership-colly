@@ -171,31 +171,35 @@ public class CloudPassportLoader {
             Inventory inventory = envDefinition.getInventory();
             Log.info("Processing environment " + inventory.getEnvironmentName());
             InventoryMetadata inventoryMetadata = inventory.getMetadata();
-            String description = inventoryMetadata == null || inventoryMetadata.getDescription() == null
+            String description = inventoryMetadata == null || inventoryMetadata.description() == null
                     ? inventory.getDescription()
-                    : inventoryMetadata.getDescription();
-            List<String> owners = inventoryMetadata == null || inventoryMetadata.getOwners() == null
+                    : inventoryMetadata.description();
+            List<String> owners = inventoryMetadata == null || inventoryMetadata.owners() == null
                     ? inventory.getOwners() == null ? List.of() : List.of(inventory.getOwners())
-                    : inventoryMetadata.getOwners();
-            List<String> labels = inventoryMetadata == null || inventoryMetadata.getLabels() == null
+                    : inventoryMetadata.owners();
+            List<String> labels = inventoryMetadata == null || inventoryMetadata.labels() == null
                     ? List.of()
-                    : inventoryMetadata.getLabels();
-            List<String> teams = inventoryMetadata == null || inventoryMetadata.getTeams() == null
+                    : inventoryMetadata.labels();
+            List<String> teams = inventoryMetadata == null || inventoryMetadata.teams() == null
                     ? List.of()
-                    : inventoryMetadata.getTeams();
-            EnvironmentStatus environmentStatus = inventoryMetadata == null || inventoryMetadata.getStatus() == null
+                    : inventoryMetadata.teams();
+            EnvironmentStatus environmentStatus = inventoryMetadata == null || inventoryMetadata.status() == null
                     ? EnvironmentStatus.FREE
-                    : EnvironmentStatus.valueOf(inventoryMetadata.getStatus());
-            LocalDate expirationDate = inventoryMetadata == null || inventoryMetadata.getExpirationDate() == null
+                    : EnvironmentStatus.valueOf(inventoryMetadata.status());
+            LocalDate expirationDate = inventoryMetadata == null || inventoryMetadata.expirationDate() == null
                     ? null
-                    : LocalDate.parse(inventoryMetadata.getExpirationDate());
-            EnvironmentType type = inventoryMetadata == null || inventoryMetadata.getType() == null
+                    : LocalDate.parse(inventoryMetadata.expirationDate());
+            EnvironmentType type = inventoryMetadata == null || inventoryMetadata.type() == null
                     ? EnvironmentType.ENVIRONMENT
-                    : EnvironmentType.valueOf(inventoryMetadata.getType());
+                    : EnvironmentType.valueOf(inventoryMetadata.type());
             String role = inventoryMetadata == null
                     ? null
-                    : inventoryMetadata.getRole();
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces, owners, labels, teams, environmentStatus, expirationDate, type, role);
+                    : inventoryMetadata.role();
+            String region = inventoryMetadata == null
+                    ? null
+                    : inventoryMetadata.region();
+            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
+                    owners, labels, teams, environmentStatus, expirationDate, type, role, region);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }

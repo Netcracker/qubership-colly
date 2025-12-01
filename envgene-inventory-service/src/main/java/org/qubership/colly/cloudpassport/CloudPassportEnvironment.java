@@ -15,5 +15,6 @@ public record CloudPassportEnvironment(String name,
                                        EnvironmentStatus status,
                                        LocalDate expirationDate,
                                        EnvironmentType type,
-                                       String role) {
+                                       String role,
+                                       String region) {
 }
