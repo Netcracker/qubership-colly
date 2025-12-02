@@ -139,6 +139,7 @@ services:
       dockerfile: Dockerfile
     image: ui-service:latest
     container_name: ui-service
+    profiles: ["apps"]
     ports:
       - "3000:3000"
     environment:

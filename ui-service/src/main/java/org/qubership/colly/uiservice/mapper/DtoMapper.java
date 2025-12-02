@@ -56,6 +56,7 @@ public class DtoMapper {
                 inventory.expirationDate(),
                 inventory.type(),
                 inventory.role(),
+                inventory.region(),
 
                 // From operational (may be null)
                 operational != null ? operational.deploymentVersion() : null,

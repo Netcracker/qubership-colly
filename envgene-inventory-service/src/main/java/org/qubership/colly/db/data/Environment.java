@@ -11,10 +11,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@NoArgsConstructor
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.ALWAYS)
+@NoArgsConstructor
 public class Environment {
 
     private String id;
