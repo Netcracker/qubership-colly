@@ -80,8 +80,6 @@ public class UpdateEnvironmentService {
         Log.info("Updated type to " + environmentUpdate.getType().name());
         updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
         Log.info("Updated role to " + environmentUpdate.getRole());
-        updateYamlField(yamlPath, ".inventory.metadata.region", environmentUpdate.getRegion());
-        Log.info("Updated region to " + environmentUpdate.getRegion());
     }
 
     private boolean isYqAvailable() {

@@ -263,7 +263,6 @@ class EnvgeneInventoryServiceRestTest {
                         "\"status\": null," +
                         "\"type\": null," +
                         "\"role\": \"\"," +
-                        "\"region\": \"\"," +
                         "\"owners\": [], " +
                         "\"expirationDate\": \"\"}")
                 .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
@@ -280,7 +279,7 @@ class EnvgeneInventoryServiceRestTest {
                 .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
                 .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
                 .body("find { it.name == 'env-metadata-test' }.role", equalTo(""))
-                .body("find { it.name == 'env-metadata-test' }.region", equalTo(""))
+                .body("find { it.name == 'env-metadata-test' }.region", equalTo("cm"))
                 .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
     }

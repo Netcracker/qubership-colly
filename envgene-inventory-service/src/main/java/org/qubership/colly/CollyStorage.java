@@ -149,7 +149,6 @@ public class CollyStorage {
 
         updateDto.type().ifPresent(existingEnv::setType);
         updateDto.role().ifPresent(existingEnv::setRole);
-        updateDto.region().ifPresent(existingEnv::setRegion);
 
         // Update YAML files in Git with the updated environment
         Cluster cluster = clusterRepository.findById(existingEnv.getClusterId());
