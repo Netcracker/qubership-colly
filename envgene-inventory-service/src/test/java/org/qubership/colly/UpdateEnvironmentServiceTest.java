@@ -74,16 +74,16 @@ class UpdateEnvironmentServiceTest {
         Path path = Paths.get(testCluster.getGitInfo().folderName() + "/gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
-        assertEquals("new description", envDefinition.getInventory().getMetadata().getDescription());
+        assertEquals("new description", envDefinition.getInventory().getMetadata().description());
         assertNull(envDefinition.getInventory().getDescription());
-        assertThat(envDefinition.getInventory().getMetadata().getOwners(), contains("new owner"));
-        assertThat(envDefinition.getInventory().getMetadata().getTeams(), contains("new test-team"));
+        assertThat(envDefinition.getInventory().getMetadata().owners(), contains("new owner"));
+        assertThat(envDefinition.getInventory().getMetadata().teams(), contains("new test-team"));
         assertNull(envDefinition.getInventory().getOwners());
-        assertThat(envDefinition.getInventory().getMetadata().getLabels(), contains("ci", "dev"));
-        assertEquals("DESIGN_TIME", envDefinition.getInventory().getMetadata().getType());
-        assertEquals("Dev", envDefinition.getInventory().getMetadata().getRole());
-        assertThat(envDefinition.getInventory().getMetadata().getStatus(), is("IN_USE"));
-        assertThat(envDefinition.getInventory().getMetadata().getExpirationDate(), is("2025-12-31"));
+        assertThat(envDefinition.getInventory().getMetadata().labels(), contains("ci", "dev"));
+        assertEquals("DESIGN_TIME", envDefinition.getInventory().getMetadata().type());
+        assertEquals("Dev", envDefinition.getInventory().getMetadata().role());
+        assertThat(envDefinition.getInventory().getMetadata().status(), is("IN_USE"));
+        assertThat(envDefinition.getInventory().getMetadata().expirationDate() , is("2025-12-31"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 

@@ -168,6 +168,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
         namespaces: env.namespaces.filter((namespace: Namespace) => showAllNamespaces || namespace.existsInK8s),
         cluster: env.cluster?.name,
         owners: env.owners,
+        region: env.region,
         teams: env.teams,
         status: env.status,
         expirationDate: env.expirationDate,
@@ -203,6 +204,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                     </Box>
                 )
             },
+            { field: "region", headerName: "Region", width: 150 },
             {field: "cluster", headerName: "Cluster", width: 150},
             {
                 field: "owners", headerName: "Owner(s)", width: 120,

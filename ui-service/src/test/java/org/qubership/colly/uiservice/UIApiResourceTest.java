@@ -51,7 +51,8 @@ class UIApiResourceTest {
                         EnvironmentStatus.FREE,
                         null,
                         EnvironmentType.ENVIRONMENT,
-                        null
+                        null,
+                        "cm"
                 )
         ));
 

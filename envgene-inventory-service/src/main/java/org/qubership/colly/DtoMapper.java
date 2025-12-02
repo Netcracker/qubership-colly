@@ -23,7 +23,8 @@ public class DtoMapper {
                 environment.getStatus(),
                 environment.getExpirationDate(),
                 environment.getType(),
-                environment.getRole()
+                environment.getRole(),
+                environment.getRegion()
         );
     }
 

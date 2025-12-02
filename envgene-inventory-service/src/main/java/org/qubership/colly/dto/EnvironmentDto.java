@@ -17,5 +17,6 @@ public record EnvironmentDto(String id,
                              EnvironmentStatus status,
                              LocalDate expirationDate,
                              EnvironmentType type,
-                             String role) {
+                             String role,
+                             String region) {
 }

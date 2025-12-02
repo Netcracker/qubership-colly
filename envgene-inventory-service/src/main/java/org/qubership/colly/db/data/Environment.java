@@ -2,13 +2,19 @@ package org.qubership.colly.db.data;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Getter
+@Setter
 @JsonInclude(JsonInclude.Include.ALWAYS)
+@NoArgsConstructor
 public class Environment {
 
     private String id;
@@ -23,6 +29,7 @@ public class Environment {
     private EnvironmentStatus status = EnvironmentStatus.FREE;
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
     private String role;
+    private String region;
     private List<String> labels;
     private List<Namespace> namespaces;
 
@@ -33,23 +40,8 @@ public class Environment {
         this.namespaces = new ArrayList<>();
     }
 
-    public Environment() {
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public List<Namespace> getNamespaces() {
         return namespaces != null ? Collections.unmodifiableList(namespaces) : Collections.emptyList();
-    }
-
-    public void setNamespaces(List<Namespace> namespaces) {
-        this.namespaces = namespaces;
     }
 
     public void addNamespace(Namespace namespace) {
@@ -67,22 +59,6 @@ public class Environment {
         this.labels = labels != null ? new ArrayList<>(labels) : null;
     }
 
-    public LocalDate getExpirationDate() {
-        return expirationDate;
-    }
-
-    public void setExpirationDate(LocalDate expirationDate) {
-        this.expirationDate = expirationDate;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public List<String> getOwners() {
         return owners != null ? Collections.unmodifiableList(owners) : Collections.emptyList();
     }
@@ -91,60 +67,8 @@ public class Environment {
         this.owners = owners != null ? new ArrayList<>(owners) : null;
     }
 
-    public List<String> getTeams() {
-        return teams;
-    }
-
     public void setTeams(List<String> teams) {
         this.teams = teams != null ? new ArrayList<>(teams) : null;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public EnvironmentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(EnvironmentStatus status) {
-        this.status = status;
-    }
-
-    public EnvironmentType getType() {
-        return type;
-    }
-
-    public void setType(EnvironmentType type) {
-        this.type = type;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public String getClusterId() {
-        return clusterId;
-    }
-
-    public void setClusterId(String clusterId) {
-        this.clusterId = clusterId;
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
     }
 }
 

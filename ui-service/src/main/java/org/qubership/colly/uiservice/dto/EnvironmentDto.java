@@ -22,6 +22,7 @@ public record EnvironmentDto(
         LocalDate expirationDate,
         EnvironmentType type,
         String role,
+        String region,
 
         // Fields from operational-service
         String deploymentVersion,

@@ -21,5 +21,6 @@ public record InventoryEnvironmentDto(
         EnvironmentStatus status,
         LocalDate expirationDate,
         EnvironmentType type,
-        String role) {
+        String role,
+        String region) {
 }
