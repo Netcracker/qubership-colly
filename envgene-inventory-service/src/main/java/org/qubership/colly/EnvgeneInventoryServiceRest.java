@@ -1,6 +1,5 @@
 package org.qubership.colly;
 
-import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
@@ -8,6 +7,14 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.qubership.colly.dto.ClusterDto;
 import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.EnvironmentDto;
@@ -43,6 +50,60 @@ public class EnvgeneInventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters")
+    @Operation(
+            summary = "Get all clusters",
+            description = "Retrieves a list of all Kubernetes clusters available in the inventory. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved list of clusters",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ClusterDto.class),
+                            examples = @ExampleObject(
+                                    name = "clusters-list",
+                                    summary = "Example list of clusters",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "bd75a053-1210-4b9a-9fe1-9af265b006c9",
+                                                "name": "prod-cluster-01"
+                                              },
+                                              {
+                                                "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
+                                                "name": "dev-cluster-01"
+                                              },
+                                              {
+                                                "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+                                                "name": "staging-cluster-01"
+                                              }
+                                            ]
+                                            """
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
     public List<ClusterDto> getClusters() {
         return dtoMapper.toClusterDtos(collyStorage.getClusters());
     }
@@ -50,6 +111,98 @@ public class EnvgeneInventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
+    @Operation(
+            summary = "Get all environments",
+            description = "Retrieves a list of all available environments with their details including namespaces, clusters, owners, teams, and metadata. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved list of environments",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = EnvironmentDto.class),
+                            examples = @ExampleObject(
+                                    name = "environments-list",
+                                    summary = "Example list of environments",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "96180fe7-f025-465f-bbbf-5e83f301a614",
+                                                "name": "prod-env-1",
+                                                "description": "Production environment for main application",
+                                                "namespaces": [
+                                                  {
+                                                    "id": "34f89c4d-bcc3-4eff-b271-6fdcdaf977c9",
+                                                    "name": "prod-env-1-app"
+                                                  },
+                                                  {
+                                                    "id": "6d3eff88-f35b-471c-b84a-923765861feb",
+                                                    "name": "prod-env-1-services"
+                                                  }
+                                                ],
+                                                "cluster": {
+                                                  "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
+                                                  "name": "prod-cluster-01"
+                                                },
+                                                "owners": ["john.doe", "jane.smith"],
+                                                "labels": ["production", "critical"],
+                                                "teams": ["DevOps"],
+                                                "status": "IN_USE",
+                                                "expirationDate": null,
+                                                "type": "ENVIRONMENT",
+                                                "role": "production",
+                                                "region": "us-east-1"
+                                              },
+                                              {
+                                                "id": "b41b5769-239c-4297-9ef8-8cb2866f186e",
+                                                "name": "dev-env-test",
+                                                "description": "Development environment for testing",
+                                                "namespaces": [
+                                                  {
+                                                    "id": "8c1e53b8-74af-48cb-869d-e814447b0c91",
+                                                    "name": "dev-env-test-apps"
+                                                  }
+                                                ],
+                                                "cluster": {
+                                                  "id": "bd75a053-1210-4b9a-9fe1-9af265b006c9",
+                                                  "name": "dev-cluster-01"
+                                                },
+                                                "owners": ["dev.team"],
+                                                "labels": ["CI"],
+                                                "teams": ["Development", "QA"],
+                                                "status": "FREE",
+                                                "expirationDate": "2025-12-31",
+                                                "type": "ENVIRONMENT",
+                                                "role": "development",
+                                                "region": "eu-west-1"
+                                              }
+                                            ]
+                                            """
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
     public List<EnvironmentDto> getEnvironments() {
         return dtoMapper.toDtos(collyStorage.getEnvironments());
     }
@@ -59,8 +212,147 @@ public class EnvgeneInventoryServiceRest {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments/{environmentId}")
     @RolesAllowed("admin")
-    public Response patchEnvironment(@PathParam("environmentId") String id,
-                                     PatchEnvironmentDto updateDto) {
+    @Operation(
+            summary = "Partially update an environment",
+            description = "Updates specific fields of an existing environment. Only provided fields will be updated. Requires admin role."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Environment successfully updated",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = EnvironmentDto.class),
+                            examples = @ExampleObject(
+                                    name = "updated-environment",
+                                    summary = "Example of updated environment",
+                                    value = """
+                                            {
+                                              "id": "96180fe7-f025-465f-bbbf-5e83f301a614",
+                                              "name": "prod-env-1",
+                                              "description": "Updated production environment description",
+                                              "namespaces": [
+                                                {
+                                                  "id": "34f89c4d-bcc3-4eff-b271-6fdcdaf977c9",
+                                                  "name": "prod-env-1-app"
+                                                }
+                                              ],
+                                              "cluster": {
+                                                "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
+                                                "name": "prod-cluster-01"
+                                              },
+                                              "owners": ["john.doe", "jane.smith", "new.owner"],
+                                              "labels": ["production", "critical", "updated"],
+                                              "teams": ["Platform", "DevOps", "SRE"],
+                                              "status": "IN_USE",
+                                              "expirationDate": "2025-12-31",
+                                              "type": "ENVIRONMENT",
+                                              "role": "production",
+                                              "region": "us-east-1"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "403",
+                    description = "Forbidden - admin role required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Access denied. Admin role required.\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Environment not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Environment with id= 96180fe7-f025-465f-bbbf-5e83f301a614 not found \"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Failed to update environment: Internal error occurred\"}"
+                            )
+                    )
+            )
+    })
+    public Response patchEnvironment(
+            @Parameter(
+                    description = "ID of the environment to update (UUID format)",
+                    required = true,
+                    example = "96180fe7-f025-465f-bbbf-5e83f301a614"
+            )
+            @PathParam("environmentId") String id,
+
+            @RequestBody(
+                    description = "Partial update data. Only provided fields will be updated. To clear expirationDate, send empty string.",
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = PatchEnvironmentDto.class),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "update-description-and-owners",
+                                            summary = "Update description and add owners",
+                                            value = """
+                                                    {
+                                                      "description": "Updated environment description",
+                                                      "owners": ["john.doe@company.com", "jane.smith@company.com", "new.owner@company.com"]
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "update-status-and-expiration",
+                                            summary = "Change status and set expiration date",
+                                            value = """
+                                                    {
+                                                      "status": "IN_USE",
+                                                      "expirationDate": "2025-12-31"
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "clear-expiration-date",
+                                            summary = "Clear expiration date",
+                                            value = """
+                                                    {
+                                                      "expirationDate": ""
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "update-labels-and-teams",
+                                            summary = "Update labels and teams",
+                                            value = """
+                                                    {
+                                                      "labels": ["production", "critical", "high-priority"],
+                                                      "teams": ["Platform", "DevOps", "SRE"]
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            )
+            PatchEnvironmentDto updateDto) {
         try {
             EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, updateDto));
             return Response.ok(updatedEnvironment).build();
@@ -79,6 +371,36 @@ public class EnvgeneInventoryServiceRest {
     @POST
     @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Manually trigger Git synchronization",
+            description = "Triggers a manual synchronization of environment data from the Git repository. This will fetch the latest configuration from Git and update the inventory. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "204",
+                    description = "Synchronization triggered successfully (no content returned)"
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error - synchronization failed",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Failed to synchronize with Git: Connection timeout\"}"
+                            )
+                    )
+            )
+    })
     public void syncEnvironmentsWithGit() {
         collyStorage.executeTask();
     }
