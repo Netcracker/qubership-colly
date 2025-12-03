@@ -16,8 +16,8 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.qubership.colly.dto.ClusterDto;
-import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.EnvironmentDto;
+import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
 
 import java.util.HashMap;
@@ -54,56 +54,55 @@ public class EnvgeneInventoryServiceRest {
             summary = "Get all clusters",
             description = "Retrieves a list of all Kubernetes clusters available in the inventory. Requires authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved list of clusters",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = ClusterDto.class),
-                            examples = @ExampleObject(
-                                    name = "clusters-list",
-                                    summary = "Example list of clusters",
-                                    value = """
-                                            [
-                                              {
-                                                "id": "bd75a053-1210-4b9a-9fe1-9af265b006c9",
-                                                "name": "prod-cluster-01"
-                                              },
-                                              {
-                                                "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
-                                                "name": "dev-cluster-01"
-                                              },
-                                              {
-                                                "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
-                                                "name": "staging-cluster-01"
-                                              }
-                                            ]
-                                            """
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Internal server error occurred\"}"
-                            )
+
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved list of clusters",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = ClusterDto.class),
+                    examples = @ExampleObject(
+                            name = "clusters-list",
+                            summary = "Example list of clusters",
+                            value = """
+                                    [
+                                      {
+                                        "id": "bd75a053-1210-4b9a-9fe1-9af265b006c9",
+                                        "name": "prod-cluster-01"
+                                      },
+                                      {
+                                        "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
+                                        "name": "dev-cluster-01"
+                                      },
+                                      {
+                                        "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+                                        "name": "staging-cluster-01"
+                                      }
+                                    ]
+                                    """
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Internal server error occurred\"}"
+                    )
+            )
+    )
     public List<ClusterDto> getClusters() {
         return dtoMapper.toClusterDtos(collyStorage.getClusters());
     }
@@ -216,85 +215,83 @@ public class EnvgeneInventoryServiceRest {
             summary = "Partially update an environment",
             description = "Updates specific fields of an existing environment. Only provided fields will be updated. Requires admin role."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Environment successfully updated",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = EnvironmentDto.class),
-                            examples = @ExampleObject(
-                                    name = "updated-environment",
-                                    summary = "Example of updated environment",
-                                    value = """
-                                            {
-                                              "id": "96180fe7-f025-465f-bbbf-5e83f301a614",
-                                              "name": "prod-env-1",
-                                              "description": "Updated production environment description",
-                                              "namespaces": [
-                                                {
-                                                  "id": "34f89c4d-bcc3-4eff-b271-6fdcdaf977c9",
-                                                  "name": "prod-env-1-app"
-                                                }
-                                              ],
-                                              "cluster": {
-                                                "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
-                                                "name": "prod-cluster-01"
-                                              },
-                                              "owners": ["john.doe", "jane.smith", "new.owner"],
-                                              "labels": ["production", "critical", "updated"],
-                                              "teams": ["Platform", "DevOps", "SRE"],
-                                              "status": "IN_USE",
-                                              "expirationDate": "2025-12-31",
-                                              "type": "ENVIRONMENT",
-                                              "role": "production",
-                                              "region": "us-east-1"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "403",
-                    description = "Forbidden - admin role required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Access denied. Admin role required.\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "404",
-                    description = "Environment not found",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Environment with id= 96180fe7-f025-465f-bbbf-5e83f301a614 not found \"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Failed to update environment: Internal error occurred\"}"
-                            )
+    @APIResponse(
+            responseCode = "200",
+            description = "Environment successfully updated",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = EnvironmentDto.class),
+                    examples = @ExampleObject(
+                            name = "updated-environment",
+                            summary = "Example of updated environment",
+                            value = """
+                                    {
+                                      "id": "96180fe7-f025-465f-bbbf-5e83f301a614",
+                                      "name": "prod-env-1",
+                                      "description": "Updated production environment description",
+                                      "namespaces": [
+                                        {
+                                          "id": "34f89c4d-bcc3-4eff-b271-6fdcdaf977c9",
+                                          "name": "prod-env-1-app"
+                                        }
+                                      ],
+                                      "cluster": {
+                                        "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
+                                        "name": "prod-cluster-01"
+                                      },
+                                      "owners": ["john.doe", "jane.smith", "new.owner"],
+                                      "labels": ["production", "critical", "updated"],
+                                      "teams": ["Platform", "DevOps", "SRE"],
+                                      "status": "IN_USE",
+                                      "expirationDate": "2025-12-31",
+                                      "type": "ENVIRONMENT",
+                                      "role": "production",
+                                      "region": "us-east-1"
+                                    }
+                                    """
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "403",
+            description = "Forbidden - admin role required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Access denied. Admin role required.\"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Environment not found",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Environment with id= 96180fe7-f025-465f-bbbf-5e83f301a614 not found \"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Failed to update environment: Internal error occurred\"}"
+                    )
+            )
+    )
     public Response patchEnvironment(
             @Parameter(
                     description = "ID of the environment to update (UUID format)",
@@ -375,32 +372,30 @@ public class EnvgeneInventoryServiceRest {
             summary = "Manually trigger Git synchronization",
             description = "Triggers a manual synchronization of environment data from the Git repository. This will fetch the latest configuration from Git and update the inventory. Requires authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "204",
-                    description = "Synchronization triggered successfully (no content returned)"
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error - synchronization failed",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Failed to synchronize with Git: Connection timeout\"}"
-                            )
+    @APIResponse(
+            responseCode = "204",
+            description = "Synchronization triggered successfully (no content returned)"
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error - synchronization failed",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Failed to synchronize with Git: Connection timeout\"}"
+                    )
+            )
+    )
     public void syncEnvironmentsWithGit() {
         collyStorage.executeTask();
     }

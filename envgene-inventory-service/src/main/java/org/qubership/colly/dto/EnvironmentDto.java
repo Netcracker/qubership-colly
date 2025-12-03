@@ -11,21 +11,21 @@ import java.util.List;
 public record EnvironmentDto(
         @Schema(
                 description = "Unique identifier of the environment (UUID format)",
-                example = "96180fe7-f025-465f-bbbf-5e83f301a614",
+                examples = "96180fe7-f025-465f-bbbf-5e83f301a615",
                 required = true
         )
         String id,
 
         @Schema(
                 description = "Name of the environment",
-                example = "prod-env-1",
+                examples = "prod-env-1",
                 required = true
         )
         String name,
 
         @Schema(
                 description = "Detailed description of the environment",
-                example = "Production environment for main application",
+                examples = "Production environment for main application",
                 nullable = true
         )
         String description,
@@ -44,33 +44,33 @@ public record EnvironmentDto(
 
         @Schema(
                 description = "List of environment owners",
-                example = "[\"john.doe\", \"jane.smith\"]"
+                examples = "[\"john.doe\", \"jane.smith\"]"
         )
         List<String> owners,
 
         @Schema(
                 description = "Custom labels/tags for categorization and filtering",
-                example = "[\"production\", \"critical\", \"high-availability\"]"
+                examples = "[\"production\", \"critical\", \"high-availability\"]"
         )
         List<String> labels,
 
         @Schema(
                 description = "Teams that have access to this environment",
-                example = "[\"Platform\", \"DevOps\", \"SRE\"]"
+                examples = "[\"Platform\", \"DevOps\", \"SRE\"]"
         )
         List<String> teams,
 
         @Schema(
                 description = "Current status of the environment",
                 enumeration = {"IN_USE", "RESERVED", "FREE", "MIGRATING"},
-                example = "FREE",
+                examples = "FREE",
                 required = true
         )
         EnvironmentStatus status,
 
         @Schema(
                 description = "Expiration date after which the environment should be cleaned up or reviewed (ISO 8601 format)",
-                example = "2025-12-31",
+                examples = "2025-12-31",
                 nullable = true
         )
         LocalDate expirationDate,
@@ -78,21 +78,21 @@ public record EnvironmentDto(
         @Schema(
                 description = "Type/category of the environment",
                 enumeration = {"ENVIRONMENT", "CSE_TOOLSET", "DESIGN_TIME", "APP_DEPLOYER", "INFRASTRUCTURE", "PORTAL", "UNDEFINED"},
-                example = "ENVIRONMENT",
+                examples = "ENVIRONMENT",
                 required = true
         )
         EnvironmentType type,
 
         @Schema(
                 description = "Role or purpose of the environment in the infrastructure",
-                example = "production",
+                examples = "production",
                 nullable = true
         )
         String role,
 
         @Schema(
                 description = "Geographic region or datacenter location",
-                example = "us-east-1",
+                examples = "us-east-1",
                 nullable = true
         )
         String region

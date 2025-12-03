@@ -13,12 +13,10 @@ import java.util.Optional;
  * Fields are wrapped in Optional to support partial updates:
  * - Optional.empty() = field not provided OR field is null (don't update)
  * - Optional.of(value) = field should be updated to this value
- *
  * Special handling for expirationDate:
  * - Optional.empty() = don't update
  * - Optional.of("") = clear the field (set to null)
  * - Optional.of("2025-12-31") = set to this date
- *
  * Note: Jackson cannot distinguish between absent fields and explicit null values.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -28,28 +26,28 @@ import java.util.Optional;
 public record PatchEnvironmentDto(
         @Schema(
                 description = "New description for the environment. Omit to keep current value, provide value to update.",
-                example = "Updated production environment for main application",
+                examples = "Updated production environment for main application",
                 nullable = true
         )
         Optional<String> description,
 
         @Schema(
                 description = "New list of environment owners (replaces existing list). Omit to keep current owners.",
-                example = "[\"john.doe@company.com\", \"jane.smith@company.com\"]",
+                examples = "[\"john.doe@company.com\", \"jane.smith@company.com\"]",
                 nullable = true
         )
         Optional<List<String>> owners,
 
         @Schema(
                 description = "New list of labels/tags (replaces existing list). Omit to keep current labels.",
-                example = "[\"production\", \"critical\", \"high-priority\"]",
+                examples = "[\"production\", \"critical\", \"high-priority\"]",
                 nullable = true
         )
         Optional<List<String>> labels,
 
         @Schema(
                 description = "New list of teams with access (replaces existing list). Omit to keep current teams.",
-                example = "[\"QA\", \"DevOps\", \"Dev\"]",
+                examples = "[\"QA\", \"DevOps\", \"Dev\"]",
                 nullable = true
         )
         Optional<List<String>> teams,
@@ -57,14 +55,14 @@ public record PatchEnvironmentDto(
         @Schema(
                 description = "New status for the environment. Omit to keep current status.",
                 enumeration = {"IN_USE", "RESERVED", "FREE", "MIGRATING"},
-                example = "IN_USE",
+                examples = "IN_USE",
                 nullable = true
         )
         Optional<EnvironmentStatus> status,
 
         @Schema(
                 description = "New expiration date (ISO 8601 format: YYYY-MM-DD). Omit to keep current date. Provide empty string (\"\") to clear the date.",
-                example = "2025-12-31",
+                examples = "2025-12-31",
                 nullable = true
         )
         Optional<String> expirationDate,
@@ -72,14 +70,14 @@ public record PatchEnvironmentDto(
         @Schema(
                 description = "New type/category for the environment. Omit to keep current type.",
                 enumeration = {"ENVIRONMENT", "CSE_TOOLSET", "DESIGN_TIME", "APP_DEPLOYER", "INFRASTRUCTURE", "PORTAL", "UNDEFINED"},
-                example = "ENVIRONMENT",
+                examples = "ENVIRONMENT",
                 nullable = true
         )
         Optional<EnvironmentType> type,
 
         @Schema(
                 description = "New role or purpose of the environment. Omit to keep current role.",
-                example = "production",
+                examples = "production",
                 nullable = true
         )
         Optional<String> role
