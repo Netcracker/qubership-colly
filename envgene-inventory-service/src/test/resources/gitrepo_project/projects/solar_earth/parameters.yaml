@@ -1,0 +1,7 @@
+customerName: Solar System
+projectName: earth
+type: project
+clusterPlatform: k8s
+repositories:
+  - type: envgeneInstance
+    url: gitrepo_with_cloudpassports

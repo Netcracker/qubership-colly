@@ -1,0 +1,7 @@
+customerName: Solar System
+projectName: saturn
+type: product
+clusterPlatform: ocp
+repositories:
+  - type: envgeneInstance
+    url: gitrepo_with_unreachable_cluster

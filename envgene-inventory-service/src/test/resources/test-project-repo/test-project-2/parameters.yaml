@@ -1,0 +1,11 @@
+projectName: Test Project 2
+customerName: Test Customer 2
+type: project
+clusterPlatform: k8s
+repositories:
+  - type: envgeneInstance
+    url: https://gitlab.com/test/repo4.git
+    token: test-token-4
+  - type: terraform
+    url: https://gitlab.com/test/repo5.git
+    token: test-token-5
