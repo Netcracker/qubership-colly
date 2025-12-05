@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
+import java.util.stream.Stream;
 
 @ApplicationScoped
 public class ProjectRepoLoader {
@@ -32,10 +32,6 @@ public class ProjectRepoLoader {
 
 
     public List<Project> loadProjects() {
-        if (projectGitRepoUrl.isEmpty()) {
-            Log.error("colly.eis.env.project.repo parameter is not set. Skipping repository cloning.");
-            return null;
-        }
         File directory = new File(projectRepoFolder);
 
         try {
@@ -50,16 +46,16 @@ public class ProjectRepoLoader {
         gitService.cloneRepository(projectGitRepoUrl, directory);
 
         Path dir = Paths.get(projectRepoFolder);
-        try {
-            return Files.walk(dir)
-                    .filter(path -> path.toString().endsWith("parameters.yaml") || path.endsWith("parameters.yml"))
+        try (Stream<Path> walk = Files.walk(dir)) {
+            return walk.filter(path -> path.toString().endsWith("parameters.yaml") || path.endsWith("parameters.yml"))
                     .map(path -> processProject(path, path.getParent())).filter(Objects::nonNull).toList();
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private Project processProject(Path parametersFilePath, Path projectPath) {
+    Project processProject(Path parametersFilePath, Path projectPath) {
         String projectId = projectPath.getFileName().toString();
         Log.info("processing project: " + projectId + " from file: " + parametersFilePath.toString());
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -72,7 +68,7 @@ public class ProjectRepoLoader {
                     projectEntity.customerName(),
                     convertToInstanceRepositories(envgeneInstanceRepos),
                     ClusterPlatform.fromString(projectEntity.clusterPlatform()));
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
             return null;
         }
@@ -81,7 +77,7 @@ public class ProjectRepoLoader {
     private List<InstanceRepository> convertToInstanceRepositories(List<RepositoryEntity> envgeneInstanceRepos) {
         return envgeneInstanceRepos.stream()
                 .map(repoEntity -> new InstanceRepository(
-                        UUID.randomUUID().toString(),
+                        repoEntity.url(),//todo do we need id here?
                         repoEntity.url(),
                         repoEntity.token()))
                 .toList();
