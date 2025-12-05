@@ -13,6 +13,8 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.dto.PatchEnvironmentDto;
+import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
 import java.util.Comparator;
 import java.util.List;
@@ -25,22 +27,26 @@ public class CollyStorage {
     private final EnvironmentRepository environmentRepository;
     private final CloudPassportLoader cloudPassportLoader;
     private final UpdateEnvironmentService updateEnvironmentService;
+    private final ProjectRepoLoader projectRepoLoader;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
             EnvironmentRepository environmentRepository,
-            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService) {
+            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService, ProjectRepoLoader projectRepoLoader) {
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.cloudPassportLoader = cloudPassportLoader;
         this.updateEnvironmentService = updateEnvironmentService;
+        this.projectRepoLoader = projectRepoLoader;
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
     void executeTask() {
-        Log.info("Task for loading resources from clusters has started");
-        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports();
+        Log.info("Task for loading data from git has started");
+        List<Project> projects = projectRepoLoader.loadProjects();
+        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
+        Log.info("Cloud passports loaded: " + cloudPassports.size());
         cloudPassports.forEach(this::saveDataToDatabase);
     }
 

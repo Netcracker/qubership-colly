@@ -15,6 +15,8 @@ import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.*;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.projectrepo.InstanceRepository;
+import org.qubership.colly.projectrepo.Project;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,7 +47,10 @@ public class CloudPassportLoader {
 
 
     public List<CloudPassport> loadCloudPassports() {
-        List<GitInfo> gitInfos = cloneGitRepositories();
+        if (gitRepoUrls.isEmpty()) {
+            Log.error("gitRepoUrl parameter is not set. Skipping repository cloning.");
+        }
+        List<GitInfo> gitInfos = cloneGitRepositories(gitRepoUrls.orElse(Collections.emptyList()));
 
         Path dir = Paths.get(cloudPassportFolder);
         if (!dir.toFile().exists()) {
@@ -67,11 +72,32 @@ public class CloudPassportLoader {
         return cloudPassports;
     }
 
-    private List<GitInfo> cloneGitRepositories() {
-        if (gitRepoUrls.isEmpty()) {
-            Log.error("gitRepoUrl parameter is not set. Skipping repository cloning.");
+    public List<CloudPassport> loadCloudPassports(List<Project> projects) {
+        List<String> gitRepoUrls = projects.stream().flatMap(project -> project.instanceRepositories().stream()).map(InstanceRepository::url).toList();
+
+        List<GitInfo> gitInfos = cloneGitRepositories(gitRepoUrls);
+        Path dir = Paths.get(cloudPassportFolder);
+        if (!dir.toFile().exists()) {
             return Collections.emptyList();
         }
+        List<CloudPassport> cloudPassports = new ArrayList<>();
+        for (GitInfo gitInfo : gitInfos) {
+            try (Stream<Path> paths = Files.walk(Paths.get(gitInfo.folderName()))) {
+                cloudPassports.addAll(paths.filter(Files::isDirectory)
+                        .map(path -> path.resolve(CLOUD_PASSPORT_FOLDER))
+                        .filter(Files::isDirectory)
+                        .map(path -> processYamlFilesInClusterFolder(gitInfo, path, path.getParent()))
+                        .filter(Objects::nonNull)
+                        .toList());
+            } catch (Exception e) {
+                Log.error("Error loading CloudPassports from " + dir, e);
+            }
+        }
+        return cloudPassports;
+    }
+
+    private List<GitInfo> cloneGitRepositories(List<String> gitRepoUrls) {
+
         File directory = new File(cloudPassportFolder);
 
         try {
@@ -84,9 +110,8 @@ public class CloudPassportLoader {
         }
 
         List<GitInfo> result = new ArrayList<>();
-        List<String> gitRepoUrlValues = gitRepoUrls.get();
         int index = 1;
-        for (String gitRepoUrlValue : gitRepoUrlValues) {
+        for (String gitRepoUrlValue : gitRepoUrls) {
             String folderNameToClone = cloudPassportFolder + "/" + index;
             gitService.cloneRepository(gitRepoUrlValue, new File(folderNameToClone));
             result.add(new GitInfo(gitRepoUrlValue, folderNameToClone));
