@@ -210,10 +210,19 @@ This is not the full list of attributes of these objects, but only those that wi
 - [x] Add the `deployPostfix` attribute to the Namespace?
   - No
 
+- [ ] Аттрибуты кластера добавить
+
 - [ ] What is a SaaS report?
 
 - [ ] Is it correct to say that a single physical business solution instance, consisting of product and project applications, can be modeled with two EnvGene environments - one for product, one for project?
   - No, there is only one Environment.
+
+1. SSP перед созданием кластера, энва ходит к Колли, для того что бы проверить есть ли уже с таким именем
+2. Если Колли дискаверит инстанс репо и получает кластер который уже есть в Колли ( по аттрибуту name), то создается еще один с таким же name, но с уникальным ID
+3. No search API
+4. Как организовать связь между инстансным и пайплайновым репозиториями
+5. Егор узнает зачем проект завел себе два темплейт репо
+6. Егор принесет приоритеты
 
 ## To implement
 
@@ -235,3 +244,7 @@ This is not the full list of attributes of these objects, but only those that wi
 - [ ] Add `region` attribute
 - [ ] Remove `cleanInstallationDate` attribute
 - [ ] Add `clusterInfoUpdateInterval`, `clusterInfoUpdateStatus.lastSuccessAt`
+- [ ] Add `accessGroups` to Project
+- [ ] Add `clustersPlatform` to Project
+- [ ] Add `envgeneArtifact` to Project
+- [ ] Configure `monitoringData` for En

@@ -183,6 +183,20 @@ components:
           type: string
         name:
           type: string
+    ProjectDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Project ID. unique within the Colly instance.
+        name:
+          type: string
+        description:
+          type: string
+        environments:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnvironmentDto"
   securitySchemes:
     SecurityScheme:
       type: openIdConnect

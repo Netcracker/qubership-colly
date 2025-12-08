@@ -26,7 +26,7 @@ This document describes the structure and contents of the Project repository.
 |   └── credentials.yaml
 └── projects
     └── <projectId>
-        ├── parameters.yaml
+        ├── parameters.yaml|yml (если есть оба, берется случайный)
         └── credentials.yaml
 ```
 
@@ -34,21 +34,23 @@ This document describes the structure and contents of the Project repository.
 
 #### [Global] `parameters.yaml`
 
-```yaml
+Currently, this file has no contents
+
+<!-- ```yaml
 # Optional
 # Global list of users with access permissions for all projects
-users:
-  - # Mandatory
-    # User name
-    name: string
-    # Mandatory
-    # User permissions
-    permissions: enum[RO, RW]
-```
+accessGroups:
+      # Mandatory
+      # User name
+      name: string
+      # Optional
+      # User permissions
+      permissions: enum[RO, RW]
+``` -->
 
 #### [Global] `credentials.yaml`
 
-Сurrently, this file has no contents
+Currently, this file has no contents
 
 ### Projects
 
@@ -61,32 +63,37 @@ customerName: string
 # Mandatory
 # Name of the project
 projectName: string
+
+accessGroups:
+  - string
 # To discuss. for different phases, there are different template versions from different branches
-projectPhase: <???>
 repositories:
   - # Mandatory
     # In MS1 only envgeneInstance is supported
-    type: enum[ envgeneInstance, pipeline ]
+    type: enum[ envgeneInstance, envgeneTemplate, pipeline ]
     # Mandatory
     url: string
+    # Mandatory
+    # Token for repository access
     # Pointer to Credential in credentials.yaml
     # In MS1, Colly will get access to the repository using a technical user, parameters for the user will be passed as a deployment parameter
     token: creds.get('<credential-id>').secret
     # Optional
     # If not set, the "default" branch is used (as in GitLab/GitHub)
-    branches: list of strings # To discuss. Do we need mapping by phase? For discovery, to get template names from different branches
+    defaultBranch: string
     # Optional
     # Geographical region associated with the Environment. This attribute is user-defined
     # Used in cases where specific `pipeline` repositories need to be used for certain environments
     region: string
-# Optional
-# This is for MS1, we will do discovery later somehow
-# Needs further thought because the same <artifact-template-name> can contain different templates in different versions
-envgeneTemplates:
-  # Mandatory
-  # The key is EnvGene environment template artifact name (application from the application:version notation)
-  # The value is a list of template names inside the artifact
-  <artifact-template-name>: list of strings
+    # Optional
+    # This is for MS1, we will do discovery later somehow
+    # Needs further thought because the same <artifact-template-name> can contain different templates in different versions
+    envgeneArtifact:
+      name: 
+      # Mandatory
+      # The key is EnvGene environment template artifact name (application from the application:version notation)
+      # The value is a list of template names inside the artifact
+      templateDescriptorNames: list of strings
 ```
 
 #### [Projects] `credentials.yaml`
@@ -168,3 +175,25 @@ offsite-mb-pipeline-cred:
 - [ ] global configuration
 
 - [ ] `pipeline` is too generic, we need to specify the exact type of pipeline
+
+- [ ] accessGroups это список групп пользователей для "кластеров" или Колли?
+
+- [x] Есть ли сейчас для каждого проекта различный `accessGroups`
+  - Да, он различный
+
+- [x] Планируется ли создание Project post/patch через Colly API
+  - сейчас нет, возможно потом
+
+- [ ] jiraCustomerName - нужен ли? Егор расскажет
+
+- [ ] envgeneArtifact
+  - Short term:
+    - в Repository задается руками envgeneArtifact.name в гите
+  - Long term:
+    - решить может ли Colly задискаверить:
+      - envgeneArtifact.name
+      - envgeneArtifact.templateDescriptorNames
+
+projectId = customerAbriv + projectAbriv
+
+каталог Abriv может появится когда появятся кейсы автоматизации создания проекта
