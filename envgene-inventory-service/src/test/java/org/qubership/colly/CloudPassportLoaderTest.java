@@ -16,12 +16,17 @@ import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.projectrepo.ClusterPlatform;
+import org.qubership.colly.projectrepo.InstanceRepository;
+import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.projectrepo.ProjectType;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -61,8 +66,9 @@ class CloudPassportLoaderTest {
                             EnvironmentType.DESIGN_TIME,
                             "QA",
                             "cm")),
-                    "http://localhost:8428",
-                    new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
+            "http://localhost:8428",
+            new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42"),
+                    "target/test-cloud-passport-folder/1"));
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -79,7 +85,7 @@ class CloudPassportLoaderTest {
                     null,
                     null)),
             "http://vmsingle-k8s.victoria:8429",
-            new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")
+            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43"), "target/test-cloud-passport-folder/2")
     );
 
     @InjectMock
@@ -101,9 +107,12 @@ class CloudPassportLoaderTest {
 
     @Test
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
-    @TestConfigProperty(key = "colly.eis.env.instances.repo", value = "gitrepo_with_cloudpassports,gitrepo_with_unreachable_cluster")
     void load_cloud_passports_from_test_folder() {
-        List<CloudPassport> result = loader.loadCloudPassports();
+        Project project1 = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42")), ClusterPlatform.K8S);
+        Project project2 = new Project("2", "project-2", ProjectType.PROJECT, "some-customer",
+                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43")), ClusterPlatform.K8S);
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
         assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 
     }
@@ -111,7 +120,7 @@ class CloudPassportLoaderTest {
     @Test
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "/nonexistent/path")
     void load_cloud_passports_from_test_folder_with_empty_folder() {
-        List<CloudPassport> result = loader.loadCloudPassports();
+        List<CloudPassport> result = loader.loadCloudPassports(new ArrayList<>());
         assertTrue(result.isEmpty());
     }
 

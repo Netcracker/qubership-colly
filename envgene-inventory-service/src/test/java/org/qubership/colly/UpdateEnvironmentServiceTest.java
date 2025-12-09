@@ -14,6 +14,7 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.projectrepo.InstanceRepository;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,7 +53,7 @@ class UpdateEnvironmentServiceTest {
             copyDirectory(testResourcesPath, tempDir.resolve("gitrepo_with_cloudpassports"));
         }
 
-        GitInfo gitInfo = new GitInfo("gitrepo_with_cloudpassports", tempDir.toString());
+        GitInfo gitInfo = new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42"), tempDir.toString());
         testCluster = new Cluster();
         testCluster.setName("test-cluster");
         testCluster.setGitInfo(gitInfo);
@@ -83,7 +84,7 @@ class UpdateEnvironmentServiceTest {
         assertEquals("DESIGN_TIME", envDefinition.getInventory().getMetadata().type());
         assertEquals("Dev", envDefinition.getInventory().getMetadata().role());
         assertThat(envDefinition.getInventory().getMetadata().status(), is("IN_USE"));
-        assertThat(envDefinition.getInventory().getMetadata().expirationDate() , is("2025-12-31"));
+        assertThat(envDefinition.getInventory().getMetadata().expirationDate(), is("2025-12-31"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 
@@ -98,7 +99,7 @@ class UpdateEnvironmentServiceTest {
 
     @Test
     void updateEnvironment_shouldHandleInvalidGitInfoPath() {
-        GitInfo invalidGitInfo = new GitInfo("test-repo", "/invalid/path");
+        GitInfo invalidGitInfo = new GitInfo(new InstanceRepository("test-repo", "test-repo", "42"), "/invalid/path");
         Cluster invalidCluster = new Cluster();
         invalidCluster.setName("invalid-cluster");
         invalidCluster.setGitInfo(invalidGitInfo);
