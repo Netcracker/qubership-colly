@@ -1,6 +1,5 @@
 package org.qubership.colly;
 
-import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
@@ -8,29 +7,33 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.qubership.colly.dto.ClusterDto;
-import org.qubership.colly.dto.InternalClusterInfoDto;
-import org.qubership.colly.dto.EnvironmentDto;
-import org.qubership.colly.dto.PatchEnvironmentDto;
+import org.qubership.colly.dto.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Path("/colly/v2/inventory-service")
-public class EnvgeneInventoryServiceRest {
+public class InventoryServiceRest {
 
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
 
     @Inject
-    public EnvgeneInventoryServiceRest(CollyStorage collyStorage,
-                                       SecurityIdentity securityIdentity,
-                                       DtoMapper dtoMapper) {
+    public InventoryServiceRest(CollyStorage collyStorage,
+                                SecurityIdentity securityIdentity,
+                                DtoMapper dtoMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.dtoMapper = dtoMapper;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects")
+    public List<ProjectDto> getProjects() {
+        return dtoMapper.toProjectDtos(collyStorage.getProjects());
     }
 
     @GET
