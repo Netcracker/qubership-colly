@@ -289,6 +289,48 @@ class InventoryServiceRestTest {
     }
 
     @Test
+    void get_project_without_auth() {
+        given()
+                .when().get("/colly/v2/inventory-service/projects/solar_earth")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_project() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/projects/solar_earth")
+                .then()
+                .statusCode(200)
+                .body("id", equalTo("solar_earth"))
+                .body("name", equalTo("earth"))
+                .body("type", equalTo("PROJECT"))
+                .body("customerName", equalTo("Solar System"))
+                .body("clusterPlatform", equalTo("K8S"))
+                .body("instanceRepositories", hasSize(1));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_project_not_found() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/projects/non_existent_project")
+                .then()
+                .statusCode(404);
+    }
+
+
+
+    @Test
     @TestSecurity(user = "admin", roles = "admin")
     void update_environment_with_empty_fields() {
         // Setup: sync to get env-metadata-test which has expirationDate = "2025-12-31"

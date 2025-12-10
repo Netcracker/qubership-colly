@@ -209,11 +209,32 @@ class ProjectRepoLoaderTest {
     @Test
     @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_parse_yaml_with_missing_required_field_returns_null(@TempDir Path tempDir) throws IOException {
+    void test_parse_yaml_with_missing_type_required_field_returns_null(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
                 projectName: Test Project
                 customerName: Test Customer
                 clusterPlatform: ocp
+                repositories: []
+                """;
+
+        Path projectDir = tempDir.resolve("test-project");
+        Files.createDirectories(projectDir);
+        Path parametersFile = projectDir.resolve("parameters.yaml");
+        Files.writeString(parametersFile, yamlContent);
+
+        Project project = loader.processProject(parametersFile, projectDir);
+
+        assertNull(project);
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void test_parse_yaml_with_missing_platform_required_field_returns_null(@TempDir Path tempDir) throws IOException {
+        String yamlContent = """
+                projectName: Test Project
+                customerName: Test Customer
+                type: product
                 repositories: []
                 """;
 

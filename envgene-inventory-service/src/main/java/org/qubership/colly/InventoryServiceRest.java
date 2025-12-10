@@ -38,6 +38,19 @@ public class InventoryServiceRest {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects/{id}")
+    public Response getProject(@PathParam("id") String id) {
+        var project = collyStorage.getProject(id);
+        if (project == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Project not found"))
+                    .build();
+        }
+        return Response.ok(dtoMapper.toProjectDto(project)).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/internal/cluster-infos")
     public List<InternalClusterInfoDto> getInternalClusterInfo() {
         return dtoMapper.toClusterInfoDtos(collyStorage.getClusters());

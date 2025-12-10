@@ -180,15 +180,12 @@ public class CollyStorage {
         return environmentRepository.listAll();
     }
 
-    public List<Environment> getEnvironmentsByCluster(String clusterName) {
-        Cluster cluster = clusterRepository.findByName(clusterName);
-        if (cluster == null) {
-            throw new IllegalArgumentException("Cluster not found: " + clusterName);
-        }
-        return environmentRepository.findByClusterId(cluster.getId());
-    }
 
     public List<Project> getProjects() {
         return projectRepository.listAll();
+    }
+
+    public Project getProject(String id) {
+        return projectRepository.findById(id);
     }
 }
