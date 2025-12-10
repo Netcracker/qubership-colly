@@ -44,7 +44,10 @@ class UIApiResourceTest {
                         "test-environment",
                         "Test Environment",
                         List.of(new InventoryNamespaceDto("ns-1", "namespace-1")),
-                        new InventoryClusterDto("cluster-1", "test-cluster"),
+                        new InventoryClusterDto("cluster-1", "test-cluster",
+                                "https://dashboard.example.com",
+                                "https://dbaas.example.com",
+                                "https://deployer.example.com"),
                         List.of("owner-1"),
                         List.of("label-1"),
                         List.of("team-1"),
@@ -57,7 +60,10 @@ class UIApiResourceTest {
         ));
 
         when(inventoryServiceClient.getClusters()).thenReturn(List.of(
-                new InventoryClusterDto("cluster-1", "test-cluster")
+                new InventoryClusterDto("cluster-1", "test-cluster",
+                        "https://dashboard.example.com",
+                        "https://dbaas.example.com",
+                        "https://deployer.example.com")
         ));
 
         // Mock operational service responses

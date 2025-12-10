@@ -20,6 +20,8 @@
         <org.eclipse.jgit.version>7.0.0.202409031743-r</org.eclipse.jgit.version>
         <quarkus-wiremock-test.version>1.4.1</quarkus-wiremock-test.version>
         <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
+        <lombok.version>1.18.42</lombok.version>
+        <org.apache.commons-lang3.version>3.20.0</org.apache.commons-lang3.version>
     </properties>
 
     <dependencyManagement>
@@ -113,7 +115,12 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.42</version>
+            <version>${lombok.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${org.apache.commons-lang3.version}</version>
         </dependency>
     </dependencies>
 
@@ -164,7 +171,8 @@
                 </executions>
                 <configuration>
                     <systemPropertyVariables>
-                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner
+                        </native.image.path>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>

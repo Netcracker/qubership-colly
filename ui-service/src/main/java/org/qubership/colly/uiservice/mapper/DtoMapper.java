@@ -115,7 +115,10 @@ public class DtoMapper {
         return new ClusterDto(
                 inventoryCluster.id(),
                 inventoryCluster.name(),
-                synced
+                synced,
+                inventoryCluster.dashboardUrl(),
+                inventoryCluster.dbaasUrl(),
+                inventoryCluster.deployerUrl()
         );
     }
 

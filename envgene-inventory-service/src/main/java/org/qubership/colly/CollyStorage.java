@@ -47,7 +47,7 @@ public class CollyStorage {
     private void saveDataToDatabase(CloudPassport cloudPassport) {
         Cluster cluster = clusterRepository.findByName(cloudPassport.name());
         if (cluster == null) {
-            cluster = new Cluster();
+            cluster = Cluster.builder().build();
             cluster.setName(cloudPassport.name());
         }
         cluster.setToken(cloudPassport.token());
@@ -82,7 +82,7 @@ public class CollyStorage {
         // First remove if it exists, then add the updated one
         final Environment finalEnvironment = environment;
         cluster.getEnvironments().removeIf(env -> env.getName().equals(finalEnvironment.getName()));
-        cluster.addEnvironment(finalEnvironment);
+        cluster.getEnvironments().add(finalEnvironment);
 
         // Set cluster information
         if (cluster.getId() != null) {
@@ -156,7 +156,7 @@ public class CollyStorage {
 
         // Update environment in cluster for backward compatibility
         cluster.getEnvironments().removeIf(env -> env.getName().equals(existingEnv.getName()));
-        cluster.addEnvironment(existingEnv);
+        cluster.getEnvironments().add(existingEnv);
 
         // Persist changes
         clusterRepository.persist(cluster);
