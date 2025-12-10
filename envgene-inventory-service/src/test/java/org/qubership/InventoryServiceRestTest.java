@@ -58,6 +58,14 @@ class InventoryServiceRestTest {
     }
 
     @Test
+    void get_clusters_without_auth() {
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
     @TestSecurity(user = "test")
     void load_clusters() {
         given()
@@ -74,6 +82,22 @@ class InventoryServiceRestTest {
                         hasEntry("name", "env-metadata-test"),
                         hasEntry("name", "env-1")
                 ));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_clusters() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("id", everyItem(notNullValue()))
+                .body("name", containsInAnyOrder("test-cluster", "unreachable-cluster"))
+                .body(".", hasSize(2));
     }
 
     @Test
