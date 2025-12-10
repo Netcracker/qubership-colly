@@ -1,0 +1,242 @@
+package org.qubership.colly.inventory.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.quarkus.logging.Log;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.apache.commons.io.FileUtils;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.qubership.colly.inventory.cloudpassport.CloudPassport;
+import org.qubership.colly.inventory.cloudpassport.CloudPassportEnvironment;
+import org.qubership.colly.inventory.cloudpassport.CloudPassportNamespace;
+import org.qubership.colly.inventory.cloudpassport.GitInfo;
+import org.qubership.colly.inventory.cloudpassport.envgen.*;
+import org.qubership.colly.inventory.db.data.EnvironmentStatus;
+import org.qubership.colly.inventory.db.data.EnvironmentType;
+import org.qubership.colly.inventory.projectrepo.InstanceRepository;
+import org.qubership.colly.inventory.projectrepo.Project;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@ApplicationScoped
+public class CloudPassportLoader {
+
+    public static final String ENV_DEFINITION_YML_FILENAME = "env_definition.yml";
+    public static final String NAMESPACE_YML_FILENAME = "namespace.yml";
+    public static final String MONITORING_TYPE_VICTORIA_DB = "VictoriaDB";
+    private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
+    @Inject
+    GitService gitService;
+
+    @ConfigProperty(name = "colly.eis.cloud.passport.folder")
+    String cloudPassportFolder;
+
+    public List<CloudPassport> loadCloudPassports(List<Project> projects) {
+        List<InstanceRepository> instanceRepositories = projects.stream().flatMap(project -> project.instanceRepositories().stream()).toList();
+
+        List<GitInfo> gitInfos = cloneGitRepositories(instanceRepositories);
+        Path dir = Paths.get(cloudPassportFolder);
+        if (!dir.toFile().exists()) {
+            return Collections.emptyList();
+        }
+        List<CloudPassport> cloudPassports = new ArrayList<>();
+        for (GitInfo gitInfo : gitInfos) {
+            try (Stream<Path> paths = Files.walk(Paths.get(gitInfo.folderName()))) {
+                cloudPassports.addAll(paths.filter(Files::isDirectory)
+                        .map(path -> path.resolve(CLOUD_PASSPORT_FOLDER))
+                        .filter(Files::isDirectory)
+                        .map(path -> processYamlFilesInClusterFolder(gitInfo, path, path.getParent()))
+                        .filter(Objects::nonNull)
+                        .toList());
+            } catch (Exception e) {
+                Log.error("Error loading CloudPassports from " + dir, e);
+            }
+        }
+        return cloudPassports;
+    }
+
+    private List<GitInfo> cloneGitRepositories(List<InstanceRepository> instanceRepositories) {
+
+        File directory = new File(cloudPassportFolder);
+
+        try {
+            if (directory.exists()) {
+                FileUtils.deleteDirectory(directory);
+            }
+        } catch (IOException e) {
+            Log.error("Impossible to start git cloning. Failed to clean directory: " + cloudPassportFolder, e);
+            return Collections.emptyList();
+        }
+
+        List<GitInfo> result = new ArrayList<>();
+        int index = 1;
+        for (InstanceRepository instanceRepository : instanceRepositories) {
+            String folderNameToClone = cloudPassportFolder + "/" + index;
+            gitService.cloneRepository(instanceRepository.url(), new File(folderNameToClone));
+            result.add(new GitInfo(instanceRepository, folderNameToClone));
+            index++;
+        }
+        return result;
+    }
+
+    private CloudPassport processYamlFilesInClusterFolder(GitInfo gitInfo, Path cloudPassportFolderPath, Path clusterFolderPath) {
+        Log.info("Loading Cloud Passport from " + cloudPassportFolderPath);
+        String clusterName = clusterFolderPath.getFileName().toString();
+        Set<CloudPassportEnvironment> environments = processEnvironmentsInClusterFolder(clusterFolderPath);
+        CloudPassportData cloudPassportData;
+        try (Stream<Path> paths = Files.list(cloudPassportFolderPath)) {
+            cloudPassportData = paths
+                    .filter(path -> path.getFileName().toString().equals(clusterName + ".yml"))
+                    .map(this::parseCloudPassportDataFile)
+                    .findFirst().orElseThrow();
+        } catch (Exception e) {
+            Log.error("Error loading Cloud Passport from " + cloudPassportFolderPath, e);
+            return null;
+        }
+
+        String token;
+        try (Stream<Path> credsPath = Files.list(cloudPassportFolderPath)) {
+            token = credsPath
+                    .filter(path -> path.getFileName().toString().equals(clusterName + "-creds.yml"))
+                    .map(path -> parseTokenFromCredsFile(path, cloudPassportData))
+                    .findFirst().orElseThrow();
+
+        } catch (Exception e) {
+            Log.error("Error loading Cloud Passport from " + cloudPassportFolderPath, e);
+            return null;
+        }
+        CloudData cloud = cloudPassportData.getCloud();
+        String cloudApiHost = cloud.getCloudProtocol() + "://" + cloud.getCloudApiHost() + ":" + cloud.getCloudApiPort();
+        Log.info("Cloud API Host: " + cloudApiHost);
+        CSEData cse = cloudPassportData.getCse();
+        String monitoringUri = null;
+        if (cse != null) {
+            if (cse.getMonitoringExtMonitoringQueryUrl() != null && !cse.getMonitoringExtMonitoringQueryUrl().isEmpty()) {
+                monitoringUri = cse.getMonitoringExtMonitoringQueryUrl();
+                if (monitoringUri.contains("${MONITORING_NAMESPACE}") && cse.getMonitoringNamespace() != null) {
+                    monitoringUri = monitoringUri.replace("${MONITORING_NAMESPACE}", cse.getMonitoringNamespace());
+                }
+            } else if (cse.getMonitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
+                monitoringUri = "http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429";
+            }
+        }
+        Log.info("Monitoring URI: " + monitoringUri);
+        return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri, gitInfo);
+    }
+
+    private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {
+        try (Stream<Path> paths = Files.walk(clusterFolderPath)) {
+            return paths.filter(Files::isDirectory)
+                    .map(path -> path.resolve(ENV_DEFINITION_YML_FILENAME))
+                    .filter(Files::isRegularFile)
+                    .map(this::processEnvDefinition)
+                    .collect(Collectors.toSet());
+        } catch (Exception e) {
+            Log.error("Error loading Environments from " + clusterFolderPath, e);
+        }
+        return Collections.emptySet();
+    }
+
+    private CloudPassportEnvironment processEnvDefinition(Path envDevinitionPath) {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        Path environmentPath = envDevinitionPath.getParent().getParent();
+        List<CloudPassportNamespace> namespaces = Collections.emptyList();
+        try (Stream<Path> paths = Files.walk(environmentPath)) {
+            namespaces = paths.map(path -> path.resolve(NAMESPACE_YML_FILENAME))
+                    .filter(Files::isRegularFile)
+                    .sorted()
+                    .map(this::parseNamespaceFile)
+                    .toList();
+        } catch (IOException e) {
+            Log.error("Error loading environment name from " + environmentPath, e);
+        }
+        try (FileInputStream inputStream = new FileInputStream(envDevinitionPath.toFile())) {
+            EnvDefinition envDefinition = mapper.readValue(inputStream, EnvDefinition.class);
+            Inventory inventory = envDefinition.getInventory();
+            Log.info("Processing environment " + inventory.getEnvironmentName());
+            InventoryMetadata inventoryMetadata = inventory.getMetadata();
+            String description = inventoryMetadata == null || inventoryMetadata.description() == null
+                    ? inventory.getDescription()
+                    : inventoryMetadata.description();
+            List<String> owners = inventoryMetadata == null || inventoryMetadata.owners() == null
+                    ? inventory.getOwners() == null ? List.of() : List.of(inventory.getOwners())
+                    : inventoryMetadata.owners();
+            List<String> labels = inventoryMetadata == null || inventoryMetadata.labels() == null
+                    ? List.of()
+                    : inventoryMetadata.labels();
+            List<String> teams = inventoryMetadata == null || inventoryMetadata.teams() == null
+                    ? List.of()
+                    : inventoryMetadata.teams();
+            EnvironmentStatus environmentStatus = inventoryMetadata == null || inventoryMetadata.status() == null
+                    ? EnvironmentStatus.FREE
+                    : EnvironmentStatus.valueOf(inventoryMetadata.status());
+            LocalDate expirationDate = inventoryMetadata == null || inventoryMetadata.expirationDate() == null
+                    ? null
+                    : LocalDate.parse(inventoryMetadata.expirationDate());
+            EnvironmentType type = inventoryMetadata == null || inventoryMetadata.type() == null
+                    ? EnvironmentType.ENVIRONMENT
+                    : EnvironmentType.valueOf(inventoryMetadata.type());
+            String role = inventoryMetadata == null
+                    ? null
+                    : inventoryMetadata.role();
+            String region = inventoryMetadata == null
+                    ? null
+                    : inventoryMetadata.region();
+            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
+                    owners, labels, teams, environmentStatus, expirationDate, type, role, region);
+        } catch (IOException e) {
+            throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
+        }
+    }
+
+    private CloudPassportNamespace parseNamespaceFile(Path namespaceFilePath) {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try (FileInputStream inputStream = new FileInputStream(namespaceFilePath.toFile())) {
+            Namespace namespace = mapper.readValue(inputStream, Namespace.class);
+            Log.info("Processing namespace " + namespace.getName());
+            return new CloudPassportNamespace(namespace.getName());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error during read file: " + namespaceFilePath, e);
+        }
+    }
+
+    String parseTokenFromCredsFile(Path path, CloudPassportData cloudPassportData) {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try (FileInputStream inputStream = new FileInputStream(path.toFile())) {
+            JsonNode jsonNode = mapper.readTree(inputStream);
+            JsonNode tokenNode = jsonNode.get(cloudPassportData.getCloud().getCloudDeployToken());
+            if (tokenNode != null) {
+                return tokenNode.findValue("secret").asText();
+            }
+
+        } catch (IOException e) {
+            throw new IllegalStateException("Error during read file: " + path, e);
+        }
+        throw new IllegalArgumentException("Can't read cloud passport data creds from " + path);
+    }
+
+    CloudPassportData parseCloudPassportDataFile(Path filePath) {
+
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try (FileInputStream inputStream = new FileInputStream(filePath.toFile())) {
+            CloudPassportData data = mapper.readValue(inputStream, CloudPassportData.class);
+            if (data != null && data.getCloud() != null) {
+                return data;
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Error during read file: " + filePath, e);
+        }
+        throw new IllegalArgumentException("Can't read cloud passport data from " + filePath);
+    }
+}
