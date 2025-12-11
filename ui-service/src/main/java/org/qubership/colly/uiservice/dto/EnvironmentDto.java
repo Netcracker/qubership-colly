@@ -14,7 +14,7 @@ public record EnvironmentDto(
         String name,
         String description,
         List<NamespaceDto> namespaces,
-        ClusterDto cluster,
+        ClusterViewDto cluster,
         List<String> owners,
         List<String> labels,
         List<String> teams,

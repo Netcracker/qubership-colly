@@ -72,14 +72,43 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
                 <Chip label={params.row.synced ? "Synced" : "Not Synced"} size={"small"}
                       color={params.row.synced ? "success" : "error"}
                 />
+        },
+        {
+            field: "dashboardUrl",
+            headerName: "Dashboard",
+            flex: 1,
+            renderCell: (params) =>
+                params.value
+                    ? <a href={params.value} target="_blank" rel="noreferrer">{params.value}</a>
+                    : "-"
+        },
+        {
+            field: "dbaasUrl",
+            headerName: "DBaaS",
+            flex: 1,
+            renderCell: (params) =>
+                params.value
+                    ? <a href={params.value} target="_blank" rel="noreferrer">{params.value}</a>
+                    : "-"
+        },
+        {
+            field: "deployerUrl",
+            headerName: "Deployer",
+            flex: 1,
+            renderCell: (params) =>
+                params.value
+                    ? <a href={params.value} target="_blank" rel="noreferrer">{params.value}</a>
+                    : "-"
         }
     ];
-
     const rows = clusters.map(cluster => ({
         id: cluster.name,
         name: cluster.name,
         description: cluster.description || '',
         synced: cluster.synced,
+        dashboardUrl: cluster.dashboardUrl,
+        dbaasUrl: cluster.dbaasUrl,
+        deployerUrl: cluster.deployerUrl,
         raw: cluster
     }));
     const CustomToolbar = () => {
