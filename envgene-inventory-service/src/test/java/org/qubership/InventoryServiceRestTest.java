@@ -277,7 +277,9 @@ class InventoryServiceRestTest {
                                 )
                         ))
                 .body("find { it.id == 'solar_earth' }.instanceRepositories", hasSize(1))
-                .body("find { it.id == 'solar_saturn' }.instanceRepositories", hasSize(1));
+                .body("find { it.id == 'solar_saturn' }.instanceRepositories", hasSize(1))
+                .body("find { it.id == 'solar_earth' }.pipelines", hasSize(2))
+                .body("find { it.id == 'solar_saturn' }.pipelines", hasSize(2));
     }
 
     @Test
@@ -312,7 +314,27 @@ class InventoryServiceRestTest {
                 .body("type", equalTo("PROJECT"))
                 .body("customerName", equalTo("Solar System"))
                 .body("clusterPlatform", equalTo("K8S"))
-                .body("instanceRepositories", hasSize(1));
+                .body("instanceRepositories", hasItem(
+                        allOf(
+                                hasEntry("url", "gitrepo_with_cloudpassports"),
+                                hasEntry("token", "earth-envgene-token-789")
+                        )
+                ))
+                .body("pipelines", hasItems(
+                        allOf(
+                                hasEntry("type", "CLUSTER_PROVISION"),
+                                hasEntry("url", "https://github.com/example/cluster-provision-earth"),
+                                hasEntry("region", "eu-west-1"),
+                                hasEntry("token", "earth-cluster-token-123")
+
+                        ),
+                        allOf(
+                                hasEntry("type", "ENV_PROVISION"),
+                                hasEntry("url", "https://github.com/example/env-provision-earth"),
+                                hasEntry("region", "us-east-1"),
+                                hasEntry("token", "earth-env-token-456")
+                        )
+                ));
     }
 
     @Test
@@ -327,7 +349,6 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(404);
     }
-
 
 
     @Test

@@ -5,3 +5,12 @@ clusterPlatform: k8s
 repositories:
   - type: envgeneInstance
     url: gitrepo_with_cloudpassports
+    token: earth-envgene-token-789
+  - type: clusterProvision
+    url: https://github.com/example/cluster-provision-earth
+    token: earth-cluster-token-123
+    region: eu-west-1
+  - type: envProvision
+    url: https://github.com/example/env-provision-earth
+    token: earth-env-token-456
+    region: us-east-1

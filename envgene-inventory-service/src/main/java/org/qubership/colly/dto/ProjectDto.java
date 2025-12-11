@@ -10,5 +10,6 @@ public record ProjectDto(String id,
                          ProjectType type,
                          String customerName,
                          List<InstanceRepositoryDto> instanceRepositories,
+                         List<PipelineDto> pipelines,
                          ClusterPlatform clusterPlatform) {
 }

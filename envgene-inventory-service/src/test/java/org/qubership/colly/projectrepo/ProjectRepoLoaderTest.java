@@ -36,6 +36,7 @@ class ProjectRepoLoaderTest {
                     new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1"),
                     new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2")
             ),
+            List.of(),
             ClusterPlatform.OCP
     );
     public static final Project TEST_PROJECT_2 = new Project(
@@ -46,6 +47,7 @@ class ProjectRepoLoaderTest {
             List.of(
                     new InstanceRepository("https://gitlab.com/test/repo4.git", "https://gitlab.com/test/repo4.git", "test-token-4")
             ),
+            List.of(),
             ClusterPlatform.K8S
     );
     @InjectMock
@@ -114,6 +116,7 @@ class ProjectRepoLoaderTest {
                         new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1"),
                         new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2")
                 ),
+                List.of(),
                 ClusterPlatform.OCP);
 
         Project project = loader.processProject(parametersFile, projectDir);
@@ -136,7 +139,7 @@ class ProjectRepoLoaderTest {
         Files.createDirectories(projectDir);
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
-        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), ClusterPlatform.K8S);
+        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S);
 
         Project project = loader.processProject(parametersFile, projectDir);
 

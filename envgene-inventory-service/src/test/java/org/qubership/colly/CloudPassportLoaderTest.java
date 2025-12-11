@@ -109,9 +109,9 @@ class CloudPassportLoaderTest {
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
     void load_cloud_passports_from_test_folder() {
         Project project1 = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
-                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42")), ClusterPlatform.K8S);
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42")), List.of(), ClusterPlatform.K8S);
         Project project2 = new Project("2", "project-2", ProjectType.PROJECT, "some-customer",
-                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43")), ClusterPlatform.K8S);
+                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43")), List.of(), ClusterPlatform.K8S);
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
         assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 

@@ -6,6 +6,7 @@ import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.dto.*;
 import org.qubership.colly.projectrepo.InstanceRepository;
+import org.qubership.colly.projectrepo.Pipeline;
 import org.qubership.colly.projectrepo.Project;
 
 import java.util.List;
@@ -77,6 +78,7 @@ public class DtoMapper {
                 project.type(),
                 project.customerName(),
                 project.instanceRepositories().stream().map(this::toDto).toList(),
+                project.pipelines().stream().map(this::toDto).toList(),
                 project.clusterPlatform()
         );
     }
@@ -86,6 +88,15 @@ public class DtoMapper {
                 instanceRepository.id(),
                 instanceRepository.url(),
                 instanceRepository.token()
+        );
+    }
+
+    public PipelineDto toDto(Pipeline pipeline) {
+        return new PipelineDto(
+                pipeline.type(),
+                pipeline.url(),
+                pipeline.token(),
+                pipeline.region()
         );
     }
 

@@ -61,12 +61,26 @@ public class ProjectRepoLoader {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try (FileInputStream inputStream = new FileInputStream(parametersFilePath.toFile())) {
             ProjectEntity projectEntity = mapper.readValue(inputStream, ProjectEntity.class);
-            List<RepositoryEntity> envgeneInstanceRepos = projectEntity.repositories.stream().filter(repositoryEntity -> repositoryEntity.type.equals("envgeneInstance")).toList();
+
+            List<RepositoryEntity> envgeneInstanceRepos = projectEntity.repositories.stream()
+                    .filter(repositoryEntity -> "envgeneInstance".equals(repositoryEntity.type()))
+                    .toList();
+
+            List<RepositoryEntity> pipelineRepos = projectEntity.repositories.stream()
+                    .filter(repositoryEntity -> {
+                        String type = repositoryEntity.type();
+                        return "clusterProvision".equals(type)
+                            || "envProvision".equals(type)
+                            || "solutionDeploy".equals(type);
+                    })
+                    .toList();
+
             return new Project(projectId,
                     projectEntity.projectName(),
                     ProjectType.fromString(projectEntity.type),
                     projectEntity.customerName(),
                     convertToInstanceRepositories(envgeneInstanceRepos),
+                    convertToPipelines(pipelineRepos),
                     ClusterPlatform.fromString(projectEntity.clusterPlatform()));
         } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
@@ -83,11 +97,22 @@ public class ProjectRepoLoader {
                 .toList();
     }
 
+    private List<Pipeline> convertToPipelines(List<RepositoryEntity> pipelineRepos) {
+        return pipelineRepos.stream()
+                .map(repoEntity -> new Pipeline(
+                        PipelineType.fromString(repoEntity.type()),
+                        repoEntity.url(),
+                        repoEntity.token(),
+                        repoEntity.region()))
+                .filter(pipeline -> pipeline.type() != null) // фильтруем невалидные типы
+                .toList();
+    }
+
     public record ProjectEntity(String projectName, String customerName, String type,
                                 List<RepositoryEntity> repositories, String clusterPlatform) {
     }
 
-    public record RepositoryEntity(String type, String url, String token) {
+    public record RepositoryEntity(String type, String url, String token, String region) {
     }
 
 }
