@@ -38,7 +38,7 @@ public class DtoMapper {
         );
 
         // Merge cluster: add synced from operational
-        ClusterViewDto cluster = new ClusterViewDto(inventory.cluster().id(), inventory.name());
+        ClusterViewDto cluster = new ClusterViewDto(inventory.cluster().id(), inventory.cluster().name());
 
         return new EnvironmentDto(
                 // From inventory

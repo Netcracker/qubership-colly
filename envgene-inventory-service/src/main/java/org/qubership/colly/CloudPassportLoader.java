@@ -139,11 +139,10 @@ public class CloudPassportLoader {
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
-        String deployerUrl = null;
-        ArgocdData argo = cloudPassportData.argocd();
-        if (argo != null) {
-            deployerUrl = StringUtils.isNotEmpty(argo.argocdUrl()) ? argo.argocdUrl() : cloud.cloudCmdbUrl();
-        }
+        String deployerUrl = Optional.ofNullable(cloudPassportData.argocd())
+                .map(ArgocdData::argocdUrl)
+                .filter(StringUtils::isNotEmpty)
+                .orElse(cloud.cloudCmdbUrl());
         Log.info("Cloud Deployer URL: " + deployerUrl);
         String dbaasUrl = null;
         if (cloudPassportData.dbaas() != null) dbaasUrl = cloudPassportData.dbaas().apiDBaaSAddress();
