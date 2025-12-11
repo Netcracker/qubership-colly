@@ -9,6 +9,7 @@
     - [Projects](#projects)
       - [\[Projects\] `parameters.yaml`](#projects-parametersyaml)
       - [\[Projects\] `credentials.yaml`](#projects-credentialsyaml)
+      - [Example](#example)
   - [To discuss](#to-discuss)
 
 ## Description
@@ -19,15 +20,15 @@ This document describes the structure and contents of the Project repository.
 
 ```text
 ├── global
-|   ├── parameters.yaml
-|   └── credentials.yaml
+|   ├── parameters.yaml|yml
+|   └── credentials.yaml|yml
 └── clusters
-|   ├── parameters.yaml
-|   └── credentials.yaml
+|   ├── parameters.yaml|yml
+|   └── credentials.yaml|yml
 └── projects
     └── <projectId>
-        ├── parameters.yaml|yml (если есть оба, берется случайный)
-        └── credentials.yaml
+        ├── parameters.yaml|yml
+        └── credentials.yaml|yml
 ```
 
 ### Global
@@ -40,12 +41,12 @@ Currently, this file has no contents
 # Optional
 # Global list of users with access permissions for all projects
 accessGroups:
-      # Mandatory
-      # User name
-      name: string
-      # Optional
-      # User permissions
-      permissions: enum[RO, RW]
+  # Mandatory
+  # User name
+  name: string
+  # Optional
+  # User permissions
+  permissions: enum[RO, RW]
 ``` -->
 
 #### [Global] `credentials.yaml`
@@ -62,15 +63,23 @@ Currently, this file has no contents
 customerName: string
 # Mandatory
 # Name of the project
-projectName: string
-
+name: string
+# Mandatory
+# Type of the project
+type: enum[ project, product ]
+# Optional
+# List of groups with RW access rights to objects of this project
 accessGroups:
   - string
-# To discuss. for different phases, there are different template versions from different branches
+# Optional
+# Platform type for clusters in this project
+# "ocp" stands for OpenShift, "k8s" for generic Kubernetes
+clustersPlatform: enum[ ocp, k8s ]
+# Mandatory
 repositories:
   - # Mandatory
     # In MS1 only envgeneInstance is supported
-    type: enum[ envgeneInstance, envgeneTemplate, pipeline ]
+    type: enum[ envgeneInstance, envgeneTemplate, clusterProvision, envProvision, solutionDeploy ]
     # Mandatory
     url: string
     # Mandatory
@@ -159,6 +168,53 @@ offsite-mb-pipeline-cred:
   type: secret
   data:
     secret: "MGE3MjYwNTQtZGE4My00MTlkLWIzN2MtZjU5YTg3NDA2Yzk0MzlmZmViZGUtYWY4_PF84_bb"
+```
+
+#### Example
+
+Minimal project
+
+```yaml
+# parameters.yaml
+customerName: ACME Corp
+name: ACME BSS
+type: project
+repositories:
+  - type: envgeneInstance
+    url: https://gitlab.example.com/acme/instance.git
+    token: creds.get('gitlab-token').secret
+
+# credentials.yaml
+gitlab-token:
+  type: secret
+  data:
+    secret: dummy-token-value
+```
+
+Full project
+
+```yaml
+# parameters.yaml
+customerName: ACME Corp
+name: ACME OSS
+type: project
+accessGroups:
+  - devops-team
+  - developers
+  - qa
+clustersPlatform: k8s
+repositories:
+  - type: envgeneInstance
+    url: https://gitlab.example.com/acme/instance.git
+    token: creds.get('gitlab-token').secret
+    defaultBranch: release/26.1
+    region: cn
+
+# credentials.yaml
+gitlab-token:
+  type: secret
+  data:
+    secret: dummy-token-value
 ```
 
 ## To discuss
