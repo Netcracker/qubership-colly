@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -138,14 +139,14 @@ class CloudPassportLoaderTest {
                   MONITORING_EXT_MONITORING_QUERY_URL: "http://monitoring.example.com"
                 dbaas:
                   API_DBAAS_ADDRESS: https://dbaas.example.com
+                argocd:
+                  ARGOCD_URL: https://deployer.example.com
                 """;
         Path file = tempDir.resolve("data.yml");
         Files.writeString(file, yaml);
 
         CloudPassportData result = loader.parseCloudPassportDataFile(file);
         assertNotNull(result);
-        assertNull(result.argocd());
-;
         assertThat(result.cloud().cloudApiHost(), equalTo("api.example.com"));
         assertThat(result.cloud().cloudApiPort(), equalTo("443"));
         assertThat(result.cloud().cloudProtocol(), equalTo("https"));
@@ -156,6 +157,7 @@ class CloudPassportLoaderTest {
         assertThat(result.cse().monitoringExtMonitoringQueryUrl(), equalTo("http://monitoring.example.com"));
 
         assertThat(result.dbaas().apiDBaaSAddress(), equalTo("https://dbaas.example.com"));
+        assertThat(result.argocd().argocdUrl(), equalTo("https://deployer.example.com"));
 
     }
 
