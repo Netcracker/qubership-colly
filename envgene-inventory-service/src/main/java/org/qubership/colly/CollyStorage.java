@@ -54,6 +54,9 @@ public class CollyStorage {
         cluster.setCloudApiHost(cloudPassport.cloudApiHost());
         cluster.setMonitoringUrl(cloudPassport.monitoringUrl());
         cluster.setGitInfo(cloudPassport.gitInfo());
+        cluster.setDashboardUrl(cloudPassport.dashboardUrl());
+        cluster.setDbaasUrl(cloudPassport.dbaasUrl());
+        cluster.setDeployerUrl(cloudPassport.deployerUrl());
 
         // Persist cluster first to ensure it has an ID
         clusterRepository.persist(cluster);
