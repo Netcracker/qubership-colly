@@ -3,7 +3,6 @@ package org.qubership.colly.db.data;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.Singular;
 import org.qubership.colly.cloudpassport.GitInfo;
 
 import java.util.ArrayList;
