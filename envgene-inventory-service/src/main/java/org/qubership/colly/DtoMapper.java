@@ -16,7 +16,7 @@ public class DtoMapper {
                 environment.getName(),
                 environment.getDescription(),
                 environment.getNamespaces().stream().map(this::toDto).toList(),
-                new ClusterDto(environment.getClusterId(), environment.getClusterName()),
+                new ClusterViewDto(environment.getClusterId(), environment.getClusterName()),
                 environment.getOwners(),
                 environment.getLabels(),
                 environment.getTeams(),
@@ -38,15 +38,16 @@ public class DtoMapper {
                 cluster.getToken(),
                 cluster.getCloudApiHost(),
                 toLightDtos(cluster.getEnvironments()),
-                cluster.getMonitoringUrl(),
-                cluster.getDashboardUrl(),
-                cluster.getDbaasUrl(),
-                cluster.getDeployerUrl()
+                cluster.getMonitoringUrl()
         );
     }
 
     public ClusterDto toClusterDto(Cluster cluster) {
-        return new ClusterDto(cluster.getId(), cluster.getName());
+        return new ClusterDto(cluster.getId(),
+                cluster.getName(),
+                cluster.getDashboardUrl(),
+                cluster.getDbaasUrl(),
+                cluster.getDeployerUrl());
     }
 
     private List<LightEnvironmentDto> toLightDtos(List<Environment> environments) {

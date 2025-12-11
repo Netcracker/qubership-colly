@@ -7,8 +7,5 @@ public record InternalClusterInfoDto(String id,
                                      String token,
                                      String cloudApiHost,
                                      List<LightEnvironmentDto> environments,
-                                     String monitoringUrl,
-                                     String dashboardUrl,
-                                     String dbaasUrl,
-                                     String deployerUrl) {
+                                     String monitoringUrl) {
 }
