@@ -7,6 +7,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
@@ -116,23 +117,33 @@ public class CloudPassportLoader {
             Log.error("Error loading Cloud Passport from " + cloudPassportFolderPath, e);
             return null;
         }
-        CloudData cloud = cloudPassportData.getCloud();
-        String cloudApiHost = cloud.getCloudProtocol() + "://" + cloud.getCloudApiHost() + ":" + cloud.getCloudApiPort();
+        CloudData cloud = cloudPassportData.cloud();
+        String cloudApiHost = cloud.cloudProtocol() + "://" + cloud.cloudApiHost() + ":" + cloud.cloudApiPort();
         Log.info("Cloud API Host: " + cloudApiHost);
-        CSEData cse = cloudPassportData.getCse();
+        Log.info("Cloud Dashboard URL: " + cloud.cloudDashboardUrl());
+        CSEData cse = cloudPassportData.cse();
         String monitoringUri = null;
         if (cse != null) {
-            if (cse.getMonitoringExtMonitoringQueryUrl() != null && !cse.getMonitoringExtMonitoringQueryUrl().isEmpty()) {
-                monitoringUri = cse.getMonitoringExtMonitoringQueryUrl();
-                if (monitoringUri.contains("${MONITORING_NAMESPACE}") && cse.getMonitoringNamespace() != null) {
-                    monitoringUri = monitoringUri.replace("${MONITORING_NAMESPACE}", cse.getMonitoringNamespace());
+            if (StringUtils.isNotEmpty(cse.monitoringExtMonitoringQueryUrl())) {
+                monitoringUri = cse.monitoringExtMonitoringQueryUrl();
+                if (monitoringUri.contains("${MONITORING_NAMESPACE}") && cse.monitoringNamespace() != null) {
+                    monitoringUri = monitoringUri.replace("${MONITORING_NAMESPACE}", cse.monitoringNamespace());
                 }
-            } else if (cse.getMonitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.getMonitoringType())) {
-                monitoringUri = "http://vmsingle-k8s." + cse.getMonitoringNamespace() + ":8429";
+            } else if (cse.monitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.monitoringType())) {
+                monitoringUri = "http://vmsingle-k8s." + cse.monitoringNamespace() + ":8429";
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
-        return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri, gitInfo);
+        String argoUrl = null;
+        if (Objects.nonNull(cloudPassportData.argocd())) {
+            argoUrl = cloudPassportData.argocd().argocdUrl();
+        }
+        Log.infof("Cloud Deployer URL: %s. Cloud Argo URL: %s", cloud.cloudCmdbUrl(), argoUrl);
+        String dbaasUrl = null;
+        if (cloudPassportData.dbaas() != null) dbaasUrl = cloudPassportData.dbaas().apiDBaaSAddress();
+        Log.info("Cloud DBaaS URL: " + dbaasUrl);
+        return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri, gitInfo,
+                cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl);
     }
 
     private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {
@@ -215,7 +226,7 @@ public class CloudPassportLoader {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try (FileInputStream inputStream = new FileInputStream(path.toFile())) {
             JsonNode jsonNode = mapper.readTree(inputStream);
-            JsonNode tokenNode = jsonNode.get(cloudPassportData.getCloud().getCloudDeployToken());
+            JsonNode tokenNode = jsonNode.get(cloudPassportData.cloud().cloudDeployToken());
             if (tokenNode != null) {
                 return tokenNode.findValue("secret").asText();
             }
@@ -231,7 +242,7 @@ public class CloudPassportLoader {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try (FileInputStream inputStream = new FileInputStream(filePath.toFile())) {
             CloudPassportData data = mapper.readValue(inputStream, CloudPassportData.class);
-            if (data != null && data.getCloud() != null) {
+            if (data != null && data.cloud() != null) {
                 return data;
             }
         } catch (IOException e) {

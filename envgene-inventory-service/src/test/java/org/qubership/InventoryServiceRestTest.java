@@ -67,7 +67,7 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
-    void load_clusters() {
+    void load_clustersInternalInfos() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -83,6 +83,30 @@ class InventoryServiceRestTest {
                         hasEntry("name", "env-1")
                 ));
     }
+
+
+    @Test
+    @TestSecurity(user = "test")
+    void load_clusters() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == 'test-cluster' }.dashboardUrl",
+                        equalTo("https://dashboard.example.com"))
+                .body("find { it.name == 'test-cluster' }.dbaasUrl",
+                        equalTo("https://dbaas.example.com"))
+                .body("find { it.name == 'test-cluster' }.deployerUrl",
+                        equalTo("https://deployer.example.com"))
+                .body("find { it.name == 'test-cluster' }.argoUrl",
+                equalTo("https://argo.example.com"));
+    }
+
 
     @Test
     @TestSecurity(user = "test")

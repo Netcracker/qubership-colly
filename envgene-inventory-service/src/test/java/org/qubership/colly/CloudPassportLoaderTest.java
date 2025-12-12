@@ -31,7 +31,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -68,7 +69,11 @@ class CloudPassportLoaderTest {
                             "cm")),
             "http://localhost:8428",
             new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42"),
-                    "target/test-cloud-passport-folder/1"));
+                    "target/test-cloud-passport-folder/1"),
+            "https://dashboard.example.com",
+            "https://dbaas.example.com",
+            "https://deployer.example.com",
+            "https://argo.example.com");
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -85,7 +90,11 @@ class CloudPassportLoaderTest {
                     null,
                     null)),
             "http://vmsingle-k8s.victoria:8429",
-            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43"), "target/test-cloud-passport-folder/2")
+            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43"), "target/test-cloud-passport-folder/2"),
+            null,
+            null,
+            null,
+            null
     );
 
     @InjectMock
@@ -133,35 +142,42 @@ class CloudPassportLoaderTest {
                   CLOUD_API_PORT: 443
                   CLOUD_PROTOCOL: "https"
                   CLOUD_DEPLOY_TOKEN: "tokenKey"
+                  CLOUD_DASHBOARD_URL: https://dashboard.example.com
+                  CMDB_URL: https://deployer.example.com
                 cse:
                   MONITORING_NAMESPACE: "monitoring"
                   MONITORING_TYPE: "VictoriaDB"
                   MONITORING_EXT_MONITORING_QUERY_URL: "http://monitoring.example.com"
+                dbaas:
+                  API_DBAAS_ADDRESS: https://dbaas.example.com
+                argocd:
+                  ARGOCD_URL: https://argo.example.com
                 """;
         Path file = tempDir.resolve("data.yml");
         Files.writeString(file, yaml);
 
         CloudPassportData result = loader.parseCloudPassportDataFile(file);
         assertNotNull(result);
-        assertThat(result.getCloud(),
-                allOf(
-                        hasProperty("cloudApiHost", equalTo("api.example.com")),
-                        hasProperty("cloudApiPort", equalTo("443")),
-                        hasProperty("cloudProtocol", equalTo("https"))));
-        assertThat(result.getCse(),
-                allOf(
-                        hasProperty("monitoringNamespace", equalTo("monitoring")),
-                        hasProperty("monitoringType", equalTo("VictoriaDB")),
-                        hasProperty("monitoringExtMonitoringQueryUrl", equalTo("http://monitoring.example.com"))));
+        assertThat(result.cloud().cloudApiHost(), equalTo("api.example.com"));
+        assertThat(result.cloud().cloudApiPort(), equalTo("443"));
+        assertThat(result.cloud().cloudProtocol(), equalTo("https"));
+        assertThat(result.cloud().cloudCmdbUrl(), equalTo("https://deployer.example.com"));
+
+        assertThat(result.cse().monitoringNamespace(), equalTo("monitoring"));
+        assertThat(result.cse().monitoringType(), equalTo("VictoriaDB"));
+        assertThat(result.cse().monitoringExtMonitoringQueryUrl(), equalTo("http://monitoring.example.com"));
+
+        assertThat(result.dbaas().apiDBaaSAddress(), equalTo("https://dbaas.example.com"));
+        assertThat(result.argocd().argocdUrl(), equalTo("https://argo.example.com"));
+
     }
 
     @Test
     void testParseTokenFromCredsFile_validYaml(@TempDir Path tempDir) throws IOException {
-        CloudData cloud = new CloudData();
-        cloud.setCloudDeployToken("tokenKey");
+        CloudData cloud = new CloudData(null, null, "tokenKey",
+                null, null, null);
 
-        CloudPassportData passportData = new CloudPassportData();
-        passportData.setCloud(cloud);
+        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 
         String credsYaml = """
                 tokenKey:
@@ -176,11 +192,10 @@ class CloudPassportLoaderTest {
 
     @Test
     void testParseTokenFromCredsFile_missingSecretThrows(@TempDir Path tempDir) throws IOException {
-        CloudData cloud = new CloudData();
-        cloud.setCloudDeployToken("missingKey");
+        CloudData cloud = new CloudData(null, null, "missingKey",
+                null, null, null);
 
-        CloudPassportData passportData = new CloudPassportData();
-        passportData.setCloud(cloud);
+        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 
         String yaml = """
                 anotherKey:

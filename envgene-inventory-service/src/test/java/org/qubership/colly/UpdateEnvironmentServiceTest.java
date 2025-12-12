@@ -54,7 +54,7 @@ class UpdateEnvironmentServiceTest {
         }
 
         GitInfo gitInfo = new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42"), tempDir.toString());
-        testCluster = new Cluster();
+        testCluster = Cluster.builder().build();
         testCluster.setName("test-cluster");
         testCluster.setGitInfo(gitInfo);
         testEnvironment = new Environment("1", "env-test");
@@ -84,7 +84,7 @@ class UpdateEnvironmentServiceTest {
         assertEquals("DESIGN_TIME", envDefinition.getInventory().getMetadata().type());
         assertEquals("Dev", envDefinition.getInventory().getMetadata().role());
         assertThat(envDefinition.getInventory().getMetadata().status(), is("IN_USE"));
-        assertThat(envDefinition.getInventory().getMetadata().expirationDate(), is("2025-12-31"));
+        assertThat(envDefinition.getInventory().getMetadata().expirationDate() , is("2025-12-31"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 
@@ -100,7 +100,7 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateEnvironment_shouldHandleInvalidGitInfoPath() {
         GitInfo invalidGitInfo = new GitInfo(new InstanceRepository("test-repo", "test-repo", "42"), "/invalid/path");
-        Cluster invalidCluster = new Cluster();
+        Cluster invalidCluster = Cluster.builder().build();
         invalidCluster.setName("invalid-cluster");
         invalidCluster.setGitInfo(invalidGitInfo);
 
