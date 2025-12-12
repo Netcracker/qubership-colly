@@ -16,7 +16,7 @@ public class DtoMapper {
                 environment.getName(),
                 environment.getDescription(),
                 environment.getNamespaces().stream().map(this::toDto).toList(),
-                new ClusterViewDto(environment.getClusterId(), environment.getClusterName()),
+                new LightClusterDto(environment.getClusterId(), environment.getClusterName()),
                 environment.getOwners(),
                 environment.getLabels(),
                 environment.getTeams(),

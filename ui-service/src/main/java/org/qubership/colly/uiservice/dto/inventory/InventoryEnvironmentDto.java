@@ -14,7 +14,7 @@ public record InventoryEnvironmentDto(
         String name,
         String description,
         List<InventoryNamespaceDto> namespaces,
-        InventoryClusterViewDto cluster,
+        InventoryLightClusterDto cluster,
         List<String> owners,
         List<String> labels,
         List<String> teams,

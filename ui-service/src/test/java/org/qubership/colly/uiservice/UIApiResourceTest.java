@@ -11,7 +11,7 @@ import org.qubership.colly.uiservice.client.OperationalServiceClient;
 import org.qubership.colly.uiservice.dto.EnvironmentStatus;
 import org.qubership.colly.uiservice.dto.EnvironmentType;
 import org.qubership.colly.uiservice.dto.inventory.InventoryClusterDto;
-import org.qubership.colly.uiservice.dto.inventory.InventoryClusterViewDto;
+import org.qubership.colly.uiservice.dto.inventory.InventoryLightClusterDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryEnvironmentDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryNamespaceDto;
 import org.qubership.colly.uiservice.dto.operational.OperationalClusterDto;
@@ -45,7 +45,7 @@ class UIApiResourceTest {
                         "test-environment",
                         "Test Environment",
                         List.of(new InventoryNamespaceDto("ns-1", "namespace-1")),
-                        new InventoryClusterViewDto("cluster-1", "test-cluster"),
+                        new InventoryLightClusterDto("cluster-1", "test-cluster"),
                         List.of("owner-1"),
                         List.of("label-1"),
                         List.of("team-1"),

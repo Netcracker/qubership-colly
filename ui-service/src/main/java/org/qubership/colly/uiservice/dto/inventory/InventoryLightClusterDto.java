@@ -1,6 +1,6 @@
 package org.qubership.colly.uiservice.dto.inventory;
 
-public record InventoryClusterViewDto(
+public record InventoryLightClusterDto(
         String id,
         String name) {
 }
