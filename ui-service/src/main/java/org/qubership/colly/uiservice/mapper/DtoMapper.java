@@ -116,7 +116,8 @@ public class DtoMapper {
                 synced,
                 inventoryCluster.dashboardUrl(),
                 inventoryCluster.dbaasUrl(),
-                inventoryCluster.deployerUrl()
+                inventoryCluster.deployerUrl(),
+                inventoryCluster.argoUrl()
         );
     }
 

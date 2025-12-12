@@ -24,7 +24,7 @@ public class Cluster {
     private String dashboardUrl;
     private String dbaasUrl;
     private String deployerUrl;
-
+    private String argoUrl;
     public List<Environment> getEnvironments() {
         return environments != null ? environments : new ArrayList<>();
     }

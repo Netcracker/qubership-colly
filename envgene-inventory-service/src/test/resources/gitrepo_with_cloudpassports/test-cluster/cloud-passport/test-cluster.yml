@@ -12,9 +12,10 @@ cloud:
   SOME_UI_URL: https://som-ui.my-cluster.com
   ANOTHER_UI_URL: https://another-ui.my-cluster.com
   CLOUD_DASHBOARD_URL: https://dashboard.example.com
+  CMDB_URL: https://deployer.example.com
 cse:
   MONITORING_EXT_MONITORING_QUERY_URL: http://localhost:8428
 dbaas:
   API_DBAAS_ADDRESS: https://dbaas.example.com
 argocd:
-  ARGOCD_URL: https://deployer.example.com
+  ARGOCD_URL: https://argo.example.com

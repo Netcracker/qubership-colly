@@ -139,16 +139,16 @@ public class CloudPassportLoader {
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
-        String deployerUrl = Optional.ofNullable(cloudPassportData.argocd())
-                .map(ArgocdData::argocdUrl)
-                .filter(StringUtils::isNotEmpty)
-                .orElse(cloud.cloudCmdbUrl());
-        Log.info("Cloud Deployer URL: " + deployerUrl);
+        String argoUrl = null;
+        if (Objects.nonNull(cloudPassportData.argocd())) {
+            argoUrl = cloudPassportData.argocd().argocdUrl();
+        }
+        Log.infof("Cloud Deployer URL: %s. Cloud Argo URL: %s", cloud.cloudCmdbUrl(), argoUrl);
         String dbaasUrl = null;
         if (cloudPassportData.dbaas() != null) dbaasUrl = cloudPassportData.dbaas().apiDBaaSAddress();
         Log.info("Cloud DBaaS URL: " + dbaasUrl);
         return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri, gitInfo,
-                cloud.cloudDashboardUrl(), dbaasUrl, deployerUrl);
+                cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl);
     }
 
     private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {

@@ -61,7 +61,8 @@ class UIApiResourceTest {
                 new InventoryClusterDto("cluster-1", "test-cluster",
                         "https://dashboard.example.com",
                         "https://dbaas.example.com",
-                        "https://deployer.example.com")
+                        "https://deployer.example.com",
+                        "https://argo.example.com")
         ));
 
         // Mock operational service responses

@@ -6,5 +6,6 @@ public record ClusterDto(
         Boolean synced,
         String dashboardUrl,
         String dbaasUrl,
-        String deployerUrl) {
+        String deployerUrl,
+        String argoUrl) {
 }

@@ -66,7 +66,8 @@ class CloudPassportLoaderTest {
             new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"),
             "https://dashboard.example.com",
             "https://dbaas.example.com",
-            "https://deployer.example.com");
+            "https://deployer.example.com",
+            "https://argo.example.com");
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -84,6 +85,7 @@ class CloudPassportLoaderTest {
                     null)),
             "http://vmsingle-k8s.victoria:8429",
             new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2"),
+            null,
             null,
             null,
             null
@@ -132,7 +134,7 @@ class CloudPassportLoaderTest {
                   CLOUD_PROTOCOL: "https"
                   CLOUD_DEPLOY_TOKEN: "tokenKey"
                   CLOUD_DASHBOARD_URL: https://dashboard.example.com
-                  CMDB_URL: https://cmdb.example.com
+                  CMDB_URL: https://deployer.example.com
                 cse:
                   MONITORING_NAMESPACE: "monitoring"
                   MONITORING_TYPE: "VictoriaDB"
@@ -140,7 +142,7 @@ class CloudPassportLoaderTest {
                 dbaas:
                   API_DBAAS_ADDRESS: https://dbaas.example.com
                 argocd:
-                  ARGOCD_URL: https://deployer.example.com
+                  ARGOCD_URL: https://argo.example.com
                 """;
         Path file = tempDir.resolve("data.yml");
         Files.writeString(file, yaml);
@@ -150,14 +152,14 @@ class CloudPassportLoaderTest {
         assertThat(result.cloud().cloudApiHost(), equalTo("api.example.com"));
         assertThat(result.cloud().cloudApiPort(), equalTo("443"));
         assertThat(result.cloud().cloudProtocol(), equalTo("https"));
-        assertThat(result.cloud().cloudCmdbUrl(), equalTo("https://cmdb.example.com"));
+        assertThat(result.cloud().cloudCmdbUrl(), equalTo("https://deployer.example.com"));
 
         assertThat(result.cse().monitoringNamespace(), equalTo("monitoring"));
         assertThat(result.cse().monitoringType(), equalTo("VictoriaDB"));
         assertThat(result.cse().monitoringExtMonitoringQueryUrl(), equalTo("http://monitoring.example.com"));
 
         assertThat(result.dbaas().apiDBaaSAddress(), equalTo("https://dbaas.example.com"));
-        assertThat(result.argocd().argocdUrl(), equalTo("https://deployer.example.com"));
+        assertThat(result.argocd().argocdUrl(), equalTo("https://argo.example.com"));
 
     }
 

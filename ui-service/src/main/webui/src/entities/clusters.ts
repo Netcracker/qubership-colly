@@ -5,4 +5,5 @@ export type Cluster = {
     dashboardUrl: string;
     dbaasUrl: string;
     deployerUrl: string;
+    argoUrl: string;
 };

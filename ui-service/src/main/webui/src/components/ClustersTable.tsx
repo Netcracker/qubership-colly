@@ -99,6 +99,15 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
                 params.value
                     ? <a href={params.value} target="_blank" rel="noreferrer">{params.value}</a>
                     : "-"
+        },
+        {
+            field: "argoUrl",
+            headerName: "Argo",
+            flex: 1,
+            renderCell: (params) =>
+                params.value
+                    ? <a href={params.value} target="_blank" rel="noreferrer">{params.value}</a>
+                    : "-"
         }
     ];
     const rows = clusters.map(cluster => ({
@@ -109,6 +118,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
         dashboardUrl: cluster.dashboardUrl,
         dbaasUrl: cluster.dbaasUrl,
         deployerUrl: cluster.deployerUrl,
+        argoUrl: cluster.argoUrl,
         raw: cluster
     }));
     const CustomToolbar = () => {

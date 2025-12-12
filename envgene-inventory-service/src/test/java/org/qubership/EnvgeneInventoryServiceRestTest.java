@@ -94,7 +94,9 @@ class EnvgeneInventoryServiceRestTest {
                 .body("find { it.name == 'test-cluster' }.dbaasUrl",
                         equalTo("https://dbaas.example.com"))
                 .body("find { it.name == 'test-cluster' }.deployerUrl",
-                        equalTo("https://deployer.example.com"));
+                        equalTo("https://deployer.example.com"))
+                .body("find { it.name == 'test-cluster' }.argoUrl",
+                equalTo("https://argo.example.com"));
     }
 
 
