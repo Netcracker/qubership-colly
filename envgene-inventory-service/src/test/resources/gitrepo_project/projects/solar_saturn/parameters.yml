@@ -1,5 +1,5 @@
 customerName: Solar System
-projectName: saturn
+name: saturn
 type: product
 clusterPlatform: ocp
 repositories:

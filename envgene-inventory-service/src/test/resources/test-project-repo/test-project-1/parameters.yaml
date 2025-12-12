@@ -1,4 +1,4 @@
-projectName: Test Project 1
+name: Test Project 1
 customerName: Test Customer 1
 type: product
 clusterPlatform: ocp

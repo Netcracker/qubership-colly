@@ -76,7 +76,7 @@ public class ProjectRepoLoader {
                     .toList();
 
             return new Project(projectId,
-                    projectEntity.projectName(),
+                    projectEntity.name(),
                     ProjectType.fromString(projectEntity.type),
                     projectEntity.customerName(),
                     convertToInstanceRepositories(envgeneInstanceRepos),
@@ -108,7 +108,7 @@ public class ProjectRepoLoader {
                 .toList();
     }
 
-    public record ProjectEntity(String projectName, String customerName, String type,
+    public record ProjectEntity(String name, String customerName, String type,
                                 List<RepositoryEntity> repositories, String clusterPlatform) {
     }
 

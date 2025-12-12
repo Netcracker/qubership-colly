@@ -1,4 +1,4 @@
-projectName: Test Project 2
+name: Test Project 2
 customerName: Test Customer 2
 type: project
 clusterPlatform: k8s

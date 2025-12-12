@@ -88,7 +88,7 @@ class ProjectRepoLoaderTest {
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
     void test_parse_valid_yaml_with_lowercase_type(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
-                projectName: Test Project
+                name: Test Project
                 customerName: Test Customer
                 type: product
                 clusterPlatform: ocp
@@ -128,7 +128,7 @@ class ProjectRepoLoaderTest {
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
     void test_parse_yaml_with_uppercase_type(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
-                projectName: Test Project
+                name: Test Project
                 customerName: Test Customer
                 type: PRODUCT
                 clusterPlatform: K8S
@@ -151,7 +151,7 @@ class ProjectRepoLoaderTest {
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
     void test_filter_only_envgene_instance_repos(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
-                projectName: Test Project
+                name: Test Project
                 customerName: Test Customer
                 type: product
                 clusterPlatform: ocp
@@ -194,7 +194,7 @@ class ProjectRepoLoaderTest {
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
     void test_parse_invalid_yaml_returns_null(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
-                projectName: Test Project
+                name: Test Project
                 this is not valid yaml!!!
                 type: product
                 """;
@@ -214,7 +214,7 @@ class ProjectRepoLoaderTest {
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
     void test_parse_yaml_with_missing_type_required_field_returns_null(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
-                projectName: Test Project
+                name: Test Project
                 customerName: Test Customer
                 clusterPlatform: ocp
                 repositories: []
@@ -235,7 +235,7 @@ class ProjectRepoLoaderTest {
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
     void test_parse_yaml_with_missing_platform_required_field_returns_null(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
-                projectName: Test Project
+                name: Test Project
                 customerName: Test Customer
                 type: product
                 repositories: []
