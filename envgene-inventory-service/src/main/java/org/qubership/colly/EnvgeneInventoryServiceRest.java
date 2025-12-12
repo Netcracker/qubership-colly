@@ -1,6 +1,5 @@
 package org.qubership.colly;
 
-import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
@@ -9,8 +8,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.qubership.colly.dto.ClusterDto;
-import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.EnvironmentDto;
+import org.qubership.colly.dto.InternalClusterInfoDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
 
 import java.util.HashMap;

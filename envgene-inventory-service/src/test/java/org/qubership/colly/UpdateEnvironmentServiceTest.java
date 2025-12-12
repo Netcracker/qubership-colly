@@ -53,7 +53,7 @@ class UpdateEnvironmentServiceTest {
         }
 
         GitInfo gitInfo = new GitInfo("gitrepo_with_cloudpassports", tempDir.toString());
-        testCluster = new Cluster();
+        testCluster = Cluster.builder().build();
         testCluster.setName("test-cluster");
         testCluster.setGitInfo(gitInfo);
         testEnvironment = new Environment("1", "env-test");
@@ -99,7 +99,7 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateEnvironment_shouldHandleInvalidGitInfoPath() {
         GitInfo invalidGitInfo = new GitInfo("test-repo", "/invalid/path");
-        Cluster invalidCluster = new Cluster();
+        Cluster invalidCluster = Cluster.builder().build();
         invalidCluster.setName("invalid-cluster");
         invalidCluster.setGitInfo(invalidGitInfo);
 
