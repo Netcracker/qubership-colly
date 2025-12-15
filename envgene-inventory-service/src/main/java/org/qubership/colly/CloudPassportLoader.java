@@ -16,6 +16,8 @@ import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.*;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.projectrepo.InstanceRepository;
+import org.qubership.colly.projectrepo.Project;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,13 +43,10 @@ public class CloudPassportLoader {
     @ConfigProperty(name = "colly.eis.cloud.passport.folder")
     String cloudPassportFolder;
 
-    @ConfigProperty(name = "colly.eis.env.instances.repo")
-    Optional<List<String>> gitRepoUrls;
+    public List<CloudPassport> loadCloudPassports(List<Project> projects) {
+        List<InstanceRepository> instanceRepositories = projects.stream().flatMap(project -> project.instanceRepositories().stream()).toList();
 
-
-    public List<CloudPassport> loadCloudPassports() {
-        List<GitInfo> gitInfos = cloneGitRepositories();
-
+        List<GitInfo> gitInfos = cloneGitRepositories(instanceRepositories);
         Path dir = Paths.get(cloudPassportFolder);
         if (!dir.toFile().exists()) {
             return Collections.emptyList();
@@ -68,11 +67,8 @@ public class CloudPassportLoader {
         return cloudPassports;
     }
 
-    private List<GitInfo> cloneGitRepositories() {
-        if (gitRepoUrls.isEmpty()) {
-            Log.error("gitRepoUrl parameter is not set. Skipping repository cloning.");
-            return Collections.emptyList();
-        }
+    private List<GitInfo> cloneGitRepositories(List<InstanceRepository> instanceRepositories) {
+
         File directory = new File(cloudPassportFolder);
 
         try {
@@ -85,12 +81,11 @@ public class CloudPassportLoader {
         }
 
         List<GitInfo> result = new ArrayList<>();
-        List<String> gitRepoUrlValues = gitRepoUrls.get();
         int index = 1;
-        for (String gitRepoUrlValue : gitRepoUrlValues) {
+        for (InstanceRepository instanceRepository : instanceRepositories) {
             String folderNameToClone = cloudPassportFolder + "/" + index;
-            gitService.cloneRepository(gitRepoUrlValue, new File(folderNameToClone));
-            result.add(new GitInfo(gitRepoUrlValue, folderNameToClone));
+            gitService.cloneRepository(instanceRepository.url(), new File(folderNameToClone));
+            result.add(new GitInfo(instanceRepository, folderNameToClone));
             index++;
         }
         return result;

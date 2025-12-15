@@ -39,8 +39,8 @@ spec:
                 secretKeyRef:
                   key: password
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
-            - name: COLLY_EIS_ENV_INSTANCES_REPO
-              value: {{ .Values.colly.envgeneInventoryService.instancesRepo }}
+            - name: COLLY_EIS_PROJECT_REPO_URL
+              value: {{ .Values.colly.envgeneInventoryService.projectRepoUrl }}
             - name: COLLY_EIS_GIT_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -82,7 +82,7 @@ services:
       - QUARKUS_HTTP_PORT=8081
       - QUARKUS_REDIS_HOSTS=redis://redis:6379
       - QUARKUS_OIDC_AUTH_SERVER_URL=http://host.docker.internal:8180/realms/quarkus
-      - COLLY_EIS_ENV_INSTANCES_REPO=https://github.com/ormig/cloud-passport-samples.git
+      - COLLY_EIS_PROJECT_REPO_URL=https://github.com/ormig/project-git-sample.git
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "localhost:host-gateway"

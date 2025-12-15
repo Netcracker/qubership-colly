@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.uiservice.aggregator.DataAggregatorService;
 import org.qubership.colly.uiservice.client.InventoryServiceClient;
@@ -20,6 +21,7 @@ import java.util.Map;
  * REST API for UI - proxy for backend services with data aggregation
  */
 @Path("/colly/v2/ui-service")
+@SecurityRequirement(name = "SecurityScheme")
 @Produces(MediaType.APPLICATION_JSON)
 public class UIApiResource {
 

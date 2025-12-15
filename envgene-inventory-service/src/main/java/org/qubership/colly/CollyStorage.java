@@ -9,10 +9,13 @@ import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.ProjectRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.dto.PatchEnvironmentDto;
+import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
 import java.util.Comparator;
 import java.util.List;
@@ -23,28 +26,36 @@ public class CollyStorage {
 
     private final ClusterRepository clusterRepository;
     private final EnvironmentRepository environmentRepository;
+    private final ProjectRepository projectRepository;
     private final CloudPassportLoader cloudPassportLoader;
     private final UpdateEnvironmentService updateEnvironmentService;
+    private final ProjectRepoLoader projectRepoLoader;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
-            EnvironmentRepository environmentRepository,
-            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService) {
+            EnvironmentRepository environmentRepository, ProjectRepository projectRepository,
+            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService, ProjectRepoLoader projectRepoLoader) {
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
+        this.projectRepository = projectRepository;
         this.cloudPassportLoader = cloudPassportLoader;
         this.updateEnvironmentService = updateEnvironmentService;
+        this.projectRepoLoader = projectRepoLoader;
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
     void executeTask() {
-        Log.info("Task for loading resources from clusters has started");
-        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports();
-        cloudPassports.forEach(this::saveDataToDatabase);
+        Log.info("Task for loading data from git has started");
+        List<Project> projects = projectRepoLoader.loadProjects();
+        projects.forEach(projectRepository::persist);
+        Log.info("Projects loaded: " + projects.size());
+        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
+        Log.info("Cloud passports loaded: " + cloudPassports.size());
+        cloudPassports.forEach(this::saveDataToCache);
     }
 
-    private void saveDataToDatabase(CloudPassport cloudPassport) {
+    private void saveDataToCache(CloudPassport cloudPassport) {
         Cluster cluster = clusterRepository.findByName(cloudPassport.name());
         if (cluster == null) {
             cluster = Cluster.builder().build();
@@ -64,13 +75,13 @@ public class CollyStorage {
 
         // Now save environments with cluster ID
         Cluster finalCluster = cluster;
-        cloudPassport.environments().forEach(env -> saveEnvironmentToDatabase(env, finalCluster));
+        cloudPassport.environments().forEach(env -> saveEnvironmentToCache(env, finalCluster));
 
         // Persist cluster again after environments are added
         clusterRepository.persist(finalCluster);
     }
 
-    private void saveEnvironmentToDatabase(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
+    private void saveEnvironmentToCache(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
         // Find existing environment by name and cluster
         Environment environment = null;
         if (cluster.getId() != null) {
@@ -106,13 +117,13 @@ public class CollyStorage {
         finalEnvironment.setRegion(cloudPassportEnvironment.region());
 
         Log.info("Environment " + finalEnvironment.getName() + " has been loaded from CloudPassport");
-        cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToDatabase(cloudPassportNamespace, finalEnvironment));
+        cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));
 
         // Persist environment separately for fast access
         environmentRepository.persist(finalEnvironment);
     }
 
-    private void saveNamespaceToDatabase(CloudPassportNamespace cloudPassportNamespace, Environment environment) {
+    private void saveNamespaceToCache(CloudPassportNamespace cloudPassportNamespace, Environment environment) {
         Namespace namespaceInCache = environment.getNamespaces().stream().filter(namespace -> namespace.getName().equals(cloudPassportNamespace.name())).findFirst().orElse(null);
         if (namespaceInCache == null) {
             namespaceInCache = new Namespace();
@@ -173,11 +184,12 @@ public class CollyStorage {
         return environmentRepository.listAll();
     }
 
-    public List<Environment> getEnvironmentsByCluster(String clusterName) {
-        Cluster cluster = clusterRepository.findByName(clusterName);
-        if (cluster == null) {
-            throw new IllegalArgumentException("Cluster not found: " + clusterName);
-        }
-        return environmentRepository.findByClusterId(cluster.getId());
+
+    public List<Project> getProjects() {
+        return projectRepository.listAll();
+    }
+
+    public Project getProject(String id) {
+        return projectRepository.findById(id);
     }
 }

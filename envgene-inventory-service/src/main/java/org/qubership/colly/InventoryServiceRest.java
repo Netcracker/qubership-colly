@@ -7,29 +7,48 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.qubership.colly.dto.ClusterDto;
-import org.qubership.colly.dto.EnvironmentDto;
-import org.qubership.colly.dto.InternalClusterInfoDto;
-import org.qubership.colly.dto.PatchEnvironmentDto;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
+import org.qubership.colly.dto.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Path("/colly/v2/inventory-service")
-public class EnvgeneInventoryServiceRest {
+@SecurityRequirement(name = "SecurityScheme")
+public class InventoryServiceRest {
 
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
 
     @Inject
-    public EnvgeneInventoryServiceRest(CollyStorage collyStorage,
-                                       SecurityIdentity securityIdentity,
-                                       DtoMapper dtoMapper) {
+    public InventoryServiceRest(CollyStorage collyStorage,
+                                SecurityIdentity securityIdentity,
+                                DtoMapper dtoMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.dtoMapper = dtoMapper;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects")
+    public List<ProjectDto> getProjects() {
+        return dtoMapper.toProjectDtos(collyStorage.getProjects());
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects/{id}")
+    public Response getProject(@PathParam("id") String id) {
+        var project = collyStorage.getProject(id);
+        if (project == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Project not found"))
+                    .build();
+        }
+        return Response.ok(dtoMapper.toProjectDto(project)).build();
     }
 
     @GET
