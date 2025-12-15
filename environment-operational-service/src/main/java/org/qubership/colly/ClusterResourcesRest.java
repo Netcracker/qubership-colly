@@ -9,6 +9,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.dto.ApplicationMetadata;
 import org.qubership.colly.dto.ClusterDTO;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @Path("/colly/v2/operational-service")
+@SecurityRequirement(name = "SecurityScheme")
 public class ClusterResourcesRest {
 
     private final CollyStorage collyStorage;
