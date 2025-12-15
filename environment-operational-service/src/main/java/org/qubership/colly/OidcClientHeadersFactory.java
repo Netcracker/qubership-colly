@@ -11,8 +11,9 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import org.eclipse.microprofile.rest.client.ext.ClientHeadersFactory;
 
 /**
- * ClientHeadersFactory for operational-service that uses service-to-service authentication
- * via OIDC Client Credentials flow.
+ * ClientHeadersFactory for operational-service that propagates user tokens
+ * and falls back to service-to-service authentication via OIDC Client Credentials flow
+ * when no user token is present (e.g., for scheduled tasks).
  */
 @ApplicationScoped
 public class OidcClientHeadersFactory implements ClientHeadersFactory {
@@ -25,6 +26,17 @@ public class OidcClientHeadersFactory implements ClientHeadersFactory {
                                                  MultivaluedMap<String, String> clientOutgoingHeaders) {
         MultivaluedMap<String, String> result = new MultivaluedHashMap<>();
 
+        // First, try to propagate the user's token from incoming request
+        if (incomingHeaders != null && incomingHeaders.containsKey("Authorization")) {
+            String authHeader = incomingHeaders.getFirst("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                result.add("Authorization", authHeader);
+                Log.debugf("Propagating user token to inventory-service");
+                return result;
+            }
+        }
+
+        // Fall back to client credentials flow for service-to-service calls (e.g., scheduled tasks)
         try {
             // Get the named OIDC client configured for service-to-service calls
             OidcClient oidcClient = oidcClients.getClient("service-client");
