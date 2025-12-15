@@ -61,8 +61,15 @@ public class InventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters")
-    public List<ClusterDto> getClusters() {
+    public List<ClusterDto> getAllClusters() {
         return dtoMapper.toClusterDtos(collyStorage.getClusters());
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects/{projectId}/clusters")
+    public List<ClusterDto> getClusters(@PathParam("projectId") String projectId) {
+        return dtoMapper.toClusterDtos(collyStorage.getClusters(projectId));
     }
 
     @GET

@@ -192,4 +192,8 @@ public class CollyStorage {
     public Project getProject(String id) {
         return projectRepository.findById(id);
     }
+
+    public List<Cluster> getClusters(String projectId) {
+        return clusterRepository.findByProjectId(projectId);
+    }
 }

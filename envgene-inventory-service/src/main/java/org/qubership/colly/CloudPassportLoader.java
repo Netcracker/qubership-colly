@@ -44,9 +44,7 @@ public class CloudPassportLoader {
     String cloudPassportFolder;
 
     public List<CloudPassport> loadCloudPassports(List<Project> projects) {
-        List<InstanceRepository> instanceRepositories = projects.stream().flatMap(project -> project.instanceRepositories().stream()).toList();
-
-        List<GitInfo> gitInfos = cloneGitRepositories(instanceRepositories);
+        List<GitInfo> gitInfos = cloneGitRepositories(projects);
         Path dir = Paths.get(cloudPassportFolder);
         if (!dir.toFile().exists()) {
             return Collections.emptyList();
@@ -67,7 +65,7 @@ public class CloudPassportLoader {
         return cloudPassports;
     }
 
-    private List<GitInfo> cloneGitRepositories(List<InstanceRepository> instanceRepositories) {
+    private List<GitInfo> cloneGitRepositories(List<Project> projects) {
 
         File directory = new File(cloudPassportFolder);
 
@@ -82,11 +80,14 @@ public class CloudPassportLoader {
 
         List<GitInfo> result = new ArrayList<>();
         int index = 1;
-        for (InstanceRepository instanceRepository : instanceRepositories) {
-            String folderNameToClone = cloudPassportFolder + "/" + index;
-            gitService.cloneRepository(instanceRepository.url(), new File(folderNameToClone));
-            result.add(new GitInfo(instanceRepository, folderNameToClone));
-            index++;
+        for (Project project : projects) {
+
+            for (InstanceRepository instanceRepository : project.instanceRepositories()) {
+                String folderNameToClone = cloudPassportFolder + "/" + index;
+                gitService.cloneRepository(instanceRepository.url(), new File(folderNameToClone));
+                result.add(new GitInfo(instanceRepository, folderNameToClone, project.id()));
+                index++;
+            }
         }
         return result;
     }
