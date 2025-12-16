@@ -55,28 +55,22 @@ public class InventoryServiceRest {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/internal/cluster-infos")
     public List<InternalClusterInfoDto> getInternalClusterInfo() {
-        return dtoMapper.toClusterInfoDtos(collyStorage.getClusters());
+        return dtoMapper.toClusterInfoDtos(collyStorage.getClusters(null));
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters")
-    public List<ClusterDto> getAllClusters() {
-        return dtoMapper.toClusterDtos(collyStorage.getClusters());
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("/projects/{projectId}/clusters")
-    public List<ClusterDto> getClusters(@PathParam("projectId") String projectId) {
+    public List<ClusterDto> getClusters(@QueryParam("projectId") String projectId) {
         return dtoMapper.toClusterDtos(collyStorage.getClusters(projectId));
     }
+
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
-    public List<EnvironmentDto> getEnvironments() {
-        return dtoMapper.toDtos(collyStorage.getEnvironments());
+    public List<EnvironmentDto> getEnvironments(@QueryParam("projectId") String projectId) {
+        return dtoMapper.toDtos(collyStorage.getEnvironments(projectId));
     }
 
     @PATCH
