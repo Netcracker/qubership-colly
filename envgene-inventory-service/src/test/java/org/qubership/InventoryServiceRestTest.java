@@ -98,6 +98,8 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("id", everyItem(notNullValue()))
                 .body("name", containsInAnyOrder("test-cluster", "unreachable-cluster"))
+                .body("find { it.name == 'test-cluster' }.environments.name",
+                        containsInAnyOrder("env-test", "env-metadata-test"))
                 .body("find { it.name == 'test-cluster' }.dashboardUrl",
                         equalTo("https://dashboard.example.com"))
                 .body("find { it.name == 'test-cluster' }.dbaasUrl",

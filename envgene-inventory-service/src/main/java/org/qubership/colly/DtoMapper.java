@@ -48,6 +48,7 @@ public class DtoMapper {
     public ClusterDto toClusterDto(Cluster cluster) {
         return new ClusterDto(cluster.getId(),
                 cluster.getName(),
+                toLightDtos(cluster.getEnvironments()),
                 cluster.getDashboardUrl(),
                 cluster.getDbaasUrl(),
                 cluster.getDeployerUrl(),
