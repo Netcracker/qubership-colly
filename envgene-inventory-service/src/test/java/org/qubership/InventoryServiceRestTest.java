@@ -41,7 +41,7 @@ class InventoryServiceRestTest {
     }
 
     @Test
-    void load_environments_without_auth() {
+    void get_environments_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/environments")
                 .then()
@@ -50,7 +50,7 @@ class InventoryServiceRestTest {
 
 
     @Test
-    void load_clusters_without_auth() {
+    void get_clusters_internal_infos_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/internal/cluster-infos")
                 .then()
@@ -67,7 +67,7 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
-    void load_clustersInternalInfos() {
+    void get_cluster_internal_infos() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -87,29 +87,6 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
-    void load_clusters() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        given()
-                .when().get("/colly/v2/inventory-service/clusters")
-                .then()
-                .statusCode(200)
-                .body("find { it.name == 'test-cluster' }.dashboardUrl",
-                        equalTo("https://dashboard.example.com"))
-                .body("find { it.name == 'test-cluster' }.dbaasUrl",
-                        equalTo("https://dbaas.example.com"))
-                .body("find { it.name == 'test-cluster' }.deployerUrl",
-                        equalTo("https://deployer.example.com"))
-                .body("find { it.name == 'test-cluster' }.argoUrl",
-                equalTo("https://argo.example.com"));
-    }
-
-
-    @Test
-    @TestSecurity(user = "test")
     void get_clusters() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
@@ -121,12 +98,39 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("id", everyItem(notNullValue()))
                 .body("name", containsInAnyOrder("test-cluster", "unreachable-cluster"))
+                .body("find { it.name == 'test-cluster' }.dashboardUrl",
+                        equalTo("https://dashboard.example.com"))
+                .body("find { it.name == 'test-cluster' }.dbaasUrl",
+                        equalTo("https://dbaas.example.com"))
+                .body("find { it.name == 'test-cluster' }.deployerUrl",
+                        equalTo("https://deployer.example.com"))
+                .body("find { it.name == 'test-cluster' }.argoUrl",
+                        equalTo("https://argo.example.com"))
                 .body(".", hasSize(2));
     }
 
     @Test
     @TestSecurity(user = "test")
-    void load_environments() {
+    void get_clusters_by_project_id() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("test-cluster"));
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("unreachable-cluster"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environments() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -163,6 +167,25 @@ class InventoryServiceRestTest {
                 ))
                 .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
                 .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environments_by_project_id() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("env-metadata-test", "env-test"));
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("env-1"));
     }
 
 
@@ -274,7 +297,7 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
-    void load_projects() {
+    void get_projects() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -307,7 +330,7 @@ class InventoryServiceRestTest {
     }
 
     @Test
-    void load_projects_without_auth() {
+    void get_projects_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/projects")
                 .then()
