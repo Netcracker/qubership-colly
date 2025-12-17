@@ -9,7 +9,9 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.GitService;
+import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 
 import java.io.File;
@@ -30,6 +32,9 @@ class InventoryServiceRestTest {
 
     @Inject
     EnvironmentRepository environmentRepository;
+
+    @Inject
+    ClusterRepository clusterRepository;
 
     @BeforeEach
     void setUp() {
@@ -113,6 +118,47 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void get_cluster_by_id() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Cluster cluster = clusterRepository.listAll().stream()
+                .filter(c -> c.getName().equals("test-cluster"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters/" + cluster.getId())
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(cluster.getId()))
+                .body("name", equalTo("test-cluster"))
+                .body("dashboardUrl", equalTo("https://dashboard.example.com"))
+                .body("dbaasUrl", equalTo("https://dbaas.example.com"))
+                .body("deployerUrl", equalTo("https://deployer.example.com"))
+                .body("argoUrl", equalTo("https://argo.example.com"))
+                .body("environments.name", containsInAnyOrder("env-test", "env-metadata-test"))
+                .body("environments", hasSize(2));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_cluster_by_id_not_found() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters/non-existent-cluster-id")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_clusters_by_project_id() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
@@ -169,6 +215,51 @@ class InventoryServiceRestTest {
                 ))
                 .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
                 .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environment_by_id(){
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(environment.getId()))
+                .body("name", equalTo("env-metadata-test"))
+                .body("description", equalTo("description from metadata"))
+                .body("status", equalTo("IN_USE"))
+                .body("expirationDate", equalTo("2025-12-31"))
+                .body("type", equalTo("DESIGN_TIME"))
+                .body("role", equalTo("QA"))
+                .body("region", equalTo("cm"))
+                .body("teams", contains("team-from-metadata"))
+                .body("owners", contains("owner from metadata"))
+                .body("labels", contains("label1", "label2"))
+                .body("namespaces", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environment_by_id_not_found(){
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/non-existent-id")
+                .then()
+                .statusCode(404);
     }
 
     @Test

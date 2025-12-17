@@ -199,4 +199,12 @@ public class CollyStorage {
                 .flatMap(cluster -> environmentRepository.findByClusterId(cluster.getId()).stream())
                 .toList();
     }
+
+    public Environment getEnvironment(String id) {
+        return environmentRepository.findById(id);
+    }
+
+    public Cluster getCluster(String id) {
+        return clusterRepository.findById(id);
+    }
 }
