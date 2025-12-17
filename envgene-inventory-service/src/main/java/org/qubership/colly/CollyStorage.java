@@ -134,10 +134,6 @@ public class CollyStorage {
         }
     }
 
-    public List<Cluster> getClusters() {
-        return clusterRepository.listAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
-    }
-
     public Environment updateEnvironment(String environmentId, PatchEnvironmentDto updateDto) {
         // Find existing environment
         Log.info("Updating environment with id= " + environmentId);
@@ -180,16 +176,27 @@ public class CollyStorage {
         return existingEnv;
     }
 
-    public List<Environment> getEnvironments() {
-        return environmentRepository.listAll();
-    }
-
-
     public List<Project> getProjects() {
         return projectRepository.listAll();
     }
 
     public Project getProject(String id) {
         return projectRepository.findById(id);
+    }
+
+    public List<Cluster> getClusters(String projectId) {
+        if (projectId == null || projectId.isEmpty()) {
+            return clusterRepository.listAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
+        }
+        return clusterRepository.findByProjectId(projectId);
+    }
+
+    public List<Environment> getEnvironments(String projectId) {
+        if (projectId == null || projectId.isEmpty()) {
+            return environmentRepository.listAll();
+        }
+        return clusterRepository.findByProjectId(projectId).stream()
+                .flatMap(cluster -> environmentRepository.findByClusterId(cluster.getId()).stream())
+                .toList();
     }
 }

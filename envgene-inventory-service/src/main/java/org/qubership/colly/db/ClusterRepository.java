@@ -6,6 +6,7 @@ import io.quarkus.logging.Log;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.hash.HashCommands;
 import io.quarkus.redis.datasource.keys.KeyCommands;
+import io.quarkus.redis.datasource.set.SetCommands;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,6 +23,7 @@ public class ClusterRepository {
 
     private static final String CLUSTER_KEY_PREFIX = "inventory:cluster:";
     private static final String CLUSTER_NAME_INDEX_PREFIX = "inventory:idx:clusters:by-name:";
+    private static final String CLUSTER_PROJECT_ID_INDEX_PREFIX = "inventory:idx:clusters:by-project:";
     @Inject
     RedisDataSource redisDataSource;
     @Inject
@@ -39,6 +41,10 @@ public class ClusterRepository {
         return redisDataSource.value(String.class, String.class);
     }
 
+    private SetCommands<String, String> setCommands() {
+        return redisDataSource.set(String.class, String.class);
+    }
+
     public void persist(Cluster cluster) {
         if (cluster.getId() == null) {
             cluster.setId(UUID.randomUUID().toString());
@@ -52,6 +58,9 @@ public class ClusterRepository {
             // Create name index for fast lookup
             String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + cluster.getName();
             valueCommands().set(nameIndexKey, cluster.getId());
+
+            String projectIndexKey = CLUSTER_PROJECT_ID_INDEX_PREFIX + cluster.getGitInfo().projectId();
+            setCommands().sadd(projectIndexKey, cluster.getId());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize cluster:" + cluster, e);
         }
@@ -108,4 +117,14 @@ public class ClusterRepository {
         }
     }
 
+    public List<Cluster> findByProjectId(String projectId) {
+        try {
+            String projectIndexKey = CLUSTER_PROJECT_ID_INDEX_PREFIX + projectId;
+            return setCommands().smembers(projectIndexKey).stream()
+                    .map(this::findById)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to find clusters by project id: " + projectId, e);
+        }
+    }
 }

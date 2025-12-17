@@ -31,8 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -69,7 +68,7 @@ class CloudPassportLoaderTest {
                             "cm")),
             "http://localhost:8428",
             new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42"),
-                    "target/test-cloud-passport-folder/1"),
+                    "target/test-cloud-passport-folder/1", "1"),
             "https://dashboard.example.com",
             "https://dbaas.example.com",
             "https://deployer.example.com",
@@ -90,7 +89,7 @@ class CloudPassportLoaderTest {
                     null,
                     null)),
             "http://vmsingle-k8s.victoria:8429",
-            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43"), "target/test-cloud-passport-folder/2"),
+            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43"), "target/test-cloud-passport-folder/2", "2"),
             null,
             null,
             null,
