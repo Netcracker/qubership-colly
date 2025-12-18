@@ -8,7 +8,10 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
+import org.qubership.colly.db.data.Cluster;
+import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.*;
+import org.qubership.colly.projectrepo.Project;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,14 +44,12 @@ public class InventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/projects/{id}")
-    public Response getProject(@PathParam("id") String id) {
-        var project = collyStorage.getProject(id);
+    public ProjectDto getProject(@PathParam("id") String id) {
+        Project project = collyStorage.getProject(id);
         if (project == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Project not found"))
-                    .build();
+            throw new NotFoundException("Project with id =" + id + " is not found");
         }
-        return Response.ok(dtoMapper.toProjectDto(project)).build();
+        return dtoMapper.toProjectDto(project);
     }
 
     @GET
@@ -65,12 +66,33 @@ public class InventoryServiceRest {
         return dtoMapper.toClusterDtos(collyStorage.getClusters(projectId));
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/clusters/{clusterId}")
+    public ClusterDto getCluster(@PathParam("clusterId") String id) {
+        Cluster cluster = collyStorage.getCluster(id);
+        if (cluster == null) {
+            throw new NotFoundException("Cluster with id =" + id + " is not found");
+        }
+        return dtoMapper.toClusterDto(cluster);
+    }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
     public List<EnvironmentDto> getEnvironments(@QueryParam("projectId") String projectId) {
         return dtoMapper.toDtos(collyStorage.getEnvironments(projectId));
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments/{environmentId}")
+    public EnvironmentDto getEnvironmentById(@PathParam("environmentId") String id) {
+        Environment environment = collyStorage.getEnvironment(id);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id =" + id + " is not found");
+        }
+        return dtoMapper.toDto(environment);
     }
 
     @PATCH
