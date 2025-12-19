@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
+import io.restassured.response.Response;
 
 @QuarkusTest
 // @TestTransaction - removed for Redis
@@ -133,5 +133,82 @@ class ClusterResourcesRestTest {
                 .body("authenticated", equalTo(false));
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void get_environment_by_id() {
+        given()
+                .when().post("/colly/v2/operational-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Response response = given()
+                .when().get("/colly/v2/operational-service/environments")
+                .then()
+                .statusCode(200)
+                .extract().response();
+
+        String environmentId = response.jsonPath().getString("[0].id");
+        String environmentName = response.jsonPath().getString("[0].name");
+
+        given()
+                .when().get("/colly/v2/operational-service/environments/" + environmentId)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(environmentId))
+                .body("name", equalTo(environmentName));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environment_by_id_not_found() {
+        given()
+                .when().post("/colly/v2/operational-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/operational-service/environments/non-existent-id")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_cluster_by_id() {
+        given()
+                .when().post("/colly/v2/operational-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Response response = given()
+                .when().get("/colly/v2/operational-service/clusters")
+                .then()
+                .statusCode(200)
+                .extract().response();
+
+        String clusterId = response.jsonPath().getString("[0].id");
+        String clusterName = response.jsonPath().getString("[0].name");
+
+        given()
+                .when().get("/colly/v2/operational-service/clusters/" + clusterId)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(clusterId))
+                .body("name", equalTo(clusterName));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_cluster_by_id_not_found() {
+        given()
+                .when().post("/colly/v2/operational-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/operational-service/clusters/non-existent-cluster-id")
+                .then()
+                .statusCode(404);
+    }
 
 }
