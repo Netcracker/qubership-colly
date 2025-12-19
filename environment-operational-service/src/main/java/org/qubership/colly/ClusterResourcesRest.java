@@ -3,18 +3,17 @@ package org.qubership.colly;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.qubership.colly.db.data.Cluster;
+import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.ApplicationMetadata;
 import org.qubership.colly.dto.ClusterDTO;
 import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.ClusterMapper;
+import org.qubership.colly.mapper.EnvironmentMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
 import java.util.HashMap;
@@ -29,16 +28,18 @@ public class ClusterResourcesRest {
     private final SecurityIdentity securityIdentity;
     private final MonitoringService monitoringService;
     private final ClusterMapper clusterMapper;
+    private final EnvironmentMapper environmentMapper;
 
     @Inject
     public ClusterResourcesRest(CollyStorage collyStorage,
                                 SecurityIdentity securityIdentity,
                                 MonitoringService monitoringService,
-                                ClusterMapper clusterMapper) {
+                                ClusterMapper clusterMapper, EnvironmentMapper environmentMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.monitoringService = monitoringService;
         this.clusterMapper = clusterMapper;
+        this.environmentMapper = environmentMapper;
     }
 
     @GET
@@ -51,9 +52,32 @@ public class ClusterResourcesRest {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/clusters/{clusterId}")
+    public ClusterDTO getClusterById(@PathParam("clusterId") String clusterId) {
+        Cluster cluster = collyStorage.getCluster(clusterId);
+        if (cluster == null) {
+            throw new NotFoundException("Cluster with id =" + clusterId + " is not found");
+        }
+        return clusterMapper.toDTO(cluster);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
     public List<EnvironmentDTO> getEnvironments() {
         return collyStorage.getEnvironments();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments/{environmentId}")
+    public EnvironmentDTO getEnvironmentById(@PathParam("environmentId") String environmentId) {
+        Environment environment = collyStorage.getEnvironment(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id =" + environmentId + " is not found");
+        }
+
+        return environmentMapper.toDTO(environment);
     }
 
     @POST
