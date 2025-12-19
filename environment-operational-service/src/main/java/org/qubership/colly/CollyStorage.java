@@ -6,9 +6,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.qubership.colly.cloudpassport.ClusterInfo;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
-import org.qubership.colly.db.data.*;
+import org.qubership.colly.cloudpassport.ClusterInfo;
+import org.qubership.colly.db.data.Cluster;
+import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.dto.EnvironmentDTO;
@@ -87,7 +88,7 @@ public class CollyStorage {
             for (CloudPassportEnvironment inventoryEnv : clusterInfo.environments()) {
                 Environment operationalEnv = operationalEnvironments.stream()
                         .filter(env -> env.getName().equals(inventoryEnv.name()) &&
-                                clusterInfo.name().equals(env.getClusterId()))
+                                clusterInfo.id().equals(env.getClusterId()))
                         .findFirst()
                         .orElse(null);
                 if (operationalEnv == null) {
@@ -108,4 +109,11 @@ public class CollyStorage {
         return clusterRepository.findAll().stream().sorted(Comparator.comparing(Cluster::getName)).toList();
     }
 
+    public Cluster getCluster(String clusterId) {
+        return clusterRepository.findById(clusterId);
+    }
+
+    public Environment getEnvironment(String environmentId) {
+        return environmentRepository.findById(environmentId).orElse(null);
+    }
 }

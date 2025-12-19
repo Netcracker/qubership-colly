@@ -73,8 +73,7 @@ public class ClusterResourcesLoader {
     //for testing purposes
     void loadClusterResources(CoreV1Api coreV1Api, ClusterInfo clusterInfo) {
         Log.info("Start Loading cluster resources for: " + clusterInfo.name());
-        Optional<Cluster> clusterOpt = clusterRepository.findByName(clusterInfo.name());
-        Cluster cluster = clusterOpt.orElse(null);
+        Cluster cluster = clusterRepository.findByName(clusterInfo.name());
         if (cluster == null) {
             cluster = new Cluster(clusterInfo.id(), clusterInfo.name());
             Log.info("Cluster " + clusterInfo.name() + " not found in db. Creating new one.");
@@ -107,12 +106,12 @@ public class ClusterResourcesLoader {
         for (CloudPassportEnvironment cloudPassportEnvironment : environments) {
             List<Environment> envList = environmentRepository.findByName(cloudPassportEnvironment.name());
             Environment environment = envList.stream()
-                    .filter(env -> cluster.getName().equals(env.getClusterId()))
+                    .filter(env -> cluster.getId().equals(env.getClusterId()))
                     .findFirst().orElse(null);
             Log.info("Start working with env = " + cloudPassportEnvironment.name() + " Cluster=" + cluster.getName() + ". Env exists in db? " + (environment != null));
             if (environment == null) {
                 environment = new Environment(cloudPassportEnvironment.id(), cloudPassportEnvironment.name());
-                environment.setClusterId(cluster.getName());
+                environment.setClusterId(cluster.getId());
                 environmentRepository.save(environment);
                 Log.info("env created in db: " + environment.getName());
             } else {
@@ -123,7 +122,7 @@ public class ClusterResourcesLoader {
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaces()) {
                 Log.info("Start working with namespace = " + cloudPassportNamespace.name());
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
-                List<Namespace> namespaces = namespaceRepository.findByClusterId(cluster.getName());
+                List<Namespace> namespaces = namespaceRepository.findByClusterId(cluster.getId());
                 Namespace namespace = namespaces.stream()
                         .filter(ns -> cloudPassportNamespace.name().equals(ns.getName()))
                         .findFirst().orElse(null);
@@ -176,7 +175,7 @@ public class ClusterResourcesLoader {
         namespace = new Namespace();
         namespace.setId(cloudPassportNamespace.id());
         namespace.setName(cloudPassportNamespace.name());
-        namespace.setClusterId(cluster.getName());
+        namespace.setClusterId(cluster.getId());
         namespace.setEnvironmentId(environment.getId());
         environment.addNamespaceId(namespace.getId());
         return namespace;

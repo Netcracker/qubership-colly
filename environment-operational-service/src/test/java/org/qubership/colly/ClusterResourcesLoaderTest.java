@@ -103,15 +103,15 @@ class ClusterResourcesLoaderTest {
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
 
         List<Environment> envs = environmentRepository.findByName("env-test");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv, allOf(
                 hasProperty("name", equalTo("env-test")),
                 hasProperty("deploymentVersion", equalTo(exampleOfLongVersion + "\n")),
                 hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant()))));
 
-        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_NAME));
+        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
 
-        List<Namespace> namespaces = namespaceRepository.findByClusterId(CLUSTER_NAME);
+        List<Namespace> namespaces = namespaceRepository.findByClusterId(CLUSTER_ID);
         Namespace testNamespace = namespaces.stream().filter(ns -> NAMESPACE_NAME.equals(ns.getName())).findFirst().orElse(null);
         assertThat(testNamespace, hasProperty("name", equalTo(NAMESPACE_NAME)));
 
@@ -132,7 +132,7 @@ class ClusterResourcesLoaderTest {
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
 
         List<Environment> envs = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElse(null);
         assertThat(testEnv, hasProperty("name", equalTo("env-3-namespaces")));
         assertThat(testEnv.getNamespaceIds(), hasSize(3));
         // Check that namespace names exist in repository
@@ -153,7 +153,7 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs2 = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs2.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        Environment testEnv = envs2.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
@@ -172,7 +172,7 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         List<Environment> envs = environmentRepository.findByName(ENV_1);
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2024.toInstant()));
 
@@ -183,7 +183,7 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         envs = environmentRepository.findByName(ENV_1);
-        testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 2.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
@@ -218,7 +218,7 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\nMyVersion 2.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
@@ -233,7 +233,7 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-2-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
         List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
         assertThat(allNamespaces, hasItems(
@@ -254,14 +254,14 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-unreachable");
-        Environment testEnv = envs.stream().filter(e -> "unreachable-cluster".equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElse(null);
         assertThat(testEnv, hasProperty("name", equalTo("env-unreachable")));
         assertThat(testEnv.getNamespaceIds(), hasSize(1));
         List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
         assertThat(allNamespaces, hasItems(allOf(
                 hasProperty("existsInK8s", equalTo(false)),
                 hasProperty("name", equalTo(NAMESPACE_NAME)))));
-        assertThat(testEnv.getClusterId(), equalTo("unreachable-cluster"));
+        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
     }
 
     @Test
@@ -273,7 +273,7 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-with-new-namespace");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
 
         List<Namespace> allNamespaces1 = namespaceRepository.findByEnvironmentId(testEnv.getId());
@@ -284,7 +284,7 @@ class ClusterResourcesLoaderTest {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, "new-namespace"));
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs2 = environmentRepository.findByName("env-with-new-namespace");
-        Environment testEnv2 = envs2.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElseThrow();
+        Environment testEnv2 = envs2.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
 
         assertThat(testEnv2.getNamespaceIds(), hasSize(2));
 
