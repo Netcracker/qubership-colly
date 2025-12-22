@@ -1,6 +1,6 @@
-# API Enhancement of according to the Customer requirements
+# API Enhancement according to the Customer requirements
 
-- [API Enhancement of according to the Customer requirements](#api-enhancement-of-according-to-the-customer-requirements)
+- [API Enhancement according to the Customer requirements](#api-enhancement-according-to-the-customer-requirements)
   - [Description](#description)
   - [Environment](#environment)
   - [Namespace](#namespace)
@@ -13,42 +13,42 @@
 
 This document describes the requirements for Colly from The Customer and the changes they introduce to Colly.
 
-This is not the full list of attributes of these objects, but only those that will be handled by The Customer
+This is not the full list of attributes for these objects, but only those that will be processed as per The Customer’s requirements.
 
 ## Environment
 
-| Colly Attribute                         | Attribute Type                                                     | Description                                                                                                                                      |
-|-----------------------------------------|--------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| `name`                                  | string                                                             | Environment name, cannot be changed after creation                                                                                               |
-| `status`                                | enum [`PLANNED`, `FREE`, `IN_USE`, `RESERVED`, `DEPRECATED`]       | Current status of the Environment                                                                                                                |
-| `role`                                  | string (the valid values is configured via a deployment parameter) | Defines the usage role of the Environment within the project. The list is configured via deployment parameter and can be extended.               |
-| `teams`                                 | list of strings                                                    | Teams assigned to the Environment. If there are several teams, their names are separated by commas.                                              |
-| `owners`                                | list of strings                                                    | People responsible for the Environment. If there are several, their names are separated by commas.                                               |
-| `deploymentOperations`                  | list of objects                                                    | History of deployment operations per environment; each entry has `completedAt` and `deploymentItems` with SD `name`, `type`, `mode`, `status`.   |
-| `description`                           | string                                                             | Free-form Environment description                                                                                                                |
-| `namespaces`                            | list of [Namespace](#namespace) objects                            | List of associated namespaces                                                                                                                    |
-| `cluster`                               | [Cluster](#cluster) object                                         | Associated cluster                                                                                                                               |
-| `monitoringData.lastIdpLoginDate`       | string, date-time                                                  | Time of the last successful login to the IDP associated with the Environment                                                                     |
-| `region`                                | string                                                             | Geographical region associated with the Environment. This attribute is user-defined                                                              |
+| Colly Attribute                         | Attribute Type                                                      | Description                                                                                                                                       |
+|-----------------------------------------|---------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`                                  | string                                                              | Environment name, cannot be changed after creation                                                                                                |
+| `status`                                | enum [`PLANNED`, `FREE`, `IN_USE`, `RESERVED`, `DEPRECATED`]        | Current status of the Environment                                                                                                                 |
+| `role`                                  | string (the valid values are configured via a deployment parameter) | Defines the usage role of the Environment within the project. The list is configured via a deployment parameter and can be extended.              |
+| `teams`                                 | list of strings                                                     | Teams assigned to the Environment. If there are multiple teams, their names are separated by commas.                                              |
+| `owners`                                | list of strings                                                     | People responsible for the Environment. If there are multiple, their names are separated by commas.                                               |
+| `deploymentOperations`                  | list of objects                                                     | History of deployment operations per environment; each entry has `completedAt` and `deploymentItems` with SD `name`, `type`, `mode`, `status`.    |
+| `description`                           | string                                                              | Free-form Environment description                                                                                                                 |
+| `namespaces`                            | list of [Namespace](#namespace) objects                             | List of associated namespaces                                                                                                                     |
+| `cluster`                               | [Cluster](#cluster) object                                          | Associated cluster                                                                                                                                |
+| `monitoringData.lastIdpLoginDate`       | string, date-time                                                   | Time of the last successful login to the IDP associated with the Environment                                                                      |
+| `region`                                | string                                                              | Geographical region associated with the Environment. This attribute is user-defined                                                               |
 
 ## Namespace
 
-| Colly Attribute                           | Attribute Type | Description                                                                                                                      |
-|-------------------------------------------|----------------|----------------------------------------------------------------------------------------------------------------------------------|
-| `name`                                    | string         | Namespace name                                                                                                                   |
+| Colly Attribute                         | Attribute Type | Description                |
+|-----------------------------------------|----------------|----------------------------|
+| `name`                                  | string         | Namespace name             |
 
 ## Cluster
 
-| Colly Attribute                           | Attribute Type   | Description                                                                                                                                                                                                    |
-|-------------------------------------------|------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `name`                                    | string           | Cluster name, cannot be changed after creation                                                                                                                          |
-| `clusterInfoUpdateStatus.lastSuccessAt`   | string           | Time of the last successful update information from the cluster                                                                                                          |
+| Colly Attribute                         | Attribute Type   | Description                                                                                           |
+|-----------------------------------------|------------------|-------------------------------------------------------------------------------------------------------|
+| `name`                                  | string           | Cluster name, cannot be changed after creation                                                        |
+| `clusterInfoUpdateStatus.lastSuccessAt` | string           | Time of the last successful update information from the cluster                                       |
 
 ## Colly instance
 
-| Colly Attribute                           | Attribute Type   | Description                                                   |
-|-------------------------------------------|----------------- |---------------------------------------------------------------|
-| `clusterInfoUpdateInterval`               | string, duration | Period of synchronization with the cluster in ISO 8601 format |
+| Colly Attribute                         | Attribute Type   | Description                                                   |
+|-----------------------------------------|----------------- |---------------------------------------------------------------|
+| `clusterInfoUpdateInterval`             | string, duration | Period of synchronization with the cluster in ISO 8601 format |
 
 ## To discuss
 
@@ -139,6 +139,50 @@ This is not the full list of attributes of these objects, but only those that wi
     3. What is the recommended sync frequency with the cluster?
        1. At least once every 30 minutes.
 
+- [x] `role`
+
+  - Should it be extendable?
+    - Currently, `role` values are extended via deployment parameters
+  - A separate interface to provide the list of roles is needed
+  - Challenge the predefined list of roles
+    - [`Dev`, `QA`, `Project CI`, ~~`SaaS`~~, `Joint CI`, ~~`Other`~~, `Pre Sale`] - set via deployment parameters
+
+- [x] `team` or `teams`? `owner` or `owners`?
+  - `owners`, `teams` are lists
+
+- [x] Each POST in the API will result in a separate commit
+
+- [x] `id` is `uuid`; `name` is `<environment-name>`
+
+- [x] The mediation layer composes the API between the inventory and operational services
+
+- [x] It should be possible to get a list of projects
+  - `/colly/v2/inventory-service/projects`
+    - returns a summary view:
+      - projectId
+      - projectName
+  - `/colly/v2/inventory-service/projects/Id`
+    - returns detail view
+    - The potential problem of a project with two instance repositories will be addressed when it arises
+
+- [x] It should be possible to get a list of clusters
+  - `/colly/v2/inventory-service/clusters`
+    - returns a summary view:
+      - clusterId
+      - projectName
+  - `/colly/v2/inventory-service/projects/Id`
+    - returns detail view
+
+- [x] Add the `deployPostfix` attribute to the Namespace?
+  - No
+
+- [x] Is it correct to say that a single physical business solution instance, consisting of product and project applications, can be modeled with two EnvGene environments - one for product, one for project?
+  - No, there is only one Environment.
+
+- [x] Before creating a cluster, the environment queries Colly to check if there is already a cluster with the same name.
+
+- [x] If Colly discovers the instance repo and receives a cluster that already exists in Colly (by the `name` attribute), another one is created with the same name but a unique ID.
+
 - [ ] What should be the scope of synchronization between Colly and the cluster
   1. All clusters of the instance
   2. Individual clusters
@@ -160,25 +204,12 @@ This is not the full list of attributes of these objects, but only those that wi
     2. Who, when and why lock/unlock
     3. What are the cases from SSP?
 
-- [x] `role`
+- [ ] What does the TheCustomer -> Colly -> EnvGene integration look like when creating an Environment?
 
-  - Should it be extendable?
-    - Currently, `role` are extended via deployment parameters
-  - A separate interface to provide the list of roles is needed
-  - Challenge the predefined list of roles
-    - [`Dev`, `QA`, `Project CI`, ~~`SaaS`~~, `Joint CI`, ~~`Other`~~, `Pre Sale`] - set via deployment parameters
-
-- [x] `team` or `teams`? `owner` or `owners`?
-  - `owners`, `teams` are lists
-
-- [x] Each POST in the API will result in a separate commit
-
-- [x] `id` is `uuid`; `name` is `<environment-name>`
-
-- [x] The mediation layer composes the API between the inventory and operational services
+- [ ] How to aggregate DeploymentOperations across the namespaces of the environment?
 
 - [ ] The SaaS instance of Colly must support:
-  - How do we roll out a new version Colly (canary deployment)?
+  - How do we roll out a new version of Colly (canary deployment)?
   - The mediation layer finds Colly via service mesh
 
 - [ ] It should be possible to get a list of environments per project
@@ -186,50 +217,12 @@ This is not the full list of attributes of these objects, but only those that wi
     - It is necessary to introduce the `projectId` attribute to the environment object
   - The Customer does NOT require information about which `customerName` an environment belongs to, nor obtaining lists of environments by `customerName`
 
-- [x] It should be possible to get a list of projects
-  - `/colly/v2/inventory-service/projects`
-    - returns a summary view:
-      - projectId
-      - projectName
-  - `/colly/v2/inventory-service/projects/Id`
-    - returns detail view
-    - The potential problem of a project with two instance repositories will be addressed when it arises
-
-- [x] It should be possible to get a list of clusters
-  - `/colly/v2/inventory-service/clusters`
-    - returns a summary view:
-      - clusterId
-      - projectName
-  - `/colly/v2/inventory-service/projects/Id`
-    - returns detail view
-
-- [ ] What does the TheCustomer -> Colly -> EnvGene integration look like when creating an Environment?
-
-- [ ] How to aggregate DeploymentOperations across the namespaces of the environment?
-
-- [x] Add the `deployPostfix` attribute to the Namespace?
-  - No
-
-- [ ] Аттрибуты кластера добавить
-
-- [ ] What is a SaaS report?
-
-- [ ] Is it correct to say that a single physical business solution instance, consisting of product and project applications, can be modeled with two EnvGene environments - one for product, one for project?
-  - No, there is only one Environment.
-
-1. SSP перед созданием кластера, энва ходит к Колли, для того что бы проверить есть ли уже с таким именем
-2. Если Колли дискаверит инстанс репо и получает кластер который уже есть в Колли ( по аттрибуту name), то создается еще один с таким же name, но с уникальным ID
-3. No search API
-4. Как организовать связь между инстансным и пайплайновым репозиториями
-5. Егор узнает зачем проект завел себе два темплейт репо
-6. Егор принесет приоритеты
-
 ## To implement
 
 - [x] Change environment attributes
    1. `team`(string) -> `teams`(list of strings)
    2. `owner`(string) -> `owners`(list of strings)
-- [ ]`role`
+- [ ] `role`
   - [x] Add `role` attribute on Environment
   - [ ] Add deployment parameter to extend `role` valid values
   - [x] Remove default value for `role`
@@ -237,14 +230,17 @@ This is not the full list of attributes of these objects, but only those that wi
 - [x] `type`
   - [x] Remove the functionality for auto-generating the `type` attribute. Users should be able to set this value themselves by selecting from a list of allowed values. The list of values should be specified as a deployment parameter.
 - [ ] Include the current Colly API version in the X-API-Version HTTP response header for every API response (Low priority)
-- [ ] Add `lastIdpLoginDate` attribute
-- [ ] Add deployment parameter to `monitoringData` extension
+- [x] Add `lastIdpLoginDate` attribute (via configurable monitoringData)
+- [x] Add deployment parameter for `monitoringData` extension
 - [x] Remove `ticketLinks` attribute
-- [ ] Add `deploymentOperations`
-- [ ] Add `region` attribute
-- [ ] Remove `cleanInstallationDate` attribute
-- [ ] Add `clusterInfoUpdateInterval`, `clusterInfoUpdateStatus.lastSuccessAt`
+- [ ] Add `deploymentOperations` ( will do via ACHKA in 26.1 )
+  - [ ] Remove `cleanInstallationDate`
+- [x] Add `region` attribute
+- [ ] Add `clusterInfoUpdateInterval`, `clusterInfoUpdateStatus.lastSuccessAt` + remove `synced`
 - [ ] Add `accessGroups` to Project
-- [ ] Add `clustersPlatform` to Project
+- [x] Add `clustersPlatform` to Project
 - [ ] Add `envgeneArtifact` to Project
-- [ ] Configure `monitoringData` for En
+- [ ] Create default configuration for `monitoringData`
+- [ ] Support cred macro
+- [ ] `numberOfNodes`
+- [ ] The configuration for `monitoringData` is currently shared across all environments - it needs to be made more granular

@@ -219,12 +219,20 @@ gitlab-token:
 
 ## To discuss
 
-- [ ] Should the Project repository be used as the Maintenance inventory?
-
 - [x] Use case for Colly using its own project repository:
   1. Read all projects and extract the URL, token, and branches from the `envgeneInstance` repositories in order to display the environments from these projects.
 
-- [ ] Need a mapping from environment to project. For example, an environment attribute `project`.
+- [x] Does each project currently have a different `accessGroups`?
+  - Yes, it is different
+
+- [x] Is creating Project post/patch via the Colly API planned?
+  - Not right now, maybe in the future
+
+- [x] `projectId` = customerAbbr + projectAbbr
+
+- [ ] Should the Project repository be used as the Maintenance inventory?
+
+- [x] Need a mapping from environment to project. For example, an environment attribute `project`.
   - Use case: find the DCL pipeline repository by environment
   - Requestor - The Customer
 
@@ -232,24 +240,14 @@ gitlab-token:
 
 - [ ] `pipeline` is too generic, we need to specify the exact type of pipeline
 
-- [ ] accessGroups это список групп пользователей для "кластеров" или Колли?
+- [ ] `accessGroups` is a list of user groups for "clusters" or for Colly?
 
-- [x] Есть ли сейчас для каждого проекта различный `accessGroups`
-  - Да, он различный
+- [ ] `jiraCustomerName` - is it needed?
 
-- [x] Планируется ли создание Project post/patch через Colly API
-  - сейчас нет, возможно потом
-
-- [ ] jiraCustomerName - нужен ли? Егор расскажет
-
-- [ ] envgeneArtifact
+- [ ] `envgeneArtifact`
   - Short term:
-    - в Repository задается руками envgeneArtifact.name в гите
+    - In the Repository, `envgeneArtifact.name` is set manually in Git
   - Long term:
-    - решить может ли Colly задискаверить:
-      - envgeneArtifact.name
-      - envgeneArtifact.templateDescriptorNames
-
-projectId = customerAbriv + projectAbriv
-
-каталог Abriv может появится когда появятся кейсы автоматизации создания проекта
+    - need to decide whether Colly can discover:
+      - `envgeneArtifact.name`
+      - `envgeneArtifact.templateDescriptorNames`
