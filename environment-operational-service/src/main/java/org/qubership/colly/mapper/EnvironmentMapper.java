@@ -4,7 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
@@ -33,7 +32,7 @@ public class EnvironmentMapper {
     /**
      * Convert Environment entity to DTO
      */
-    public EnvironmentDTO toDTO(Environment entity, CloudPassportEnvironment cloudPassportEnvironment) {
+    public EnvironmentDTO toDTO(Environment entity) {
         if (entity == null) {
             return null;
         }
@@ -42,19 +41,10 @@ public class EnvironmentMapper {
                 entity.getId(),
                 entity.getName(),
                 toNamespaceDTOs(entity.getNamespaceIds()),
-                clusterMapper.toDTO(clusterRepository.findByName(entity.getClusterId()).orElse(null)),
-                cloudPassportEnvironment.owner(),
-                entity.getTeam(),
-                entity.getStatus(),
-                entity.getExpirationDate(),
-                entity.getType(),
-                entity.getLabels(),
-                cloudPassportEnvironment.description(),
+                clusterMapper.toDTO(clusterRepository.findById(entity.getClusterId())),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),
-                entity.getMonitoringData(),
-                entity.getDeploymentStatus(),
-                entity.getTicketLinks()
+                entity.getMonitoringData()
         );
     }
 
@@ -65,7 +55,7 @@ public class EnvironmentMapper {
         return entities.stream()
                 .map(env -> {
                     Environment environment = environmentRepository.findById(env.name()).orElse(null);
-                    return toDTO(environment, env);
+                    return toDTO(environment);
                 })
                 .toList();
     }
@@ -78,7 +68,7 @@ public class EnvironmentMapper {
         List<NamespaceDTO> namespaceDTOs = new ArrayList<>();
         for (String nsId : namespaceIds) {
             namespaceRepository.findByUid(nsId).ifPresent(ns ->
-                namespaceDTOs.add(new NamespaceDTO(ns.getUid(), ns.getName(), ns.getExistsInK8s()))
+                    namespaceDTOs.add(new NamespaceDTO(ns.getId(), ns.getName(), ns.getExistsInK8s()))
             );
         }
         return namespaceDTOs;

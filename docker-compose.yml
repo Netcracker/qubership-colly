@@ -4,6 +4,7 @@ services:
   postgres:
     image: postgres:15
     container_name: colly-postgres
+    profiles: ["infra"]
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
@@ -23,6 +24,7 @@ services:
   redis:
     image: redis:alpine
     container_name: colly-redis
+    profiles: ["infra"]
     ports:
       - "6379:6379"
     networks:
@@ -36,6 +38,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: colly-keycloak
+    profiles: ["infra"]
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
@@ -71,6 +74,7 @@ services:
       dockerfile: Dockerfile
     image: envgene-inventory-service:latest
     container_name: inventory-service
+    profiles: ["apps"]
     ports:
       - "8081:8081"
     environment:
@@ -78,7 +82,7 @@ services:
       - QUARKUS_HTTP_PORT=8081
       - QUARKUS_REDIS_HOSTS=redis://redis:6379
       - QUARKUS_OIDC_AUTH_SERVER_URL=http://host.docker.internal:8180/realms/quarkus
-      - COLLY_EIS_ENV_INSTANCES_REPO=https://github.com/ormig/cloud-passport-samples.git
+      - COLLY_EIS_PROJECT_REPO_URL=https://github.com/ormig/project-git-sample.git
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "localhost:host-gateway"
@@ -102,6 +106,7 @@ services:
       dockerfile: Dockerfile
     image: environment-operational-service:latest
     container_name: operational-service
+    profiles: ["apps"]
     ports:
       - "8080:8080"
     environment:
@@ -123,6 +128,38 @@ services:
       - colly-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/q/swagger-ui"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  ui-service:
+    build:
+      context: ./ui-service
+      dockerfile: Dockerfile
+    image: ui-service:latest
+    container_name: ui-service
+    profiles: ["apps"]
+    ports:
+      - "3000:3000"
+    environment:
+      - QUARKUS_PROFILE=dev
+      - QUARKUS_HTTP_PORT=3000
+      - QUARKUS_REST_CLIENT_INVENTORY_SERVICE_URL=http://inventory-service:8081
+      - QUARKUS_REST_CLIENT_OPERATIONAL_SERVICE_URL=http://operational-service:8080
+      - QUARKUS_OIDC_AUTH_SERVER_URL=http://host.docker.internal:8180/realms/quarkus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      operational-service:
+        condition: service_healthy
+    networks:
+      - colly-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/colly/v2/ui-service/health"]
       interval: 30s
       timeout: 10s
       retries: 5

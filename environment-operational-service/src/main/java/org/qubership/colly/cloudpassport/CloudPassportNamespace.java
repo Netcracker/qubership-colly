@@ -1,4 +1,4 @@
 package org.qubership.colly.cloudpassport;
 
-public record CloudPassportNamespace(String name) {
+public record CloudPassportNamespace(String id, String name) {
 }

@@ -1,0 +1,13 @@
+customerName: Solar System
+name: saturn
+type: product
+clusterPlatform: ocp
+repositories:
+  - type: envgeneInstance
+    url: gitrepo_with_unreachable_cluster
+  - type: solutionDeploy
+    url: https://github.com/example/solution-deploy-saturn
+    token: saturn-solution-token-789
+  - type: clusterProvision
+    url: https://github.com/example/cluster-provision-saturn
+    token: saturn-cluster-token-abc

@@ -28,7 +28,21 @@ else
 fi
 cd ..
 
+# Build ui service
+echo "Building ui-service..."
+cd ui-service
+mvn clean package -DskipTests
+if [ $? -eq 0 ]; then
+    docker build -t ui-service:latest .
+    echo "✓ ui-service image built successfully"
+else
+    echo "✗ Failed to build ui-service"
+    exit 1
+fi
+cd ..
+
 echo ""
 echo "All Docker images built successfully:"
 echo "- envgene-inventory-service:latest"
 echo "- environment-operational-service:latest"
+echo "- ui-service:latest"

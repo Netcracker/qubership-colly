@@ -9,13 +9,6 @@ on:
 jobs:
   mvn-build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        component:
-#todo need enterprise sonar cube version to support monorepo https://docs.sonarsource.com/sonarqube-server/10.8/project-administration/monorepos/
-#          - envgene-inventory-service
-          - environment-operational-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,8 +22,5 @@ jobs:
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
-          working-directory: ${{ matrix.component }}
-          upload-artifact: 'true'
-          artifact-id: ${{ matrix.component }}
           maven-token: ${{ secrets.GITHUB_TOKEN }}
           sonar-token: ${{ secrets.SONAR_TOKEN }}

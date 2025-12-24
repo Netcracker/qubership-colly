@@ -7,7 +7,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
-import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +20,7 @@ public class MonitoringService {
     @Inject
     MonitoringParams monitoringParams;
 
-    public Map<String, String> loadMonitoringData(URI monitoringUri, List<String> namespaceNames) {
+    public Map<String, String> loadMonitoringData(String monitoringUri, String environmentName, String clusterName, List<String> namespaceNames) {
         if (monitoringUri == null) {
             return emptyMap();
         }
@@ -36,7 +35,12 @@ public class MonitoringService {
             }
 
             for (MonitoringParam monitoringParam : monitoringParams) {
-                String monitoringQuery = monitoringParam.query().replace("{namespace}", String.join("|", namespaceNames));
+
+                String monitoringQuery = monitoringParam.query()
+                        .replace("{namespace}", String.join("|", namespaceNames))
+                        .replace("{env}", environmentName)
+                        .replace("{cluster}", clusterName);
+
                 Log.info("Executing query: " + monitoringQuery + " on " + monitoringUri + " for namespaces: " + namespaceNames);
                 MonitoringResponse monitoringResponse = monitoringClient.executeQuery(monitoringQuery);
                 if (monitoringResponse == null || monitoringResponse.data == null || monitoringResponse.data.result == null || monitoringResponse.data.result.isEmpty()) {
@@ -48,19 +52,21 @@ public class MonitoringService {
                 result.put(monitoringParam.name(), monitoringData);
             }
         } catch (Exception e) {
-            Log.error("Unable to load monitoring data from " + monitoringUri);
+            Log.error("Unable to load monitoring data from " + monitoringUri, e);
             return emptyMap();
         }
         return result;
     }
 
     public List<String> getParameters() {
-        return monitoringParams.allMonitoringParams()
+        List<String> paramNames = monitoringParams.allMonitoringParams()
                 .values()
                 .stream()
                 .map(MonitoringParam::name)
                 .sorted()
                 .toList();
+        Log.info("Found " + paramNames.size() + " monitoring parameters: " + paramNames);
+        return paramNames;
     }
 
     @ConfigMapping(prefix = "colly.environment-operational-service.monitoring")

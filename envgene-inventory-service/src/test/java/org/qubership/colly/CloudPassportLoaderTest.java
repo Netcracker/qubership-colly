@@ -14,12 +14,19 @@ import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
+import org.qubership.colly.db.data.EnvironmentStatus;
+import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.projectrepo.ClusterPlatform;
+import org.qubership.colly.projectrepo.InstanceRepository;
+import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.projectrepo.ProjectType;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -33,26 +40,60 @@ import static org.mockito.Mockito.doAnswer;
 @QuarkusComponentTest
 class CloudPassportLoaderTest {
 
-    private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT = new CloudPassport("test-cluster",
-            "eyJhbGciOiJSUzI1NiIsImtpZCI6IkhIQjJJMDU0azFDbERMcXBEYVk0ckdLbGhMQnlSVnB4aWhaYzBia2tpdncifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZW1vLWs4cyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkZW1vLWs4cy1zZWNyZXQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVtby1rOHMiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIyMzk4OGZhYi05OWU5LTQ1ODYtYWIxNi0wZWI1NmExY2Q3YmEiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVtby1rOHM6ZGVtby1rOHMifQ.TOfvRb-JO7GON_O8Zmb4gfLjnbuwOn8cMija4qW1z4Et_4BlipT_vf4Bv5sXnw36KjdVD-sWkyIUza10_XQdpXFqGj0xTinS-SEXuqQ-r2d5tVTEBQ_H8ALDqN_9oA5r0TcH18SijuxgVfMDSEBXdfjzFTu2rxyK6cFbcYKZVmY3W9JD9Tpz3qB_FLa8MAbuDnCg5r4feohjpmiA7lDpRWwjjMEpByj-wGd3u3l-vBk6QW5Aw_iEqiG-AcbzM2Lx874Inlz8M60jLpbTdw58KQjNOlkUpmzzrHAcyBizeBCNl-7DCduY0sqE3ZTNn7sV3mNaec0TGWrSUhPIHTrHcQ",
+    private static final CloudPassport TEST_CLUSTER = new CloudPassport("test-cluster",
+            "some_token_for_test_cluster",
             "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
             Set.of(new CloudPassportEnvironment(
-                    "env-test",
-                    "some env for tests",
-                    "test-owner",
-                    List.of(new CloudPassportNamespace("demo-k8s")))),
-            URI.create("http://localhost:8428"),
-            new GitInfo("gitrepo_with_cloudpassports", "target/test-cloud-passport-folder/1"));
-    private static final CloudPassport TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
+                            "env-test",
+                            "some env for tests",
+                            List.of(new CloudPassportNamespace("demo-k8s")),
+                            List.of("test-owner"),
+                            List.of(),
+                            List.of(),
+                            EnvironmentStatus.FREE,
+                            null,
+                            EnvironmentType.ENVIRONMENT,
+                            null,
+                            null),
+                    new CloudPassportEnvironment(
+                            "env-metadata-test",
+                            "description from metadata",
+                            List.of(new CloudPassportNamespace("test-ns")),
+                            List.of("owner from metadata"),
+                            List.of("label1", "label2"), List.of("team-from-metadata"),
+                            EnvironmentStatus.IN_USE,
+                            LocalDate.of(2025, 12, 31),
+                            EnvironmentType.DESIGN_TIME,
+                            "QA",
+                            "cm")),
+            "http://localhost:8428",
+            new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42"),
+                    "target/test-cloud-passport-folder/1", "1"),
+            "https://dashboard.example.com",
+            "https://dbaas.example.com",
+            "https://deployer.example.com",
+            "https://argo.example.com");
+    private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
             Set.of(new CloudPassportEnvironment(
                     "env-1",
                     "some env for tests",
+                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    EnvironmentStatus.FREE,
                     null,
-                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")))),
-            URI.create("http://vmsingle-k8s.victoria:8429"),
-            new GitInfo("gitrepo_with_unreachable_cluster", "target/test-cloud-passport-folder/2")
+                    EnvironmentType.ENVIRONMENT,
+                    null,
+                    null)),
+            "http://vmsingle-k8s.victoria:8429",
+            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43"), "target/test-cloud-passport-folder/2", "2"),
+            null,
+            null,
+            null,
+            null
     );
 
     @InjectMock
@@ -74,17 +115,20 @@ class CloudPassportLoaderTest {
 
     @Test
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
-    @TestConfigProperty(key = "colly.eis.env.instances.repo", value = "gitrepo_with_cloudpassports,gitrepo_with_unreachable_cluster")
     void load_cloud_passports_from_test_folder() {
-        List<CloudPassport> result = loader.loadCloudPassports();
-        assertThat(result, containsInAnyOrder(TEST_CLUSTER_CLOUD_PASSPORT, TEST_CLUSTER_CLOUD_PASSPORT_FOR_UNREACHABLE_CLUSTER));
+        Project project1 = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42")), List.of(), ClusterPlatform.K8S);
+        Project project2 = new Project("2", "project-2", ProjectType.PROJECT, "some-customer",
+                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43")), List.of(), ClusterPlatform.K8S);
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
+        assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 
     }
 
     @Test
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "/nonexistent/path")
     void load_cloud_passports_from_test_folder_with_empty_folder() {
-        List<CloudPassport> result = loader.loadCloudPassports();
+        List<CloudPassport> result = loader.loadCloudPassports(new ArrayList<>());
         assertTrue(result.isEmpty());
     }
 
@@ -97,35 +141,42 @@ class CloudPassportLoaderTest {
                   CLOUD_API_PORT: 443
                   CLOUD_PROTOCOL: "https"
                   CLOUD_DEPLOY_TOKEN: "tokenKey"
+                  CLOUD_DASHBOARD_URL: https://dashboard.example.com
+                  CMDB_URL: https://deployer.example.com
                 cse:
                   MONITORING_NAMESPACE: "monitoring"
                   MONITORING_TYPE: "VictoriaDB"
                   MONITORING_EXT_MONITORING_QUERY_URL: "http://monitoring.example.com"
+                dbaas:
+                  API_DBAAS_ADDRESS: https://dbaas.example.com
+                argocd:
+                  ARGOCD_URL: https://argo.example.com
                 """;
         Path file = tempDir.resolve("data.yml");
         Files.writeString(file, yaml);
 
         CloudPassportData result = loader.parseCloudPassportDataFile(file);
         assertNotNull(result);
-        assertThat(result.getCloud(),
-                allOf(
-                        hasProperty("cloudApiHost", equalTo("api.example.com")),
-                        hasProperty("cloudApiPort", equalTo("443")),
-                        hasProperty("cloudProtocol", equalTo("https"))));
-        assertThat(result.getCse(),
-                allOf(
-                        hasProperty("monitoringNamespace", equalTo("monitoring")),
-                        hasProperty("monitoringType", equalTo("VictoriaDB")),
-                        hasProperty("monitoringExtMonitoringQueryUrl", equalTo("http://monitoring.example.com"))));
+        assertThat(result.cloud().cloudApiHost(), equalTo("api.example.com"));
+        assertThat(result.cloud().cloudApiPort(), equalTo("443"));
+        assertThat(result.cloud().cloudProtocol(), equalTo("https"));
+        assertThat(result.cloud().cloudCmdbUrl(), equalTo("https://deployer.example.com"));
+
+        assertThat(result.cse().monitoringNamespace(), equalTo("monitoring"));
+        assertThat(result.cse().monitoringType(), equalTo("VictoriaDB"));
+        assertThat(result.cse().monitoringExtMonitoringQueryUrl(), equalTo("http://monitoring.example.com"));
+
+        assertThat(result.dbaas().apiDBaaSAddress(), equalTo("https://dbaas.example.com"));
+        assertThat(result.argocd().argocdUrl(), equalTo("https://argo.example.com"));
+
     }
 
     @Test
     void testParseTokenFromCredsFile_validYaml(@TempDir Path tempDir) throws IOException {
-        CloudData cloud = new CloudData();
-        cloud.setCloudDeployToken("tokenKey");
+        CloudData cloud = new CloudData(null, null, "tokenKey",
+                null, null, null);
 
-        CloudPassportData passportData = new CloudPassportData();
-        passportData.setCloud(cloud);
+        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 
         String credsYaml = """
                 tokenKey:
@@ -140,11 +191,10 @@ class CloudPassportLoaderTest {
 
     @Test
     void testParseTokenFromCredsFile_missingSecretThrows(@TempDir Path tempDir) throws IOException {
-        CloudData cloud = new CloudData();
-        cloud.setCloudDeployToken("missingKey");
+        CloudData cloud = new CloudData(null, null, "missingKey",
+                null, null, null);
 
-        CloudPassportData passportData = new CloudPassportData();
-        passportData.setCloud(cloud);
+        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 
         String yaml = """
                 anotherKey:

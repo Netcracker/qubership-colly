@@ -1,44 +1,45 @@
 package org.qubership.colly;
 
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.annotation.security.RolesAllowed;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.qubership.colly.db.data.Cluster;
+import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.ApplicationMetadata;
-import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.dto.ClusterDTO;
-import org.qubership.colly.mapper.EnvironmentMapper;
+import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.mapper.ClusterMapper;
+import org.qubership.colly.mapper.EnvironmentMapper;
 import org.qubership.colly.monitoring.MonitoringService;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Path("/colly/environment-operational-service")
+@Path("/colly/v2/operational-service")
+@SecurityRequirement(name = "SecurityScheme")
 public class ClusterResourcesRest {
 
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final MonitoringService monitoringService;
-    private final EnvironmentMapper environmentMapper;
     private final ClusterMapper clusterMapper;
+    private final EnvironmentMapper environmentMapper;
 
     @Inject
     public ClusterResourcesRest(CollyStorage collyStorage,
-                               SecurityIdentity securityIdentity,
-                               MonitoringService monitoringService,
-                               EnvironmentMapper environmentMapper,
-                               ClusterMapper clusterMapper) {
+                                SecurityIdentity securityIdentity,
+                                MonitoringService monitoringService,
+                                ClusterMapper clusterMapper, EnvironmentMapper environmentMapper) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.monitoringService = monitoringService;
-        this.environmentMapper = environmentMapper;
         this.clusterMapper = clusterMapper;
+        this.environmentMapper = environmentMapper;
     }
 
     @GET
@@ -51,57 +52,46 @@ public class ClusterResourcesRest {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/clusters/{clusterId}")
+    public ClusterDTO getClusterById(@PathParam("clusterId") String clusterId) {
+        Cluster cluster = collyStorage.getCluster(clusterId);
+        if (cluster == null) {
+            throw new NotFoundException("Cluster with id =" + clusterId + " is not found");
+        }
+        return clusterMapper.toDTO(cluster);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments")
     public List<EnvironmentDTO> getEnvironments() {
         return collyStorage.getEnvironments();
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments/{environmentId}")
+    public EnvironmentDTO getEnvironmentById(@PathParam("environmentId") String environmentId) {
+        Environment environment = collyStorage.getEnvironment(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id =" + environmentId + " is not found");
+        }
+
+        return environmentMapper.toDTO(environment);
+    }
+
     @POST
-    @Path("/tick")
+    @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
     public void loadEnvironmentsManually() {
         collyStorage.executeTask();
     }
 
-    @POST
-    @Path("/environments/{envId}")
-    @RolesAllowed("admin")
-    public void saveEnvironment(@PathParam("envId") String id,
-                                @FormParam("name") String name,
-                                @FormParam("owner") String owner,
-                                @FormParam("description") String description,
-                                @FormParam("status") String status,
-                                @FormParam("labels") List<String> labels,
-                                @FormParam("type") String type,
-                                @FormParam("team") String team,
-                                @FormParam("deploymentStatus") String deploymentStatus,
-                                @FormParam("ticketLinks") String ticketLinks,
-                                @FormParam("expirationDate") String expirationDate) {
-        LocalDate date = null;
-        if (expirationDate != null && !expirationDate.isEmpty()) {
-            date = LocalDate.parse(expirationDate);
-        }
-        collyStorage.saveEnvironment(id, name, owner, description, status, labels, type, team, date, deploymentStatus, ticketLinks);
-    }
-
-    @DELETE
-    @Path("/environments/{envId}")
-    @RolesAllowed("admin")
-    public void deleteEnvironment(@PathParam("envId") String id) {
-        collyStorage.deleteEnvironment(id);
-    }
-
-    @POST
-    @Path("/clusters/{clusterName}")
-    @RolesAllowed("admin")
-    public void saveCluster(@PathParam("clusterName") String clusterName,
-                            @FormParam("description") String description) {
-        collyStorage.saveCluster(clusterName, description);
-    }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
+    @PermitAll
     public Response getAuthStatus() {
         if (securityIdentity.isAnonymous()) {
             return Response.status(Response.Status.UNAUTHORIZED)

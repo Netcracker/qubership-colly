@@ -10,19 +10,18 @@ import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
+import org.qubership.colly.cloudpassport.ClusterInfo;
 import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
 
-import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -34,7 +33,6 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.qubership.colly.ClusterResourcesLoader.*;
 
 @QuarkusTest
 @ConnectWireMock
@@ -46,9 +44,9 @@ class ClusterResourcesLoaderTest {
     private static final String NAMESPACE_NAME_2 = "namespace2";
     private static final String NAMESPACE_NAME_3 = "namespace3";
     private static final String CLUSTER_NAME = "cluster";
-    private static final CloudPassport CLOUD_PASSPORT = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
-            Set.of(new CloudPassportEnvironment(ENV_1, "some-owner", "some env for tests",
-                    List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), null);
+    private static final String CLUSTER_ID = "1";
+    private static final ClusterInfo CLOUD_PASSPORT = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+            Set.of(createEnvForTests(ENV_1, List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), null);
     private static final OffsetDateTime DATE_2024 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     private static final OffsetDateTime DATE_2025 = OffsetDateTime.of(2025, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
     @Inject
@@ -68,6 +66,10 @@ class ClusterResourcesLoaderTest {
     @Inject
     RedisDataSource redisDataSource;
 
+    private static @NotNull CloudPassportEnvironment createEnvForTests(String name, List<CloudPassportNamespace> namespaces) {
+        return new CloudPassportEnvironment(name, name, "some env for tests", namespaces);
+    }
+
     @BeforeEach
     void setUp() throws ApiException {
         coreV1Api = mock(CoreV1Api.class);
@@ -84,9 +86,8 @@ class ClusterResourcesLoaderTest {
 
     @Test
     void loadClusterResources_from_cloud_passport() throws ApiException {
-        CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(new CloudPassportEnvironment("env-test", "some-owner", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), URI.create("http://localhost:" + port));
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), "http://localhost:" + port);
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
 
         String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
@@ -99,19 +100,18 @@ class ClusterResourcesLoaderTest {
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
 
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
 
         List<Environment> envs = environmentRepository.findByName("env-test");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv, allOf(
                 hasProperty("name", equalTo("env-test")),
                 hasProperty("deploymentVersion", equalTo(exampleOfLongVersion + "\n")),
-                hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant())),
-                hasProperty("type", equalTo(EnvironmentType.ENVIRONMENT))));
+                hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant()))));
 
-        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_NAME));
+        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
 
-        List<Namespace> namespaces = namespaceRepository.findByClusterId(CLUSTER_NAME);
+        List<Namespace> namespaces = namespaceRepository.findByClusterId(CLUSTER_ID);
         Namespace testNamespace = namespaces.stream().filter(ns -> NAMESPACE_NAME.equals(ns.getName())).findFirst().orElse(null);
         assertThat(testNamespace, hasProperty("name", equalTo(NAMESPACE_NAME)));
 
@@ -120,17 +120,19 @@ class ClusterResourcesLoaderTest {
 
     @Test
     void load_resources_one_env_several_namespaces() throws ApiException {
-        CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(new CloudPassportEnvironment("env-3-namespaces", "some-owner", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME),
-                                new CloudPassportNamespace(NAMESPACE_NAME_2),
-                                new CloudPassportNamespace(NAMESPACE_NAME_3)))), null);
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                Set.of(createEnvForTests("env-3-namespaces",
+                                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
+                                        new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
+                                        new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3))
+                        )
+                ), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
 
         List<Environment> envs = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElse(null);
         assertThat(testEnv, hasProperty("name", equalTo("env-3-namespaces")));
         assertThat(testEnv.getNamespaceIds(), hasSize(3));
         // Check that namespace names exist in repository
@@ -143,61 +145,20 @@ class ClusterResourcesLoaderTest {
 
     @Test
     void load_resources_twice() throws ApiException {
-        CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(new CloudPassportEnvironment("env-3-namespaces", "some-owner", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME),
-                                new CloudPassportNamespace(NAMESPACE_NAME_2)))), null);
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                Set.of(createEnvForTests("env-3-namespaces",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
+                                new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2)))), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2));
 
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs2 = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs2.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs2.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
         List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
         assertThat(allNamespaces, hasItems(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("name", equalTo(NAMESPACE_NAME_2))));
-    }
-
-    @Test
-    void load_env_with_infrastructure_type() throws ApiException {
-        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME), Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_INFRA));
-
-        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-        List<Environment> envs = environmentRepository.findByName(ENV_1);
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
-        assertThat(testEnv.getType(), equalTo(EnvironmentType.INFRASTRUCTURE));
-    }
-
-    @Test
-    void load_env_with_cse_toolset_type() throws ApiException {
-        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME),
-                Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
-                        LABEL_DISCOVERY_CLI_IO_TYPE, LABEL_TYPE_CSE_TOOLSET));
-
-        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-        List<Environment> envs = environmentRepository.findByName(ENV_1);
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
-        assertThat(testEnv.getType(), equalTo(EnvironmentType.CSE_TOOLSET));
-    }
-
-    @Test
-    void type_should_not_be_changed_if_it_was_manually_set() throws ApiException {
-        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME),
-                Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
-                        LABEL_DISCOVERY_CLI_IO_TYPE, LABEL_TYPE_CSE_TOOLSET));
-
-        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-
-        List<Environment> envs = environmentRepository.findByName(ENV_1);
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
-        assertThat(testEnv.getType(), equalTo(EnvironmentType.CSE_TOOLSET));
-        testEnv.setType(EnvironmentType.DESIGN_TIME);
-        environmentRepository.save(testEnv);
-
-        clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
-
-        assertThat(testEnv.getType(), equalTo(EnvironmentType.DESIGN_TIME));
     }
 
     @Test
@@ -211,7 +172,7 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         List<Environment> envs = environmentRepository.findByName(ENV_1);
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2024.toInstant()));
 
@@ -222,18 +183,18 @@ class ClusterResourcesLoaderTest {
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         envs = environmentRepository.findByName(ENV_1);
-        testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 2.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
 
     @Test
     void combine_deployment_version_for_namespaces() throws ApiException {
-        CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(new CloudPassportEnvironment("env-3-namespaces", "some-owner", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME),
-                                new CloudPassportNamespace(NAMESPACE_NAME_2),
-                                new CloudPassportNamespace(NAMESPACE_NAME_3)))), null);
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                Set.of(createEnvForTests("env-3-namespaces",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
+                                new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
+                                new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3)))), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
         V1ConfigMap configMap1 = new V1ConfigMap()
@@ -255,24 +216,24 @@ class ClusterResourcesLoaderTest {
         mockConfigMaps(List.of(configMap3), NAMESPACE_NAME_3);
 
 
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\nMyVersion 2.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
 
     @Test
     void try_to_load_namespace_from_cloud_passport_that_does_not_exist_in_k8s() throws ApiException {
-        CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(new CloudPassportEnvironment("env-2-namespaces", "some-owner", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME),
-                                new CloudPassportNamespace("non-existing-namespace")))), null);
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                Set.of(createEnvForTests("env-2-namespaces",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
+                                new CloudPassportNamespace("42", "non-existing-namespace")))), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-2-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
         List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
         assertThat(allNamespaces, hasItems(
@@ -282,36 +243,37 @@ class ClusterResourcesLoaderTest {
 
     @Test
     void load_resources_from_unreachable_cluster() throws ApiException {
-        CloudPassport cloudPassport = new CloudPassport("unreachable-cluster", "42", "https://some.unreachable.url",
-                Set.of(new CloudPassportEnvironment("env-unreachable", "some-owner", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME)))), URI.create("http://localhost:" + port));
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, "unreachable-cluster", "42", "https://some.unreachable.url",
+                Set.of(createEnvForTests("env-unreachable",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))),
+                "http://localhost:" + port);
 
         CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
         when(coreV1Api.listNamespace()).thenReturn(nsRequest);
         when(nsRequest.execute()).thenThrow(new ApiException());
 
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-unreachable");
-        Environment testEnv = envs.stream().filter(e -> "unreachable-cluster".equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElse(null);
         assertThat(testEnv, hasProperty("name", equalTo("env-unreachable")));
         assertThat(testEnv.getNamespaceIds(), hasSize(1));
         List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
         assertThat(allNamespaces, hasItems(allOf(
                 hasProperty("existsInK8s", equalTo(false)),
                 hasProperty("name", equalTo(NAMESPACE_NAME)))));
-        assertThat(testEnv.getClusterId(), equalTo("unreachable-cluster"));
+        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
     }
 
     @Test
     void load_namespace_that_created_after_first_loading() throws ApiException {
-        CloudPassport cloudPassport = new CloudPassport(CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(new CloudPassportEnvironment("env-with-new-namespace", "some-owner", "some env for tests",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME), new CloudPassportNamespace("new-namespace")))), null);
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                Set.of(createEnvForTests("env-with-new-namespace",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME), new CloudPassportNamespace("42", "new-namespace")))), null);
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs = environmentRepository.findByName("env-with-new-namespace");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv.getNamespaceIds(), hasSize(2));
 
         List<Namespace> allNamespaces1 = namespaceRepository.findByEnvironmentId(testEnv.getId());
@@ -320,9 +282,9 @@ class ClusterResourcesLoaderTest {
                 allOf(hasProperty("name", equalTo("new-namespace")), hasProperty("existsInK8s", equalTo(false)))));
 
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, "new-namespace"));
-        clusterResourcesLoader.loadClusterResources(coreV1Api, cloudPassport);
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
         List<Environment> envs2 = environmentRepository.findByName("env-with-new-namespace");
-        Environment testEnv2 = envs2.stream().filter(e -> CLUSTER_NAME.equals(e.getClusterId())).findFirst().orElse(null);
+        Environment testEnv2 = envs2.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
 
         assertThat(testEnv2.getNamespaceIds(), hasSize(2));
 
@@ -360,9 +322,7 @@ class ClusterResourcesLoaderTest {
     }
 
     private void mockNamespaceLoading(String clusterName, List<String> namespaceNames) throws ApiException {
-        mockNamespaceLoading(clusterName, namespaceNames,
-                Map.of(LABEL_DISCOVERY_CLI_IO_LEVEL, LABEL_LEVEL_APPS,
-                        LABEL_DISCOVERY_CLI_IO_TYPE, LABEL_TYPE_CORE));
+        mockNamespaceLoading(clusterName, namespaceNames, Map.of());
     }
 
     private void mockNamespaceLoading(String clusterName, List<String> namespaceNames, Map<String, String> labels) throws ApiException {

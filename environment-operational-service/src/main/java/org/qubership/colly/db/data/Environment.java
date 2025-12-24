@@ -1,7 +1,6 @@
 package org.qubership.colly.db.data;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,20 +10,14 @@ public class Environment {
 
     private String id;
     private String name;
-    private String team;
-    private LocalDate expirationDate;
     private Instant cleanInstallationDate;
-    private EnvironmentStatus status = EnvironmentStatus.FREE;
-    private EnvironmentType type = EnvironmentType.ENVIRONMENT;
     private String clusterId;
     private Map<String, String> monitoringData;
     private String deploymentVersion;
-    private List<String> labels;
     private List<String> namespaceIds;
-    private DeploymentStatus deploymentStatus;
-    private String ticketLinks;
 
-    public Environment(String name) {
+    public Environment(String id, String name) {
+        this.setId(id);
         this.setName(name);
         this.namespaceIds = new ArrayList<>();
     }
@@ -56,14 +49,6 @@ public class Environment {
         this.namespaceIds.add(namespaceId);
     }
 
-    public List<String> getLabels() {
-        return labels != null ? Collections.unmodifiableList(labels) : Collections.emptyList();
-    }
-
-    public void setLabels(List<String> labels) {
-        this.labels = new ArrayList<>(labels);
-    }
-
     public String getDeploymentVersion() {
         return deploymentVersion;
     }
@@ -72,44 +57,12 @@ public class Environment {
         this.deploymentVersion = deploymentVersion;
     }
 
-    public LocalDate getExpirationDate() {
-        return expirationDate;
-    }
-
-    public void setExpirationDate(LocalDate expirationDate) {
-        this.expirationDate = expirationDate;
-    }
-
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getTeam() {
-        return team;
-    }
-
-    public void setTeam(String team) {
-        this.team = team;
-    }
-
-    public EnvironmentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(EnvironmentStatus status) {
-        this.status = status;
-    }
-
-    public EnvironmentType getType() {
-        return type;
-    }
-
-    public void setType(EnvironmentType type) {
-        this.type = type;
     }
 
     public String getClusterId() {
@@ -136,19 +89,4 @@ public class Environment {
         this.cleanInstallationDate = cleanInstallationDate;
     }
 
-    public DeploymentStatus getDeploymentStatus() {
-        return deploymentStatus;
-    }
-
-    public void setDeploymentStatus(DeploymentStatus deploymentStatus) {
-        this.deploymentStatus = deploymentStatus;
-    }
-
-    public String getTicketLinks() {
-        return ticketLinks;
-    }
-
-    public void setTicketLinks(String ticketLinks) {
-        this.ticketLinks = ticketLinks;
-    }
 }

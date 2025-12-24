@@ -1,13 +1,13 @@
 ---
-CLOUD_PUBLIC_HOST:
+CLOUD_PUBLIC_HOST: fff
 NAMESPACE: qubership-colly
 colly:
   global:
   envgeneInventoryService:
     image: ghcr.io/netcracker/envgene-inventory-service:latest
     serviceName: envgene-inventory-service
-    instancesRepo:
-    gitToken:
+    projectRepoUrl:
+    gitToken: fff
     cronSchedule: 0 0/1 * * * ?
     idp:
       url:
@@ -31,6 +31,22 @@ colly:
       hosts: redis://redis:6379
       username: ""
       password: ""
+    ports:
+      http: 8080
+    monitoring:
+      - key: running-pods
+        name: Running Pods
+        query: count(kube_pod_status_phase{namespace=~"{namespace}",phase="Running"})
+      - key: failed-deployments
+        name: Failed Deployments
+        query: count(kube_deployment_status_replicas_unavailable{namespace=~"{namespace}"})
+  uiService:
+    image: ghcr.io/netcracker/ui-service:latest
+    serviceName: ui-service
+    uiEnabled: false
+    idp:
+      url:
+      clientId: ui-service
     ports:
       http: 8080
     ingress:

@@ -1,4 +1,6 @@
 package org.qubership.colly.cloudpassport;
 
-public record GitInfo(String gitRepoUrl, String folderName) {
+import org.qubership.colly.projectrepo.InstanceRepository;
+
+public record GitInfo(InstanceRepository instanceRepository, String folderName, String projectId) {
 }

@@ -10,6 +10,7 @@ import jakarta.inject.Inject;
 import org.qubership.colly.db.data.Namespace;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,7 +35,7 @@ public class NamespaceRepository {
 
     public Namespace save(Namespace namespace) {
         try {
-            String key = NAMESPACE_KEY_PREFIX + namespace.getUid();
+            String key = NAMESPACE_KEY_PREFIX + namespace.getId();
             String json = objectMapper.writeValueAsString(namespace);
             hashCommands().hset(key, "data", json);
             return namespace;
@@ -62,7 +63,7 @@ public class NamespaceRepository {
             List<String> keys = keyCommands().keys(NAMESPACE_KEY_PREFIX + "*");
             return keys.stream()
                     .map(key -> hashCommands().hget(key, "data"))
-                    .filter(json -> json != null)
+                    .filter(Objects::nonNull)
                     .map(json -> {
                         try {
                             return objectMapper.readValue(json, Namespace.class);

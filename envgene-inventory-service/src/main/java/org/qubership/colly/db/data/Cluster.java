@@ -1,91 +1,32 @@
 package org.qubership.colly.db.data;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import org.qubership.colly.cloudpassport.GitInfo;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
+@Builder
 public class Cluster {
     private String id;
     private String name;
     private String token;
     private String cloudApiHost;
-    private URI monitoringUrl;
-    private List<Environment> environments;
+    private String monitoringUrl;
+    @Builder.Default
+    private List<Environment> environments = new ArrayList<>();
     private String description;
     private GitInfo gitInfo;
-
-    public GitInfo getGitInfo() {
-        return gitInfo;
-    }
-
-    public void setGitInfo(GitInfo gitInfo) {
-        this.gitInfo = gitInfo;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public String getCloudApiHost() {
-        return cloudApiHost;
-    }
-
-    public void setCloudApiHost(String cloudApiHost) {
-        this.cloudApiHost = cloudApiHost;
-    }
-
-    public URI getMonitoringUrl() {
-        return monitoringUrl;
-    }
-
-    public void setMonitoringUrl(URI monitoringUrl) {
-        this.monitoringUrl = monitoringUrl;
-    }
-
+    private String dashboardUrl;
+    private String dbaasUrl;
+    private String deployerUrl;
+    private String argoUrl;
     public List<Environment> getEnvironments() {
         return environments != null ? environments : new ArrayList<>();
     }
-
-    public void setEnvironments(List<Environment> environments) {
-        this.environments = environments;
-    }
-
-    public void addEnvironment(Environment environment) {
-        if (environments == null) {
-            environments = new ArrayList<>();
-        }
-        environments.add(environment);
-    }
-
 
 }

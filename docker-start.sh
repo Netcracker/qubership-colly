@@ -7,8 +7,9 @@ docker-compose up --build -d
 
 echo ""
 echo "Services starting in background..."
-echo "- Inventory Service (dev mode): http://localhost:8081"
-echo "- Operational Service (prod mode): http://localhost:8080"
+echo "- Inventory Service: http://localhost:8081"
+echo "- Operational Service: http://localhost:8080"
+echo "- UI Service: http://localhost:3000"
 echo ""
 echo "Commands:"
 echo "  View logs: docker-compose logs -f [service-name]"
