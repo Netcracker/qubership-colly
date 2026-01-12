@@ -5,6 +5,7 @@ clusterPlatform: ocp
 repositories:
   - type: envgeneInstance
     url: gitrepo_with_unreachable_cluster
+    region: mb
   - type: solutionDeploy
     url: https://github.com/example/solution-deploy-saturn
     token: saturn-solution-token-789

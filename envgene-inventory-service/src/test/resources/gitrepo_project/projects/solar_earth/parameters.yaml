@@ -6,6 +6,7 @@ repositories:
   - type: envgeneInstance
     url: gitrepo_with_cloudpassports
     token: earth-envgene-token-789
+    region: cn
   - type: clusterProvision
     url: https://github.com/example/cluster-provision-earth
     token: earth-cluster-token-123

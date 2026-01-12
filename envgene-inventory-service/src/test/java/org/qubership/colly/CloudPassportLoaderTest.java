@@ -31,7 +31,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -67,7 +68,7 @@ class CloudPassportLoaderTest {
                             "QA",
                             "cm")),
             "http://localhost:8428",
-            new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42"),
+            new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42", "cn"),
                     "target/test-cloud-passport-folder/1", "1"),
             "https://dashboard.example.com",
             "https://dbaas.example.com",
@@ -89,7 +90,7 @@ class CloudPassportLoaderTest {
                     null,
                     null)),
             "http://vmsingle-k8s.victoria:8429",
-            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43"), "target/test-cloud-passport-folder/2", "2"),
+            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43", "mb"), "target/test-cloud-passport-folder/2", "2"),
             null,
             null,
             null,
@@ -117,9 +118,9 @@ class CloudPassportLoaderTest {
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
     void load_cloud_passports_from_test_folder() {
         Project project1 = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
-                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42")), List.of(), ClusterPlatform.K8S);
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "42", "cn")), List.of(), ClusterPlatform.K8S);
         Project project2 = new Project("2", "project-2", ProjectType.PROJECT, "some-customer",
-                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43")), List.of(), ClusterPlatform.K8S);
+                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "43", "mb")), List.of(), ClusterPlatform.K8S);
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
         assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 
