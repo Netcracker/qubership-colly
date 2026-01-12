@@ -93,7 +93,8 @@ public class ProjectRepoLoader {
                 .map(repoEntity -> new InstanceRepository(
                         repoEntity.url(),//todo do we need id here?
                         repoEntity.url(),
-                        repoEntity.token()))
+                        repoEntity.token(),
+                        repoEntity.region()))
                 .toList();
     }
 

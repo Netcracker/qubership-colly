@@ -33,8 +33,8 @@ class ProjectRepoLoaderTest {
             ProjectType.PRODUCT,
             "Test Customer 1",
             List.of(
-                    new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1"),
-                    new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2")
+                    new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1", "cn"),
+                    new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2", "mb")
             ),
             List.of(),
             ClusterPlatform.OCP
@@ -45,7 +45,7 @@ class ProjectRepoLoaderTest {
             ProjectType.PROJECT,
             "Test Customer 2",
             List.of(
-                    new InstanceRepository("https://gitlab.com/test/repo4.git", "https://gitlab.com/test/repo4.git", "test-token-4")
+                    new InstanceRepository("https://gitlab.com/test/repo4.git", "https://gitlab.com/test/repo4.git", "test-token-4", "cn")
             ),
             List.of(),
             ClusterPlatform.K8S
@@ -113,8 +113,8 @@ class ProjectRepoLoaderTest {
                 ProjectType.PRODUCT,
                 "Test Customer",
                 List.of(
-                        new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1"),
-                        new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2")
+                        new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1", null),
+                        new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2", null)
                 ),
                 List.of(),
                 ClusterPlatform.OCP);

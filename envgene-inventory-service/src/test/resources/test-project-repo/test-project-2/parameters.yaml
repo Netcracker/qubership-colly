@@ -6,6 +6,7 @@ repositories:
   - type: envgeneInstance
     url: https://gitlab.com/test/repo4.git
     token: test-token-4
+    region: cn
   - type: terraform
     url: https://gitlab.com/test/repo5.git
     token: test-token-5
