@@ -55,7 +55,7 @@ permissions:
 jobs:
   security-scan:
     name: "Run Security Scan"
-    uses: nookyo/qubership-workflow-hub/.github/workflows/re-scam.yml@main
+    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@v2.0.6
     strategy:
       fail-fast: true
       matrix:
