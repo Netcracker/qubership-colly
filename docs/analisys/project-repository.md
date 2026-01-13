@@ -78,7 +78,7 @@ clustersPlatform: enum[ ocp, k8s ]
 # Mandatory
 repositories:
   - # Mandatory
-    # In MS1 only envgeneInstance is supported
+    # Assumption: repository with type envgeneTemplate is only one per project
     type: enum[ envgeneInstance, envgeneTemplate, clusterProvision, envProvision, solutionDeploy ]
     # Mandatory
     url: string
@@ -95,14 +95,20 @@ repositories:
     # Used in cases where specific `pipeline` repositories need to be used for certain environments
     region: string
     # Optional
-    # This is for MS1, we will do discovery later somehow
-    # Needs further thought because the same <artifact-template-name> can contain different templates in different versions
+    # Only for type: envgeneTemplate
+    # TODO: discover from repository 
     envgeneArtifact:
-      name: 
       # Mandatory
-      # The key is EnvGene environment template artifact name (application from the application:version notation)
-      # The value is a list of template names inside the artifact
+      # EnvGene environment template artifact name (application from the application:version notation)
+      # For example platform:20251215.113905-22
+      name: string
+      # Optional
+      # List of template names inside the artifact
       templateDescriptorNames: list of strings
+      # Optional
+      # Template name that is used by default when creating project environments.
+      # Should be included in templateDescriptorNames
+      defaultTemplateDescriptorName: string
 ```
 
 #### [Projects] `credentials.yaml`
@@ -241,6 +247,8 @@ gitlab-token:
 - [ ] `pipeline` is too generic, we need to specify the exact type of pipeline
 
 - [ ] `accessGroups` is a list of user groups for "clusters" or for Colly?
+  - list of groups that can work with the project => used for access control in SSP:
+    - who can see/edit which project/cluster/env
 
 - [ ] `jiraCustomerName` - is it needed?
 

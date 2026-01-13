@@ -217,6 +217,39 @@ This is not the full list of attributes for these objects, but only those that w
     - It is necessary to introduce the `projectId` attribute to the environment object
   - The Customer does NOT require information about which `customerName` an environment belongs to, nor obtaining lists of environments by `customerName`
 
+- [ ] Add "default values" to Project attributes, for example:
+  - `app:ver` of the env template artifact
+  - Template name in the artifact
+  - Short term:
+    - Defaults are set manually in Git + Colly returns them as a project attribute
+  - Long term:
+    - ability to set them via API appears
+  - "Default values" are optional for the project
+  - There should be an ability to set "default values" at the global level.
+    - Who merges global into project?:
+      - Colly?
+      - Who else (fast click)?
+  - OQ:
+    - Do you need templateDescriptorNames or defaultTemplateDescriptorName? or both?
+
+- [ ] Environment groups
+  - `accessGroups`
+    - List of groups that can work with the project => used for access control in SSP:
+      - Who can see/edit which env
+    - Attribute in env inventory
+    - There should be an ability to set this attribute:
+      - When creating env (`env_inventory_generation`)
+  - `effectiveAccessGroups`
+    - Resolved full list of groups (contains groups and their descendants)
+    - Attribute in env inventory
+    - Need to display the resolved list at the time of env creation => need to save it somewhere
+    - OQ:
+      - Who computes `effectiveAccessGroups`
+        - not Colly
+      - Where is the `effectiveAccessGroups` cache stored
+        - in Git
+      - Only read or also write `effectiveAccessGroups` and `accessGroups` via Colly?
+
 ## To implement
 
 - [x] Change environment attributes
@@ -244,3 +277,5 @@ This is not the full list of attributes for these objects, but only those that w
 - [ ] Support cred macro
 - [ ] `numberOfNodes`
 - [ ] The configuration for `monitoringData` is currently shared across all environments - it needs to be made more granular
+- [ ] Add `accessGroups`, `effectiveAccessGroups` to Environment
+- [ ] Add `envgeneArtifact` to Project
