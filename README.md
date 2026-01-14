@@ -168,6 +168,17 @@ The project includes automated setup scripts for configuring Keycloak clients:
 
 For detailed configuration options including application properties, environment variables, Helm chart parameters, and deployment examples, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
+### Project Git Repository
+
+Qubership Colly uses a Project Git Repository to manage project configurations, instance repositories, and deployment pipelines. Each project is defined by a `parameters.yaml` file containing:
+
+- Project metadata (customer name, project type, cluster platform)
+- Instance repositories with Cloud Passport configurations
+- CI/CD pipeline definitions (cluster provision, environment provision, solution deploy)
+- EnvGene template repositories with artifact configurations
+
+For complete documentation on project structure, field descriptions, and configuration examples, see [docs/PROJECT_CONFIGURATION.md](docs/PROJECT_CONFIGURATION.md).
+
 ## Development
 
 ### Prerequisites

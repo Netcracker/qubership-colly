@@ -14,3 +14,12 @@ repositories:
   - type: gitops
     url: https://gitlab.com/test/repo3.git
     token: test-token-3
+  - type: envgeneTemplate
+    url: https://gitlab.com/test/templateRepo.git
+    token: test-token
+    branch: main
+    envgeneArtifact:
+      name: my-app:feature-new-ui-123456
+      templateDescriptorNames: ["dev", "qa"]
+      defaultTemplateDescriptorName: dev
+

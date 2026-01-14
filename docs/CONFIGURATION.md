@@ -231,7 +231,7 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 
 | Variable                                   | Description                                                   | Default            |
 |--------------------------------------------|---------------------------------------------------------------|--------------------|
-| `COLLY_EIS_PROJECT_REPO_URL`               | Git repository URL for project configurations                 | -                  |
+| `COLLY_EIS_PROJECT_REPO_URL`               | Git repository URL for project configurations (see [Project Configuration Guide](PROJECT_CONFIGURATION.md)) | -                  |
 | `COLLY_EIS_PROJECT_REPO_FOLDER`            | Local folder for cloned project repository                    | `./project-git`    |
 | `COLLY_EIS_CLOUD_PASSPORT_FOLDER`          | Local folder for cloned Cloud Passport repositories           | `./git-repo`       |
 | `COLLY_EIS_GIT_TOKEN`                      | Git token for private repository access                       | -                  |
