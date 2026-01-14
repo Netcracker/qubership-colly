@@ -11,5 +11,6 @@ public record ProjectDto(String id,
                          String customerName,
                          List<InstanceRepositoryDto> instanceRepositories,
                          List<PipelineDto> pipelines,
-                         ClusterPlatform clusterPlatform) {
+                         ClusterPlatform clusterPlatform,
+                         TemplateRepositoryDto templateRepository) {
 }

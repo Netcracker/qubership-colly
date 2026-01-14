@@ -413,7 +413,8 @@ class InventoryServiceRestTest {
                                         hasEntry("name", "saturn"),
                                         hasEntry("type", "PRODUCT"),
                                         hasEntry("customerName", "Solar System"),
-                                        hasEntry("clusterPlatform", "OCP")
+                                        hasEntry("clusterPlatform", "OCP"),
+                                        hasEntry("templateRepository", null)
                                 )
                         ))
                 .body("find { it.id == 'solar_earth' }.instanceRepositories", hasSize(1))
@@ -460,6 +461,12 @@ class InventoryServiceRestTest {
                                 hasEntry("token", "earth-envgene-token-789")
                         )
                 ))
+                .body("templateRepository.url", equalTo("https://gitlab.com/test/templateRepo.git"))
+                .body("templateRepository.token", equalTo("test-token"))
+                .body("templateRepository.branch", equalTo("main"))
+                .body("templateRepository.envgeneArtifact.name", equalTo("my-app:feature-new-ui-123456"))
+                .body("templateRepository.envgeneArtifact.templateDescriptorNames", contains("dev", "qa"))
+                .body("templateRepository.envgeneArtifact.defaultTemplateDescriptorName", equalTo("dev"))
                 .body("pipelines", hasItems(
                         allOf(
                                 hasEntry("type", "CLUSTER_PROVISION"),

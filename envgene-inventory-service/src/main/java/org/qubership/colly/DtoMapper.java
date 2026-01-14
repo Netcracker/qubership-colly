@@ -5,6 +5,7 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.dto.*;
+import org.qubership.colly.projectrepo.EnvgeneTemplateRepository;
 import org.qubership.colly.projectrepo.InstanceRepository;
 import org.qubership.colly.projectrepo.Pipeline;
 import org.qubership.colly.projectrepo.Project;
@@ -85,7 +86,8 @@ public class DtoMapper {
                 project.customerName(),
                 project.instanceRepositories().stream().map(this::toDto).toList(),
                 project.pipelines().stream().map(this::toDto).toList(),
-                project.clusterPlatform()
+                project.clusterPlatform(),
+                toDto(project.envgeneTemplateRepository())
         );
     }
 
@@ -95,6 +97,19 @@ public class DtoMapper {
                 instanceRepository.url(),
                 instanceRepository.token(),
                 instanceRepository.region()
+        );
+    }
+
+    public TemplateRepositoryDto toDto(EnvgeneTemplateRepository envgeneTemplateRepository) {
+        if (envgeneTemplateRepository == null) {
+            return null;
+        }
+        return new TemplateRepositoryDto(
+                envgeneTemplateRepository.id(),
+                envgeneTemplateRepository.url(),
+                envgeneTemplateRepository.token(),
+                envgeneTemplateRepository.branch(),
+                envgeneTemplateRepository.envgeneArtifact()
         );
     }
 

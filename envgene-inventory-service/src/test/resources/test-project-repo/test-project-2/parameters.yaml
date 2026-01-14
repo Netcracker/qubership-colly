@@ -10,3 +10,11 @@ repositories:
   - type: terraform
     url: https://gitlab.com/test/repo5.git
     token: test-token-5
+  - type: envgeneTemplate
+    url: https://gitlab.com/test/templateRepo2.git
+    token: test-token
+    branch: main
+    envgeneArtifact:
+      name: my-app:feature-new-ui-0987654
+      templateDescriptorNames: ["ci", "migration"]
+      defaultTemplateDescriptorName: ci

@@ -66,12 +66,16 @@ public class ProjectRepoLoader {
                     .filter(repositoryEntity -> "envgeneInstance".equals(repositoryEntity.type()))
                     .toList();
 
+            List<RepositoryEntity> envgeneTemplateRepos = projectEntity.repositories.stream()
+                    .filter(repositoryEntity -> "envgeneTemplate".equals(repositoryEntity.type()))
+                    .toList();
+
             List<RepositoryEntity> pipelineRepos = projectEntity.repositories.stream()
                     .filter(repositoryEntity -> {
                         String type = repositoryEntity.type();
                         return "clusterProvision".equals(type)
-                            || "envProvision".equals(type)
-                            || "solutionDeploy".equals(type);
+                                || "envProvision".equals(type)
+                                || "solutionDeploy".equals(type);
                     })
                     .toList();
 
@@ -81,7 +85,8 @@ public class ProjectRepoLoader {
                     projectEntity.customerName(),
                     convertToInstanceRepositories(envgeneInstanceRepos),
                     convertToPipelines(pipelineRepos),
-                    ClusterPlatform.fromString(projectEntity.clusterPlatform()));
+                    ClusterPlatform.fromString(projectEntity.clusterPlatform()),
+                    convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId));
         } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
             return null;
@@ -96,6 +101,25 @@ public class ProjectRepoLoader {
                         repoEntity.token(),
                         repoEntity.region()))
                 .toList();
+    }
+
+    private EnvgeneTemplateRepository convertToEnvgeneTemplateRepository(List<RepositoryEntity> repositoryEntities, String projectId) {
+        if (repositoryEntities.size() > 1) {
+            Log.warn("More than one envgeneTemplate repository found for project: " + projectId);
+        }
+        if (repositoryEntities.isEmpty()) {
+            Log.warn("No envgeneTemplate repository found for project: " + projectId);
+            return null;
+        }
+        return repositoryEntities.stream()
+                .findFirst()
+                .map(repoEntity -> new EnvgeneTemplateRepository(
+                        repoEntity.url(),
+                        repoEntity.url(),
+                        repoEntity.token(),
+                        repoEntity.branch(),
+                        repoEntity.envgeneArtifact()))
+                .orElse(null);
     }
 
     private List<Pipeline> convertToPipelines(List<RepositoryEntity> pipelineRepos) {
@@ -113,7 +137,8 @@ public class ProjectRepoLoader {
                                 List<RepositoryEntity> repositories, String clusterPlatform) {
     }
 
-    public record RepositoryEntity(String type, String url, String token, String region) {
+    public record RepositoryEntity(String type, String url, String token, String region, String branch,
+                                   EnvgeneArtifact envgeneArtifact) {
     }
 
 }

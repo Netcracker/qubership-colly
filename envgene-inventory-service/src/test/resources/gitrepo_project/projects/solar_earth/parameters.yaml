@@ -15,3 +15,11 @@ repositories:
     url: https://github.com/example/env-provision-earth
     token: earth-env-token-456
     region: us-east-1
+  - type: envgeneTemplate
+    url: https://gitlab.com/test/templateRepo.git
+    token: test-token
+    branch: main
+    envgeneArtifact:
+      name: my-app:feature-new-ui-123456
+      templateDescriptorNames: ["dev", "qa"]
+      defaultTemplateDescriptorName: dev
