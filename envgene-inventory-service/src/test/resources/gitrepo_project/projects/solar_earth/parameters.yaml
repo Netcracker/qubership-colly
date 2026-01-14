@@ -1,0 +1,25 @@
+customerName: Solar System
+name: earth
+type: project
+clusterPlatform: k8s
+repositories:
+  - type: envgeneInstance
+    url: gitrepo_with_cloudpassports
+    token: earth-envgene-token-789
+    region: cn
+  - type: clusterProvision
+    url: https://github.com/example/cluster-provision-earth
+    token: earth-cluster-token-123
+    region: eu-west-1
+  - type: envProvision
+    url: https://github.com/example/env-provision-earth
+    token: earth-env-token-456
+    region: us-east-1
+  - type: envgeneTemplate
+    url: https://gitlab.com/test/templateRepo.git
+    token: test-token
+    branch: main
+    envgeneArtifact:
+      name: my-app:feature-new-ui-123456
+      templateDescriptorNames: ["dev", "qa"]
+      defaultTemplateDescriptorName: dev

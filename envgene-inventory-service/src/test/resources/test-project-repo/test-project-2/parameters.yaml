@@ -1,0 +1,20 @@
+name: Test Project 2
+customerName: Test Customer 2
+type: project
+clusterPlatform: k8s
+repositories:
+  - type: envgeneInstance
+    url: https://gitlab.com/test/repo4.git
+    token: test-token-4
+    region: cn
+  - type: terraform
+    url: https://gitlab.com/test/repo5.git
+    token: test-token-5
+  - type: envgeneTemplate
+    url: https://gitlab.com/test/templateRepo2.git
+    token: test-token
+    branch: main
+    envgeneArtifact:
+      name: my-app:feature-new-ui-0987654
+      templateDescriptorNames: ["ci", "migration"]
+      defaultTemplateDescriptorName: ci

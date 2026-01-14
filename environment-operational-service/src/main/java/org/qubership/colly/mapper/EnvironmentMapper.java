@@ -41,7 +41,7 @@ public class EnvironmentMapper {
                 entity.getId(),
                 entity.getName(),
                 toNamespaceDTOs(entity.getNamespaceIds()),
-                clusterMapper.toDTO(clusterRepository.findByName(entity.getClusterId()).orElse(null)),
+                clusterMapper.toDTO(clusterRepository.findById(entity.getClusterId())),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),
                 entity.getMonitoringData()

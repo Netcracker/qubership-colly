@@ -6,7 +6,7 @@ colly:
   envgeneInventoryService:
     image: ghcr.io/netcracker/envgene-inventory-service:latest
     serviceName: envgene-inventory-service
-    instancesRepo:
+    projectRepoUrl:
     gitToken: fff
     cronSchedule: 0 0/1 * * * ?
     idp:

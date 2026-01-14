@@ -1,6 +1,7 @@
 package org.qubership.colly.dto;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import java.util.List;
 
 @Schema(description = "Kubernetes cluster information")
 public record ClusterDto(
@@ -16,6 +17,13 @@ public record ClusterDto(
                 examples = "prod-cluster-01",
                 required = true
         )
-        String name
+        String name,
+
+        List<LightEnvironmentDto> environments,
+        String dashboardUrl,
+        String dbaasUrl,
+        String deployerUrl,
+        String argoUrl
 ) {
 }
+

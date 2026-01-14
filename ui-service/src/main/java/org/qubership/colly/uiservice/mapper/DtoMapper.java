@@ -2,6 +2,7 @@ package org.qubership.colly.uiservice.mapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.qubership.colly.uiservice.dto.ClusterDto;
+import org.qubership.colly.uiservice.dto.LightClusterDto;
 import org.qubership.colly.uiservice.dto.EnvironmentDto;
 import org.qubership.colly.uiservice.dto.NamespaceDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryClusterDto;
@@ -37,10 +38,7 @@ public class DtoMapper {
         );
 
         // Merge cluster: add synced from operational
-        ClusterDto cluster = mergeCluster(
-                inventory.cluster(),
-                operational != null ? operational.cluster() : null
-        );
+        LightClusterDto cluster = new LightClusterDto(inventory.cluster().id(), inventory.cluster().name());
 
         return new EnvironmentDto(
                 // From inventory
@@ -115,7 +113,11 @@ public class DtoMapper {
         return new ClusterDto(
                 inventoryCluster.id(),
                 inventoryCluster.name(),
-                synced
+                synced,
+                inventoryCluster.dashboardUrl(),
+                inventoryCluster.dbaasUrl(),
+                inventoryCluster.deployerUrl(),
+                inventoryCluster.argoUrl()
         );
     }
 

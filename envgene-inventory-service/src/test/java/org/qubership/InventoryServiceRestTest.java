@@ -9,7 +9,9 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.GitService;
+import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
+import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 
 import java.io.File;
@@ -23,13 +25,16 @@ import static org.mockito.Mockito.doAnswer;
 
 @QuarkusTest
 @TestTransaction
-class EnvgeneInventoryServiceRestTest {
+class InventoryServiceRestTest {
 
     @InjectMock
     GitService gitService;
 
     @Inject
     EnvironmentRepository environmentRepository;
+
+    @Inject
+    ClusterRepository clusterRepository;
 
     @BeforeEach
     void setUp() {
@@ -41,7 +46,7 @@ class EnvgeneInventoryServiceRestTest {
     }
 
     @Test
-    void load_environments_without_auth() {
+    void get_environments_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/environments")
                 .then()
@@ -50,7 +55,7 @@ class EnvgeneInventoryServiceRestTest {
 
 
     @Test
-    void load_clusters_without_auth() {
+    void get_clusters_internal_infos_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/internal/cluster-infos")
                 .then()
@@ -58,8 +63,16 @@ class EnvgeneInventoryServiceRestTest {
     }
 
     @Test
+    void get_clusters_without_auth() {
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
     @TestSecurity(user = "test")
-    void load_clusters() {
+    void get_cluster_internal_infos() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -76,9 +89,96 @@ class EnvgeneInventoryServiceRestTest {
                 ));
     }
 
+
     @Test
     @TestSecurity(user = "test")
-    void load_environments() {
+    void get_clusters() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("id", everyItem(notNullValue()))
+                .body("name", containsInAnyOrder("test-cluster", "unreachable-cluster"))
+                .body("find { it.name == 'test-cluster' }.environments.name",
+                        containsInAnyOrder("env-test", "env-metadata-test"))
+                .body("find { it.name == 'test-cluster' }.dashboardUrl",
+                        equalTo("https://dashboard.example.com"))
+                .body("find { it.name == 'test-cluster' }.dbaasUrl",
+                        equalTo("https://dbaas.example.com"))
+                .body("find { it.name == 'test-cluster' }.deployerUrl",
+                        equalTo("https://deployer.example.com"))
+                .body("find { it.name == 'test-cluster' }.argoUrl",
+                        equalTo("https://argo.example.com"))
+                .body(".", hasSize(2));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_cluster_by_id() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Cluster cluster = clusterRepository.listAll().stream()
+                .filter(c -> c.getName().equals("test-cluster"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters/" + cluster.getId())
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(cluster.getId()))
+                .body("name", equalTo("test-cluster"))
+                .body("dashboardUrl", equalTo("https://dashboard.example.com"))
+                .body("dbaasUrl", equalTo("https://dbaas.example.com"))
+                .body("deployerUrl", equalTo("https://deployer.example.com"))
+                .body("argoUrl", equalTo("https://argo.example.com"))
+                .body("environments.name", containsInAnyOrder("env-test", "env-metadata-test"))
+                .body("environments", hasSize(2));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_cluster_by_id_not_found() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters/non-existent-cluster-id")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_clusters_by_project_id() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("test-cluster"));
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("unreachable-cluster"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environments() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -115,6 +215,70 @@ class EnvgeneInventoryServiceRestTest {
                 ))
                 .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
                 .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environment_by_id(){
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(environment.getId()))
+                .body("name", equalTo("env-metadata-test"))
+                .body("description", equalTo("description from metadata"))
+                .body("status", equalTo("IN_USE"))
+                .body("expirationDate", equalTo("2025-12-31"))
+                .body("type", equalTo("DESIGN_TIME"))
+                .body("role", equalTo("QA"))
+                .body("region", equalTo("cm"))
+                .body("teams", contains("team-from-metadata"))
+                .body("owners", contains("owner from metadata"))
+                .body("labels", contains("label1", "label2"))
+                .body("namespaces", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environment_by_id_not_found(){
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/non-existent-id")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_environments_by_project_id() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("env-metadata-test", "env-test"));
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("env-1"));
     }
 
 
@@ -223,6 +387,116 @@ class EnvgeneInventoryServiceRestTest {
                 .then()
                 .statusCode(403);
     }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_projects() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/projects")
+                .then()
+                .statusCode(200)
+                .body(".",
+                        hasItems(
+                                allOf(
+                                        hasEntry("id", "solar_earth"),
+                                        hasEntry("name", "earth"),
+                                        hasEntry("type", "PROJECT"),
+                                        hasEntry("customerName", "Solar System"),
+                                        hasEntry("clusterPlatform", "K8S")
+                                ),
+                                allOf(
+                                        hasEntry("id", "solar_saturn"),
+                                        hasEntry("name", "saturn"),
+                                        hasEntry("type", "PRODUCT"),
+                                        hasEntry("customerName", "Solar System"),
+                                        hasEntry("clusterPlatform", "OCP"),
+                                        hasEntry("templateRepository", null)
+                                )
+                        ))
+                .body("find { it.id == 'solar_earth' }.instanceRepositories", hasSize(1))
+                .body("find { it.id == 'solar_saturn' }.instanceRepositories", hasSize(1))
+                .body("find { it.id == 'solar_earth' }.pipelines", hasSize(2))
+                .body("find { it.id == 'solar_saturn' }.pipelines", hasSize(2));
+    }
+
+    @Test
+    void get_projects_without_auth() {
+        given()
+                .when().get("/colly/v2/inventory-service/projects")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    void get_project_without_auth() {
+        given()
+                .when().get("/colly/v2/inventory-service/projects/solar_earth")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_project() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/projects/solar_earth")
+                .then()
+                .statusCode(200)
+                .body("id", equalTo("solar_earth"))
+                .body("name", equalTo("earth"))
+                .body("type", equalTo("PROJECT"))
+                .body("customerName", equalTo("Solar System"))
+                .body("clusterPlatform", equalTo("K8S"))
+                .body("instanceRepositories", hasItem(
+                        allOf(
+                                hasEntry("url", "gitrepo_with_cloudpassports"),
+                                hasEntry("token", "earth-envgene-token-789")
+                        )
+                ))
+                .body("templateRepository.url", equalTo("https://gitlab.com/test/templateRepo.git"))
+                .body("templateRepository.token", equalTo("test-token"))
+                .body("templateRepository.branch", equalTo("main"))
+                .body("templateRepository.envgeneArtifact.name", equalTo("my-app:feature-new-ui-123456"))
+                .body("templateRepository.envgeneArtifact.templateDescriptorNames", contains("dev", "qa"))
+                .body("templateRepository.envgeneArtifact.defaultTemplateDescriptorName", equalTo("dev"))
+                .body("pipelines", hasItems(
+                        allOf(
+                                hasEntry("type", "CLUSTER_PROVISION"),
+                                hasEntry("url", "https://github.com/example/cluster-provision-earth"),
+                                hasEntry("region", "eu-west-1"),
+                                hasEntry("token", "earth-cluster-token-123")
+
+                        ),
+                        allOf(
+                                hasEntry("type", "ENV_PROVISION"),
+                                hasEntry("url", "https://github.com/example/env-provision-earth"),
+                                hasEntry("region", "us-east-1"),
+                                hasEntry("token", "earth-env-token-456")
+                        )
+                ));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_project_not_found() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/projects/non_existent_project")
+                .then()
+                .statusCode(404);
+    }
+
 
     @Test
     @TestSecurity(user = "admin", roles = "admin")

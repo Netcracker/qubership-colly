@@ -50,10 +50,9 @@ public class EnvironmentRepository {
             setCommands().sadd(ALL_ENVIRONMENTS_SET, environment.getId());
 
             // Add to cluster-specific index if clusterId is present
-            if (environment.getClusterId() != null) {
-                String clusterIndexKey = CLUSTER_ENVIRONMENTS_INDEX_PREFIX + environment.getClusterId();
-                setCommands().sadd(clusterIndexKey, environment.getId());
-            }
+            String clusterIndexKey = CLUSTER_ENVIRONMENTS_INDEX_PREFIX + environment.getClusterId();
+            setCommands().sadd(clusterIndexKey, environment.getId());
+
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize environment: " + environment, e);
         }

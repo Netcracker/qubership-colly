@@ -25,18 +25,19 @@ A modern cluster environment tracking tool. Qubership Colly provides comprehensi
 The main interface displays environments in a comprehensive table with the following columns:
 
 - **Name** - Environment name from Cloud Passport configuration
-- **Namespace(s)** - Associated Kubernetes namespaces
-- **Type** - Environment type (ENVIRONMENT, INFRASTRUCTURE, CSE_TOOLSET, UNDEFINED) calculated from namespace labels (editable by admins)
+- **Type** - Environment type (ENVIRONMENT, CSE_TOOLSET, DESIGN_TIME, APP_DEPLOYER, INFRASTRUCTURE, PORTAL, UNDEFINED) - editable by admins
+- **Namespace(s)** - Associated Kubernetes namespaces (color-coded: red if namespace doesn't exist in K8s)
+- **Region** - Geographic region or deployment region for the environment (from project configuration)
 - **Cluster** - Source cluster name
-- **Owner** - Environment owner (editable by admins)
-- **Team** - Associated team (editable by admins)
-- **Expiration Date** - Environment expiration date for lifecycle management
-- **Status** - Current status (IN_USE, FREE, MIGRATING, RESERVED) with color coding
-- **Labels** - Custom labels as chips (editable by admins)
-- **Description** - Environment description from Cloud Passport or manual entry
+- **Owner(s)** - List of environment owners (editable by admins)
+- **Team(s)** - List of associated teams (editable by admins)
+- **Expiration Date** - Environment expiration date for lifecycle management (editable by admins)
+- **Status** - Current status (IN_USE, FREE, MIGRATING, RESERVED) with color coding (editable by admins)
+- **Labels** - Custom labels displayed as chips (editable by admins)
+- **Description** - Environment description from Cloud Passport or manual entry (editable by admins)
 - **Version** - Deployment version information from config maps
 - **Clean Installation Date** - Last clean installation timestamp from config maps
-- **Monitoring Columns** - Dynamic columns for custom monitoring metrics
+- **Monitoring Columns** - Dynamic columns for custom monitoring metrics (e.g., Running Pods, Failed Deployments)
 
 ### Cluster Table
 ![clusters.png](docs/clusters.png)
@@ -97,22 +98,28 @@ Key Points:
 
 ### Run with Docker Compose
 
-The easiest way to run all services together:
+The easiest way to run all services together using Docker Compose profiles:
 
 ```bash
-# Start all services (PostgreSQL, Redis, Keycloak, and all three Colly services)
-./docker-start.sh
+# Start infrastructure services (PostgreSQL, Redis, Keycloak)
+docker-compose --profile infra up -d
 
-# Or manually with docker-compose
-docker-compose up --build -d
+# Start application services (inventory, operational, ui)
+docker-compose --profile apps up --build -d
+
+# Or start everything at once
+docker-compose --profile infra --profile apps up --build -d
+
+# Convenient script to start all services
+./docker-start.sh
 ```
 
 This will start:
 - **UI Service**: http://localhost:3000
 - **Inventory Service**: http://localhost:8081
 - **Operational Service**: http://localhost:8080
-- **Keycloak**: http://localhost:8180 (admin/admin)
-- PostgreSQL and Redis backends
+- **Keycloak**: http://localhost:8180 (admin/admin, realm: quarkus)
+- PostgreSQL (port 5432) and Redis (port 6379) backends
 
 ### Build Images Manually
 
@@ -135,9 +142,42 @@ helm install qubership-colly netcracker/qubership-colly \
   --set colly.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm
 ```
 
+## Authentication and Security
+
+Qubership Colly uses **OIDC/OAuth2 authentication** via Keycloak for secure access control across all services.
+
+### Keycloak Setup
+
+The project includes automated setup scripts for configuring Keycloak clients:
+
+```bash
+# Setup all Keycloak clients automatically
+./setup-keycloak-clients.sh
+
+# With custom Keycloak URL
+./setup-keycloak-clients.sh http://keycloak:8180 quarkus
+```
+
+### Authentication Flow
+
+- **ui-service**: Hybrid mode - handles user login via browser and propagates tokens
+- **inventory-service**: Service mode - validates Bearer tokens from users and services
+- **operational-service**: Service mode with service accounts - uses client credentials for scheduled tasks
+
 ## Configuration
 
 For detailed configuration options including application properties, environment variables, Helm chart parameters, and deployment examples, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
+### Project Git Repository
+
+Qubership Colly uses a Project Git Repository to manage project configurations, instance repositories, and deployment pipelines. Each project is defined by a `parameters.yaml` file containing:
+
+- Project metadata (customer name, project type, cluster platform)
+- Instance repositories with Cloud Passport configurations
+- CI/CD pipeline definitions (cluster provision, environment provision, solution deploy)
+- EnvGene template repositories with artifact configurations
+
+For complete documentation on project structure, field descriptions, and configuration examples, see [docs/PROJECT_CONFIGURATION.md](docs/PROJECT_CONFIGURATION.md).
 
 ## Development
 
@@ -190,6 +230,15 @@ cd ui-service
 cd ui-service/src/main/webui
 npm install
 npm start  # Runs on port 3001 with proxy to backend
+```
+
+**Note:** For OIDC authentication in dev mode, ensure Keycloak is running:
+```bash
+# Start Keycloak and dependencies
+docker-compose --profile infra up -d
+
+# Setup Keycloak clients
+./setup-keycloak-clients.sh
 ```
 
 ### Testing

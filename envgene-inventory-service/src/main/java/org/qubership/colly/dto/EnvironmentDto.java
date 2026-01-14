@@ -40,7 +40,7 @@ public record EnvironmentDto(
                 description = "Kubernetes cluster where this environment is deployed",
                 required = true
         )
-        ClusterDto cluster,
+        LightClusterDto cluster,
 
         @Schema(
                 description = "List of environment owners",

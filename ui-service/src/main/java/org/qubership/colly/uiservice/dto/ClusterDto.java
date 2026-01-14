@@ -3,5 +3,9 @@ package org.qubership.colly.uiservice.dto;
 public record ClusterDto(
         String id,
         String name,
-        Boolean synced) {
+        Boolean synced,
+        String dashboardUrl,
+        String dbaasUrl,
+        String deployerUrl,
+        String argoUrl) {
 }
