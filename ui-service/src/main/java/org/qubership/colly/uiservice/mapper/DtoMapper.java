@@ -55,6 +55,8 @@ public class DtoMapper {
                 inventory.type(),
                 inventory.role(),
                 inventory.region(),
+                inventory.accessGroups(),
+                inventory.effectiveAccessGroups(),
 
                 // From operational (may be null)
                 operational != null ? operational.deploymentVersion() : null,

@@ -53,7 +53,9 @@ class UIApiResourceTest {
                         null,
                         EnvironmentType.ENVIRONMENT,
                         null,
-                        "cm"
+                        "cm",
+                        List.of(),
+                        List.of()
                 )
         ));
 

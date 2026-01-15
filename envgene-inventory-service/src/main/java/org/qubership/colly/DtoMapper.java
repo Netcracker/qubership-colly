@@ -28,7 +28,9 @@ public class DtoMapper {
                 environment.getExpirationDate(),
                 environment.getType(),
                 environment.getRole(),
-                environment.getRegion()
+                environment.getRegion(),
+                environment.getAccessGroups(),
+                environment.getEffectiveAccessGroups()
         );
     }
 

@@ -16,5 +16,7 @@ public record CloudPassportEnvironment(String name,
                                        LocalDate expirationDate,
                                        EnvironmentType type,
                                        String role,
-                                       String region) {
+                                       String region,
+                                       List<String> accessGroups,
+                                       List<String> effectiveAccessGroups) {
 }
