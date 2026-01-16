@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
@@ -54,8 +55,8 @@ class UIApiResourceTest {
                         EnvironmentType.ENVIRONMENT,
                         null,
                         "cm",
-                        List.of(),
-                        List.of()
+                        List.of("group 1", "group 2"),
+                        List.of("group 1", "group 2", "group 3")
                 )
         ));
 
@@ -136,7 +137,14 @@ class UIApiResourceTest {
                 .body("[0].id", equalTo("env-1"))
                 .body("[0].name", equalTo("test-environment"))
                 .body("[0].description", equalTo("Test Environment"))
+                .body("[0].status", equalTo("FREE"))
+                .body("[0].type", equalTo("ENVIRONMENT"))
+                .body("[0].owners", contains("owner-1"))
+                .body("[0].labels", contains("label-1"))
+                .body("[0].teams", contains("team-1"))
                 .body("[0].deploymentVersion", equalTo("1.0.0"))
+                .body("[0].accessGroups", contains("group 1", "group 2"))
+                .body("[0].effectiveAccessGroups", contains("group 1", "group 2", "group 3"))
                 .body("[0].namespaces.size()", equalTo(1))
                 .body("[0].namespaces[0].name", equalTo("namespace-1"))
                 .body("[0].namespaces[0].existsInK8s", equalTo(true));
