@@ -120,8 +120,12 @@ public class InventoryServiceRest {
     @POST
     @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
-    public void syncEnvironmentsWithGit() {
-        collyStorage.executeTask();
+    public void syncEnvironmentsWithGit(@QueryParam("projectId") String projectId) {
+        if (projectId == null || projectId.isEmpty()) {
+            collyStorage.syncAll();
+        } else {
+            collyStorage.syncProject(projectId);
+        }
     }
 
     @GET

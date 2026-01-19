@@ -426,6 +426,46 @@ class InventoryServiceRestTest {
     }
 
     @Test
+    @TestSecurity(user = "test")
+    void sync_for_particular_project() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync?projectId=solar_earth")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/projects")
+                .then()
+                .statusCode(200)
+                .body(".",
+                        hasItems(
+                                allOf(
+                                        hasEntry("id", "solar_earth"),
+                                        hasEntry("name", "earth"),
+                                        hasEntry("type", "PROJECT"),
+                                        hasEntry("customerName", "Solar System"),
+                                        hasEntry("clusterPlatform", "K8S")
+                                ),
+                                allOf(
+                                        hasEntry("id", "solar_saturn"),
+                                        hasEntry("name", "saturn"),
+                                        hasEntry("type", "PRODUCT"),
+                                        hasEntry("customerName", "Solar System"),
+                                        hasEntry("clusterPlatform", "OCP"),
+                                        hasEntry("templateRepository", null)
+                                )
+                        ))
+                .body("find { it.id == 'solar_earth' }.instanceRepositories", hasSize(1))
+                .body("find { it.id == 'solar_saturn' }.instanceRepositories", hasSize(1))
+                .body("find { it.id == 'solar_earth' }.pipelines", hasSize(2))
+                .body("find { it.id == 'solar_saturn' }.pipelines", hasSize(2));
+    }
+
+
+    @Test
     void get_projects_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/projects")
