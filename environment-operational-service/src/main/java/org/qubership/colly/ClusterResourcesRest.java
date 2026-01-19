@@ -83,8 +83,13 @@ public class ClusterResourcesRest {
     @POST
     @Path("/manual-sync")
     @Produces(MediaType.APPLICATION_JSON)
-    public void loadEnvironmentsManually() {
-        collyStorage.executeTask();
+    public void syncClustersAndEnvironmentsWithK8s(@QueryParam("clusterId") String clusterId) {
+        if (clusterId == null || clusterId.isEmpty()) {
+            collyStorage.syncAllClusters();
+        } else {
+            collyStorage.syncCluster(clusterId);
+        }
+
     }
 
 

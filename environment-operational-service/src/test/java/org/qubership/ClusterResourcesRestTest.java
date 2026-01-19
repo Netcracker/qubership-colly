@@ -59,6 +59,29 @@ class ClusterResourcesRestTest {
     }
 
     @Test
+    @TestSecurity(user = "test")
+    void manual_sync_for_particular_cluster() {
+        given()
+                .when().post("/colly/v2/operational-service/manual-sync?clusterId=1")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/operational-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", contains("env-test", "env-1")); //todo remove all data from redis before the test
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void manual_sync_for_nonexisting_cluster() {
+        given()
+                .when().post("/colly/v2/operational-service/manual-sync?clusterId=42")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
     void load_metadata_without_auth() {
         given()
                 .when().get("/colly/v2/operational-service/metadata")

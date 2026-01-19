@@ -33,7 +33,7 @@ class CollyStorageExceptionHandlingTest {
     ClusterResourcesLoader clusterResourcesLoader;
 
     @Test
-    void executeTask_shouldContinueExecutionWhenSomeClustersFail() throws InterruptedException {
+    void syncAllClusters_shouldContinueExecutionWhenSomeClustersFail() throws InterruptedException {
         ClusterInfo cluster1 = new ClusterInfo("1", "stable-cluster", "token1", "host1", Set.of(), null);
         ClusterInfo cluster2 = new ClusterInfo("2", "failing-cluster", "token2", "host2", Set.of(), null);
         ClusterInfo cluster3 = new ClusterInfo("3", "another-stable-cluster", "token3", "host3", Set.of(), null);
@@ -57,7 +57,7 @@ class CollyStorageExceptionHandlingTest {
             }
         }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
-        assertDoesNotThrow(() -> collyStorage.executeTask());
+        assertDoesNotThrow(() -> collyStorage.syncAllClusters());
 
         // Wait for all executions to complete
         assertTrue(executionLatch.await(5, TimeUnit.SECONDS));
@@ -77,7 +77,7 @@ class CollyStorageExceptionHandlingTest {
     }
 
     @Test
-    void executeTask_shouldHandleAllClustersFailingGracefully() {
+    void syncAllClusters_shouldHandleAllClustersFailingGracefully() {
         ClusterInfo cluster1 = new ClusterInfo("1", "failing-cluster1", "token1", "host1", Set.of(), null);
         ClusterInfo cluster2 = new ClusterInfo("2", "failing-cluster2", "token2", "host2", Set.of(), null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2);
@@ -87,12 +87,12 @@ class CollyStorageExceptionHandlingTest {
         doThrow(new RuntimeException("Simulated failure"))
                 .when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
-        assertDoesNotThrow(() -> collyStorage.executeTask());
+        assertDoesNotThrow(() -> collyStorage.syncAllClusters());
         verify(clusterResourcesLoader, times(2)).loadClusterResources(any(ClusterInfo.class));
     }
 
     @Test
-    void executeTask_shouldHandleInterruptedException() throws InterruptedException {
+    void syncAllClusters_shouldHandleInterruptedException() throws InterruptedException {
         ClusterInfo cluster = new ClusterInfo("1", "interrupted-cluster", "token", "host", Set.of(), null);
         when(envgeneInventoryService.getClusterInfos()).thenReturn(List.of(cluster));
 
@@ -111,7 +111,7 @@ class CollyStorageExceptionHandlingTest {
             return null;
         }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
-        Thread executionThread = new Thread(() -> collyStorage.executeTask());
+        Thread executionThread = new Thread(() -> collyStorage.syncAllClusters());
         executionThread.start();
 
         // Wait for execution to start
@@ -129,17 +129,17 @@ class CollyStorageExceptionHandlingTest {
     }
 
     @Test
-    void executeTask_shouldHandleCloudPassportLoaderException() {
+    void syncAllClusters_shouldHandleCloudPassportLoaderException() {
         when(envgeneInventoryService.getClusterInfos())
                 .thenThrow(new RuntimeException("Failed to load cloud passports"));
 
-        assertThrows(RuntimeException.class, () -> collyStorage.executeTask());
+        assertThrows(RuntimeException.class, () -> collyStorage.syncAllClusters());
 
         verify(clusterResourcesLoader, never()).loadClusterResources(any(ClusterInfo.class));
     }
 
     @Test
-    void executeTask_shouldHandleMixedExceptionTypes() {
+    void syncAllClusters_shouldHandleMixedExceptionTypes() {
         ClusterInfo cluster1 = new ClusterInfo("1", "runtime-exception-cluster", "token1", "host1", Set.of(), null);
         ClusterInfo cluster2 = new ClusterInfo("2", "illegal-argument-cluster", "token2", "host2", Set.of(), null);
         ClusterInfo cluster3 = new ClusterInfo("3", "successful-cluster", "token3", "host3", Set.of(), null);
@@ -162,7 +162,7 @@ class CollyStorageExceptionHandlingTest {
             };
         }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
-        assertDoesNotThrow(() -> collyStorage.executeTask());
+        assertDoesNotThrow(() -> collyStorage.syncAllClusters());
 
         assertEquals(1, successCount.get(), "One cluster should have succeeded");
         verify(clusterResourcesLoader, times(3)).loadClusterResources(any(ClusterInfo.class));

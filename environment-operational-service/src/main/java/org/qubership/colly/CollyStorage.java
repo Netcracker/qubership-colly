@@ -4,6 +4,7 @@ import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
@@ -49,7 +50,7 @@ public class CollyStorage {
     }
 
     @Scheduled(cron = "{colly.environment-operational-service.cron.schedule}")
-    void executeTask() {
+    void syncAllClusters() {
         Log.info("Task for loading resources from clusters has started");
         Date startTime = new Date();
         List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
@@ -57,11 +58,11 @@ public class CollyStorage {
         Log.info("Cloud passports loaded for clusters: " + clusterNames);
 
         List<CompletableFuture<Void>> futures = clusterInfos.stream()
-                .map(cloudPassport -> CompletableFuture.runAsync(
+                .map(clusterInfo -> CompletableFuture.runAsync(
                         () -> {
-                            Log.info("Starting to load resources for cluster: " + cloudPassport.name());
-                            clusterResourcesLoader.loadClusterResources(cloudPassport);
-                            Log.info("Completed loading resources for cluster: " + cloudPassport.name());
+                            Log.info("Starting to load resources for cluster: " + clusterInfo.name());
+                            clusterResourcesLoader.loadClusterResources(clusterInfo);
+                            Log.info("Completed loading resources for cluster: " + clusterInfo.name());
                         }, executor))
                 .toList();
 
@@ -76,6 +77,18 @@ public class CollyStorage {
         long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
         Log.info("Task for loading resources from clusters has completed.");
         Log.info("Loading Duration =" + loadingDuration + " ms");
+    }
+
+    void syncCluster(String clusterId) {
+        if (clusterId == null || clusterId.isEmpty()) {
+            throw new IllegalArgumentException("Cluster id is null");
+        }
+        List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
+        ClusterInfo clusterToSync = clusterInfos.stream().filter(clusterInfo -> clusterId.equals(clusterInfo.id())).findFirst().orElse(null);
+        if (clusterToSync == null) {
+            throw new NotFoundException("Cannot sync cluster. Not found cluster with id=" + clusterId);
+        }
+        clusterResourcesLoader.loadClusterResources(clusterToSync);
     }
 
     public List<EnvironmentDTO> getEnvironments() {

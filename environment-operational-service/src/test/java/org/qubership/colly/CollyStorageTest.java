@@ -31,7 +31,7 @@ class CollyStorageTest {
     ClusterResourcesLoader clusterResourcesLoader;
 
     @Test
-    void executeTask_shouldLoadClusterResourcesInParallel() throws InterruptedException {
+    void syncAllClusters_shouldLoadClusterResourcesInParallel() throws InterruptedException {
         ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", Set.of(), null);
         ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", Set.of(), null);
         ClusterInfo cluster3 = new ClusterInfo("3", "cluster3", "token3", "host3", Set.of(), null);
@@ -63,7 +63,7 @@ class CollyStorageTest {
             return null;
         }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
-        Thread executionThread = new Thread(() -> collyStorage.executeTask());
+        Thread executionThread = new Thread(() -> collyStorage.syncAllClusters());
         executionThread.start();
 
         // Wait a bit to ensure all threads are created and waiting
@@ -98,7 +98,7 @@ class CollyStorageTest {
     }
 
     @Test
-    void executeTask_shouldHandleExceptionInParallelExecution() {
+    void syncAllClusters_shouldHandleExceptionInParallelExecution() {
         ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", Set.of(), null);
         ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", Set.of(), null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2);
@@ -115,27 +115,27 @@ class CollyStorageTest {
         }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
         // Act & Assert - should not throw exception despite one cluster failing
-        assertDoesNotThrow(() -> collyStorage.executeTask());
+        assertDoesNotThrow(() -> collyStorage.syncAllClusters());
 
         verify(clusterResourcesLoader, times(2)).loadClusterResources(any(ClusterInfo.class));
     }
 
     @Test
-    void executeTask_shouldHandleEmptyClusterList() {
+    void syncAllClusters_shouldHandleEmptyClusterList() {
         when(envgeneInventoryService.getClusterInfos()).thenReturn(List.of());
 
-        assertDoesNotThrow(() -> collyStorage.executeTask());
+        assertDoesNotThrow(() -> collyStorage.syncAllClusters());
 
         verify(clusterResourcesLoader, never()).loadClusterResources(any(ClusterInfo.class));
     }
 
 
     @Test
-    void executeTask_load_cloud_passports_once_and_load_cluster_resources_for_each_cluster() {
+    void syncAllClusters_load_cloud_passports_once_and_load_cluster_resources_for_each_cluster() {
         ClusterInfo cluster = new ClusterInfo("1", "test-cluster", "token", "host", Set.of(), null);
         when(envgeneInventoryService.getClusterInfos()).thenReturn(List.of(cluster));
 
-        collyStorage.executeTask();
+        collyStorage.syncAllClusters();
 
         verify(envgeneInventoryService, times(1)).getClusterInfos();
         verify(clusterResourcesLoader, times(1)).loadClusterResources(cluster);
@@ -163,7 +163,7 @@ class CollyStorageTest {
 
         // Act
         long startTime = System.currentTimeMillis();
-        collyStorage.executeTask();
+        collyStorage.syncAllClusters();
         long endTime = System.currentTimeMillis();
 
         verify(envgeneInventoryService, times(1)).getClusterInfos();
