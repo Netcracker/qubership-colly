@@ -14,7 +14,9 @@ public record InventoryMetadata(
         String expirationDate,
         String type,
         String role,
-        String region
+        String region,
+        List<String> accessGroups,
+        List<String> effectiveAccessGroups
 ) {
     public InventoryMetadata {
         owners = owners == null ? List.of() : owners;

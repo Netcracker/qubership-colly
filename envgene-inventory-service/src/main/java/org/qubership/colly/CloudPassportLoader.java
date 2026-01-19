@@ -205,8 +205,15 @@ public class CloudPassportLoader {
             String region = inventoryMetadata == null
                     ? null
                     : inventoryMetadata.region();
+            List<String> accessGroups = inventoryMetadata == null || inventoryMetadata.accessGroups() == null
+                    ? List.of()
+                    : inventoryMetadata.accessGroups();
+            List<String> effectiveAccessGroups = inventoryMetadata == null || inventoryMetadata.effectiveAccessGroups() == null
+                    ? List.of()
+                    : inventoryMetadata.effectiveAccessGroups();
             return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
-                    owners, labels, teams, environmentStatus, expirationDate, type, role, region);
+                    owners, labels, teams, environmentStatus, expirationDate, type, role, region,
+                    accessGroups, effectiveAccessGroups);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }

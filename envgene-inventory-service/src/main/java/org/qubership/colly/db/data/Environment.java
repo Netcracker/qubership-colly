@@ -31,6 +31,8 @@ public class Environment {
     private String role;
     private String region;
     private List<String> labels;
+    private List<String> accessGroups;
+    private List<String> effectiveAccessGroups;
     private List<Namespace> namespaces;
 
 
@@ -69,6 +71,22 @@ public class Environment {
 
     public void setTeams(List<String> teams) {
         this.teams = teams != null ? new ArrayList<>(teams) : null;
+    }
+
+    public List<String> getAccessGroups() {
+        return accessGroups != null ? Collections.unmodifiableList(accessGroups) : Collections.emptyList();
+    }
+
+    public void setAccessGroups(List<String> accessGroups) {
+        this.accessGroups = accessGroups != null ? new ArrayList<>(accessGroups) : null;
+    }
+
+    public List<String> getEffectiveAccessGroups() {
+        return effectiveAccessGroups != null ? Collections.unmodifiableList(effectiveAccessGroups) : Collections.emptyList();
+    }
+
+    public void setEffectiveAccessGroups(List<String> effectiveAccessGroups) {
+        this.effectiveAccessGroups = effectiveAccessGroups != null ? new ArrayList<>(effectiveAccessGroups) : null;
     }
 }
 
