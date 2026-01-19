@@ -30,6 +30,10 @@ public class EnvironmentRepository {
         return redisDataSource.hash(String.class, String.class, String.class);
     }
 
+    private KeyCommands<String> keyCommands() {
+        return redisDataSource.key(String.class);
+    }
+
     private SetCommands<String, String> setCommands() {
         return redisDataSource.set(String.class, String.class);
     }
@@ -110,6 +114,23 @@ public class EnvironmentRepository {
                 .filter(env -> name.equals(env.getName()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    public void deleteById(String id) {
+        Environment environment = findById(id);
+        if (environment != null) {
+            String key = ENVIRONMENT_KEY_PREFIX + id;
+            keyCommands().del(key);
+
+            // Remove from global set
+            setCommands().srem(ALL_ENVIRONMENTS_SET, id);
+
+            // Remove from cluster index
+            if (environment.getClusterId() != null) {
+                String clusterIndexKey = CLUSTER_ENVIRONMENTS_INDEX_PREFIX + environment.getClusterId();
+                setCommands().srem(clusterIndexKey, id);
+            }
+        }
     }
 
 }
