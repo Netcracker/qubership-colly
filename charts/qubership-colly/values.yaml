@@ -4,7 +4,7 @@ NAMESPACE: qubership-colly
 colly:
   global:
   envgeneInventoryService:
-    image: ghcr.io/netcracker/envgene-inventory-service:latest
+    image: ghcr.io/netcracker/envgene-inventory-service:2.3.0
     serviceName: envgene-inventory-service
     projectRepoUrl:
     gitToken: fff
@@ -20,7 +20,7 @@ colly:
     ports:
       http: 8080
   environmentOperationalService:
-    image: ghcr.io/netcracker/environment-operational-service:latest
+    image: ghcr.io/netcracker/environment-operational-service:2.3.0
     serviceName: environment-operational-service
     cronSchedule: 0 0/1 * * * ?
     idp:
