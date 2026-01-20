@@ -44,7 +44,7 @@ class CloudPassportLoaderTest {
             Set.of(new CloudPassportEnvironment(
                             "env-test",
                             "some env for tests",
-                            List.of(new CloudPassportNamespace("demo-k8s")),
+                            List.of(new CloudPassportNamespace("demo-k8s", "bss")),
                             List.of("test-owner"),
                             List.of(),
                             List.of(),
@@ -58,7 +58,7 @@ class CloudPassportLoaderTest {
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
-                            List.of(new CloudPassportNamespace("test-ns")),
+                            List.of(new CloudPassportNamespace("test-ns", "core")),
                             List.of("owner from metadata"),
                             List.of("label1", "label2"), List.of("team-from-metadata"),
                             EnvironmentStatus.IN_USE,
@@ -81,7 +81,7 @@ class CloudPassportLoaderTest {
             Set.of(new CloudPassportEnvironment(
                     "env-1",
                     "some env for tests",
-                    List.of(new CloudPassportNamespace("namespace-2"), new CloudPassportNamespace("namespace-1")),
+                    List.of(new CloudPassportNamespace("namespace-2", "bss"), new CloudPassportNamespace("namespace-1", "core")),
                     List.of(),
                     List.of(),
                     List.of(),

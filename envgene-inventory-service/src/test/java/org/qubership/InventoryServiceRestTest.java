@@ -247,7 +247,12 @@ class InventoryServiceRestTest {
                 .body("labels", contains("label1", "label2"))
                 .body("accessGroups", contains("group1", "group2"))
                 .body("effectiveAccessGroups", contains("group1", "group2", "group3"))
-                .body("namespaces", notNullValue());
+                .body("namespaces", contains(
+                        allOf(
+                                hasEntry("name", "test-ns"),
+                                hasEntry("deployPostfix", "core")
+                        )
+                ));
     }
 
     @Test

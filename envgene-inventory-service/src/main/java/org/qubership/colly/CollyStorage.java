@@ -142,6 +142,7 @@ public class CollyStorage {
             namespaceInCache = new Namespace();
             namespaceInCache.setName(cloudPassportNamespace.name());
             namespaceInCache.setUid(UUID.randomUUID().toString());
+            namespaceInCache.setDeployPostfix(cloudPassportNamespace.deployPostfix());
             environment.addNamespace(namespaceInCache);
             Log.info("Namespace " + namespaceInCache.getName() + " has been created in cache for environment " + environment.getName());
         }
