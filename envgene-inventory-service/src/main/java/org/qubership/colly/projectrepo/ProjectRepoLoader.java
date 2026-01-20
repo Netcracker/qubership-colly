@@ -86,7 +86,8 @@ public class ProjectRepoLoader {
                     convertToInstanceRepositories(envgeneInstanceRepos),
                     convertToPipelines(pipelineRepos),
                     ClusterPlatform.fromString(projectEntity.clusterPlatform()),
-                    convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId));
+                    convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId),
+                    projectEntity.accessGroups() == null ? List.of() : projectEntity.accessGroups());
         } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
             return null;
@@ -134,7 +135,8 @@ public class ProjectRepoLoader {
     }
 
     public record ProjectEntity(String name, String customerName, String type,
-                                List<RepositoryEntity> repositories, String clusterPlatform) {
+                                List<RepositoryEntity> repositories, String clusterPlatform,
+                                List<String> accessGroups) {
     }
 
     public record RepositoryEntity(String type, String url, String token, String region, String branch,

@@ -89,7 +89,8 @@ public class DtoMapper {
                 project.instanceRepositories().stream().map(this::toDto).toList(),
                 project.pipelines().stream().map(this::toDto).toList(),
                 project.clusterPlatform(),
-                toDto(project.envgeneTemplateRepository())
+                toDto(project.envgeneTemplateRepository()),
+                project.accessGroups()
         );
     }
 

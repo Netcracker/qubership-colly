@@ -39,8 +39,8 @@ class ProjectRepoLoaderTest {
             List.of(),
             ClusterPlatform.OCP,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "https://gitlab.com/test/templateRepo.git", "test-token", "main",
-                    new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev"))
-    );
+                    new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")),
+            List.of("group1", "group2"));
     public static final Project TEST_PROJECT_2 = new Project(
             "test-project-2",
             "Test Project 2",
@@ -52,8 +52,8 @@ class ProjectRepoLoaderTest {
             List.of(),
             ClusterPlatform.K8S,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "https://gitlab.com/test/templateRepo2.git", "test-token", "main",
-                    new EnvgeneArtifact("my-app:feature-new-ui-0987654", List.of("ci", "migration"), "ci"))
-    );
+                    new EnvgeneArtifact("my-app:feature-new-ui-0987654", List.of("ci", "migration"), "ci")),
+            List.of());
     @InjectMock
     GitService gitService;
     @Inject
@@ -121,7 +121,8 @@ class ProjectRepoLoaderTest {
                         new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2", null)
                 ),
                 List.of(),
-                ClusterPlatform.OCP, null);
+                ClusterPlatform.OCP, null,
+                List.of());
 
         Project project = loader.processProject(parametersFile, projectDir);
         assertThat(project, equalTo(expectedResult));
@@ -137,13 +138,14 @@ class ProjectRepoLoaderTest {
                 type: PRODUCT
                 clusterPlatform: K8S
                 repositories: []
+                accessGroups: ["group1", "group2"]
                 """;
 
         Path projectDir = tempDir.resolve("test-project");
         Files.createDirectories(projectDir);
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
-        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null);
+        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"));
 
         Project project = loader.processProject(parametersFile, projectDir);
 
