@@ -224,7 +224,8 @@ public class CloudPassportLoader {
         try (FileInputStream inputStream = new FileInputStream(namespaceFilePath.toFile())) {
             Namespace namespace = mapper.readValue(inputStream, Namespace.class);
             Log.info("Processing namespace " + namespace.getName());
-            return new CloudPassportNamespace(namespace.getName());
+            String deployPostfix = namespaceFilePath.getParent().getFileName().toString();
+            return new CloudPassportNamespace(namespace.getName(), deployPostfix);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + namespaceFilePath, e);
         }

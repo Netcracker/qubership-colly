@@ -35,7 +35,7 @@ public class DtoMapper {
     }
 
     public NamespaceDto toDto(Namespace namespace) {
-        return new NamespaceDto(namespace.getUid(), namespace.getName());
+        return new NamespaceDto(namespace.getUid(), namespace.getName(), namespace.getDeployPostfix());
     }
 
     public InternalClusterInfoDto toDto(Cluster cluster) {
