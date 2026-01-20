@@ -11,7 +11,6 @@ import jakarta.inject.Inject;
 import org.qubership.colly.db.data.Environment;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class EnvironmentRepository {
@@ -83,7 +82,7 @@ public class EnvironmentRepository {
                     .map(this::findById)
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(Environment::getName))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to find all environments", e);
         }
@@ -100,7 +99,7 @@ public class EnvironmentRepository {
                     .map(this::findById)
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(Environment::getName))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to find environments for cluster: " + clusterId, e);
         }
