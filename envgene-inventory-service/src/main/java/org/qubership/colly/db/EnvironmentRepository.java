@@ -11,7 +11,6 @@ import jakarta.inject.Inject;
 import org.qubership.colly.db.data.Environment;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class EnvironmentRepository {
@@ -28,6 +27,10 @@ public class EnvironmentRepository {
 
     private HashCommands<String, String, String> hashCommands() {
         return redisDataSource.hash(String.class, String.class, String.class);
+    }
+
+    private KeyCommands<String> keyCommands() {
+        return redisDataSource.key(String.class);
     }
 
     private SetCommands<String, String> setCommands() {
@@ -79,7 +82,7 @@ public class EnvironmentRepository {
                     .map(this::findById)
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(Environment::getName))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to find all environments", e);
         }
@@ -96,7 +99,7 @@ public class EnvironmentRepository {
                     .map(this::findById)
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(Environment::getName))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to find environments for cluster: " + clusterId, e);
         }
@@ -110,6 +113,23 @@ public class EnvironmentRepository {
                 .filter(env -> name.equals(env.getName()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    public void deleteById(String id) {
+        Environment environment = findById(id);
+        if (environment != null) {
+            String key = ENVIRONMENT_KEY_PREFIX + id;
+            keyCommands().del(key);
+
+            // Remove from global set
+            setCommands().srem(ALL_ENVIRONMENTS_SET, id);
+
+            // Remove from cluster index
+            if (environment.getClusterId() != null) {
+                String clusterIndexKey = CLUSTER_ENVIRONMENTS_INDEX_PREFIX + environment.getClusterId();
+                setCommands().srem(clusterIndexKey, id);
+            }
+        }
     }
 
 }

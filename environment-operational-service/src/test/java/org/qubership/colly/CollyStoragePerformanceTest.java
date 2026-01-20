@@ -30,7 +30,7 @@ class CollyStoragePerformanceTest {
     ClusterResourcesLoader clusterResourcesLoader;
 
     @Test
-    void executeTask_performanceTest_shouldBeSignificantlyFasterThanSequential() {
+    void syncAllClusters_performanceTest_shouldBeSignificantlyFasterThanSequential() {
         final int clusterCount = 10;
         final int simulatedWorkTimeMs = 200;
 
@@ -49,7 +49,7 @@ class CollyStoragePerformanceTest {
         }).when(clusterResourcesLoader).loadClusterResources(any(ClusterInfo.class));
 
         long startTime = System.currentTimeMillis();
-        collyStorage.executeTask();
+        collyStorage.syncAllClusters();
         long endTime = System.currentTimeMillis();
 
         long actualDuration = endTime - startTime;
@@ -73,7 +73,7 @@ class CollyStoragePerformanceTest {
     }
 
     @Test
-    void executeTask_stressTest_shouldHandleManyClustersConcurrently() {
+    void syncAllClusters_stressTest_shouldHandleManyClustersConcurrently() {
         final int clusterCount = 50;
         final int simulatedWorkTimeMs = 100;
 
@@ -98,7 +98,7 @@ class CollyStoragePerformanceTest {
 
         // Act
         long startTime = System.currentTimeMillis();
-        collyStorage.executeTask();
+        collyStorage.syncAllClusters();
         long endTime = System.currentTimeMillis();
 
         verify(clusterResourcesLoader, times(clusterCount)).loadClusterResources(any(ClusterInfo.class));

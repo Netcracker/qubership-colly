@@ -4,6 +4,7 @@ import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
@@ -45,12 +46,22 @@ public class CollyStorage {
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
-    void executeTask() {
+    void syncAll() {
         Log.info("Task for loading data from git has started");
         List<Project> projects = projectRepoLoader.loadProjects();
         projects.forEach(projectRepository::persist);
         Log.info("Projects loaded: " + projects.size());
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
+        Log.info("Cloud passports loaded: " + cloudPassports.size());
+        cloudPassports.forEach(this::saveDataToCache);
+    }
+
+    void syncProject(String projectId) {
+        Project project = projectRepository.findById(projectId);
+        if (project == null) {
+            throw new NotFoundException("Project is not found. ID=" + projectId);
+        }
+        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(List.of(project));
         Log.info("Cloud passports loaded: " + cloudPassports.size());
         cloudPassports.forEach(this::saveDataToCache);
     }

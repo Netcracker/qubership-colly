@@ -219,7 +219,7 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
-    void get_environment_by_id(){
+    void get_environment_by_id() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -252,7 +252,7 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
-    void get_environment_by_id_not_found(){
+    void get_environment_by_id_not_found() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -423,6 +423,42 @@ class InventoryServiceRestTest {
                 .body("find { it.id == 'solar_saturn' }.instanceRepositories", hasSize(1))
                 .body("find { it.id == 'solar_earth' }.pipelines", hasSize(2))
                 .body("find { it.id == 'solar_saturn' }.pipelines", hasSize(2));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void sync_for_particular_project() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        environmentRepository.deleteById(environment.getId());
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(404);
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync?projectId=solar_earth")
+                .then()
+                .statusCode(204);
+
+        environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(200);
     }
 
     @Test
