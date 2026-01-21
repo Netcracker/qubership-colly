@@ -7,7 +7,6 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
@@ -16,6 +15,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.*;
@@ -45,6 +45,40 @@ public class InventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/projects")
+    @Operation(
+            summary = "Get all projects",
+            description = "Retrieves a list of all projects available in the inventory. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved list of projects",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ProjectDto.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
     public List<ProjectDto> getProjects() {
         return dtoMapper.toProjectDtos(collyStorage.getProjects());
     }
@@ -52,7 +86,57 @@ public class InventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/projects/{id}")
-    public ProjectDto getProject(@PathParam("id") String id) {
+    @Operation(
+            summary = "Get project by ID",
+            description = "Retrieves detailed information about a specific project by its ID. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved project details",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ProjectDto.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Project not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Project with id= xyz is not found\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
+    public ProjectDto getProject(
+            @Parameter(
+                    description = "ID of the project to retrieve",
+                    required = true,
+                    example = "project-123"
+            )
+            @PathParam("id") String id) {
         Project project = collyStorage.getProject(id);
         if (project == null) {
             throw new NotFoundException("Project with id =" + id + " is not found");
@@ -63,6 +147,40 @@ public class InventoryServiceRest {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/internal/cluster-infos")
+    @Operation(
+            summary = "Get cluster information. For internal colly usages",
+            description = "Retrieves detailed cluster information including internal configuration. This is an internal endpoint for service-to-service communication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved internal cluster information",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = InternalClusterInfoDto.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
     public List<InternalClusterInfoDto> getInternalClusterInfo() {
         return dtoMapper.toClusterInfoDtos(collyStorage.getClusters(null));
     }
@@ -123,14 +241,69 @@ public class InventoryServiceRest {
                     )
             )
     )
-    public List<ClusterDto> getClusters(@QueryParam("projectId") String projectId) {
+    public List<ClusterDto> getClusters(
+            @Parameter(
+                    description = "Optional project ID to filter clusters by project",
+                    example = "project-123"
+            )
+            @QueryParam("projectId") String projectId) {
         return dtoMapper.toClusterDtos(collyStorage.getClusters(projectId));
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/clusters/{clusterId}")
-    public ClusterDto getCluster(@PathParam("clusterId") String id) {
+    @Operation(
+            summary = "Get cluster by ID",
+            description = "Retrieves detailed information about a specific cluster by its ID. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved cluster details",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ClusterDto.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Cluster not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Cluster with id= xyz is not found\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
+    public ClusterDto getCluster(
+            @Parameter(
+                    description = "ID of the cluster to retrieve",
+                    required = true,
+                    example = "bd75a053-1210-4b9a-9fe1-9af265b006c9"
+            )
+            @PathParam("clusterId") String id) {
         Cluster cluster = collyStorage.getCluster(id);
         if (cluster == null) {
             throw new NotFoundException("Cluster with id =" + id + " is not found");
@@ -233,14 +406,69 @@ public class InventoryServiceRest {
                     )
             )
     })
-    public List<EnvironmentDto> getEnvironments(@QueryParam("projectId") String projectId) {
+    public List<EnvironmentDto> getEnvironments(
+            @Parameter(
+                    description = "Optional project ID to filter environments by project",
+                    example = "project-123"
+            )
+            @QueryParam("projectId") String projectId) {
         return dtoMapper.toDtos(collyStorage.getEnvironments(projectId));
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments/{environmentId}")
-    public EnvironmentDto getEnvironmentById(@PathParam("environmentId") String id) {
+    @Operation(
+            summary = "Get environment by ID",
+            description = "Retrieves detailed information about a specific environment by its ID. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved environment details",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = EnvironmentDto.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Environment not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Environment with id= xyz is not found\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
+    public EnvironmentDto getEnvironmentById(
+            @Parameter(
+                    description = "ID of the environment to retrieve",
+                    required = true,
+                    example = "96180fe7-f025-465f-bbbf-5e83f301a614"
+            )
+            @PathParam("environmentId") String id) {
         Environment environment = collyStorage.getEnvironment(id);
         if (environment == null) {
             throw new NotFoundException("Environment with id =" + id + " is not found");
@@ -344,7 +572,6 @@ public class InventoryServiceRest {
 
             @RequestBody(
                     description = "Partial update data. Only provided fields will be updated. To clear expirationDate, send empty string.",
-                    required = true,
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON,
                             schema = @Schema(implementation = PatchEnvironmentDto.class),
@@ -438,7 +665,12 @@ public class InventoryServiceRest {
                     )
             )
     )
-    public void syncEnvironmentsWithGit(@QueryParam("projectId") String projectId) {
+    public void syncEnvironmentsWithGit(
+            @Parameter(
+                    description = "Optional project ID to sync only a specific project. If not provided, all projects will be synchronized.",
+                    example = "project-123"
+            )
+            @QueryParam("projectId") String projectId) {
         if (projectId == null || projectId.isEmpty()) {
             collyStorage.syncAll();
         } else {
@@ -450,6 +682,46 @@ public class InventoryServiceRest {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
     @PermitAll
+    @Operation(
+            summary = "Get authentication status",
+            description = "Returns the current user's authentication status, including username and admin role information. This endpoint is accessible without authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved authentication status",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    name = "authenticated-user",
+                                    summary = "Authenticated user status",
+                                    value = """
+                                            {
+                                              "authenticated": true,
+                                              "username": "john.doe",
+                                              "isAdmin": false
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - user is not authenticated",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    name = "unauthenticated-user",
+                                    summary = "Unauthenticated user status",
+                                    value = """
+                                            {
+                                              "authenticated": false
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
     public Response getAuthStatus() {
         if (securityIdentity.isAnonymous()) {
             return Response.status(Response.Status.UNAUTHORIZED)

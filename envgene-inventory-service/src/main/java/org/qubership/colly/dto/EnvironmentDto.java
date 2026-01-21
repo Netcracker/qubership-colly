@@ -50,13 +50,13 @@ public record EnvironmentDto(
 
         @Schema(
                 description = "Custom labels/tags for categorization and filtering",
-                examples = "[\"production\", \"critical\", \"high-availability\"]"
+                examples = "[\"ci\", \"critical\", \"high-availability\"]"
         )
         List<String> labels,
 
         @Schema(
                 description = "Teams that have access to this environment",
-                examples = "[\"Platform\", \"DevOps\", \"SRE\"]"
+                examples = "[\"Platform\", \"DevOps\", \"Dev\"]"
         )
         List<String> teams,
 
@@ -96,6 +96,18 @@ public record EnvironmentDto(
                 nullable = true
         )
         String region,
+
+        @Schema(
+                description = "List of access groups directly assigned to this environment",
+                examples = "[\"developers\", \"qa-team\"]",
+                nullable = true
+        )
         List<String> accessGroups,
+
+        @Schema(
+                description = "List of effective access groups including inherited permissions",
+                examples = "[\"developers\", \"qa-team\", \"admins\"]",
+                nullable = true
+        )
         List<String> effectiveAccessGroups) {
 }

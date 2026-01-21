@@ -17,5 +17,11 @@ public record NamespaceDto(
                 required = true
         )
         String name,
+
+        @Schema(
+                description = "Deployment postfix used for resource naming",
+                examples = "core",
+                nullable = true
+        )
         String deployPostfix) {
 }
