@@ -1,5 +1,20 @@
 package org.qubership.colly.dto;
 
-public record LightClusterDto(String id,
-                              String name) {
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+@Schema(description = "Lightweight cluster information without nested details")
+public record LightClusterDto(
+        @Schema(
+                description = "Unique identifier of the cluster (UUID format)",
+                examples = "995f5292-5725-42b6-ad28-0e8629e0f791",
+                required = true
+        )
+        String id,
+
+        @Schema(
+                description = "Name of the Kubernetes cluster",
+                examples = "prod-cluster-01",
+                required = true
+        )
+        String name) {
 }

@@ -1,4 +1,27 @@
 package org.qubership.colly.dto;
 
-public record NamespaceDto(String id, String name, String deployPostfix) {
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+@Schema(description = "Kubernetes namespace information")
+public record NamespaceDto(
+        @Schema(
+                description = "Unique identifier of the namespace (UUID format)",
+                examples = "34f89c4d-bcc3-4eff-b271-6fdcdaf977c9",
+                required = true
+        )
+        String id,
+
+        @Schema(
+                description = "Name of the Kubernetes namespace",
+                examples = "prod-app",
+                required = true
+        )
+        String name,
+
+        @Schema(
+                description = "Deployment postfix used for resource naming",
+                examples = "core",
+                nullable = true
+        )
+        String deployPostfix) {
 }
