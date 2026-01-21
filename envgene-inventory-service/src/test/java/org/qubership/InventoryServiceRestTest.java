@@ -219,7 +219,7 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
-    void get_environment_by_id(){
+    void get_environment_by_id() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -245,12 +245,19 @@ class InventoryServiceRestTest {
                 .body("teams", contains("team-from-metadata"))
                 .body("owners", contains("owner from metadata"))
                 .body("labels", contains("label1", "label2"))
-                .body("namespaces", notNullValue());
+                .body("accessGroups", contains("group1", "group2"))
+                .body("effectiveAccessGroups", contains("group1", "group2", "group3"))
+                .body("namespaces", contains(
+                        allOf(
+                                hasEntry("name", "test-ns"),
+                                hasEntry("deployPostfix", "core")
+                        )
+                ));
     }
 
     @Test
     @TestSecurity(user = "test")
-    void get_environment_by_id_not_found(){
+    void get_environment_by_id_not_found() {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
@@ -424,6 +431,42 @@ class InventoryServiceRestTest {
     }
 
     @Test
+    @TestSecurity(user = "test")
+    void sync_for_particular_project() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        environmentRepository.deleteById(environment.getId());
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(404);
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync?projectId=solar_earth")
+                .then()
+                .statusCode(204);
+
+        environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     void get_projects_without_auth() {
         given()
                 .when().get("/colly/v2/inventory-service/projects")
@@ -455,6 +498,7 @@ class InventoryServiceRestTest {
                 .body("type", equalTo("PROJECT"))
                 .body("customerName", equalTo("Solar System"))
                 .body("clusterPlatform", equalTo("K8S"))
+                .body("accessGroups", contains("group1", "group2"))
                 .body("instanceRepositories", hasItem(
                         allOf(
                                 hasEntry("url", "gitrepo_with_cloudpassports"),

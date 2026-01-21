@@ -28,12 +28,14 @@ public class DtoMapper {
                 environment.getExpirationDate(),
                 environment.getType(),
                 environment.getRole(),
-                environment.getRegion()
+                environment.getRegion(),
+                environment.getAccessGroups(),
+                environment.getEffectiveAccessGroups()
         );
     }
 
     public NamespaceDto toDto(Namespace namespace) {
-        return new NamespaceDto(namespace.getUid(), namespace.getName());
+        return new NamespaceDto(namespace.getUid(), namespace.getName(), namespace.getDeployPostfix());
     }
 
     public InternalClusterInfoDto toDto(Cluster cluster) {
@@ -87,7 +89,8 @@ public class DtoMapper {
                 project.instanceRepositories().stream().map(this::toDto).toList(),
                 project.pipelines().stream().map(this::toDto).toList(),
                 project.clusterPlatform(),
-                toDto(project.envgeneTemplateRepository())
+                toDto(project.envgeneTemplateRepository()),
+                project.accessGroups()
         );
     }
 

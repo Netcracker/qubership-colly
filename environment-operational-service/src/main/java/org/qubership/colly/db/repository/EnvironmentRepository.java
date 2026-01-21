@@ -74,11 +74,6 @@ public class EnvironmentRepository {
         }
     }
 
-    public void delete(String id) {
-        String key = ENVIRONMENT_KEY_PREFIX + id;
-        keyCommands().del(key);
-    }
-
     public List<Environment> findByName(String name) {
         return findAll().stream()
                 .filter(env -> name.equals(env.getName()))

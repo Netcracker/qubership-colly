@@ -95,6 +95,7 @@ public record EnvironmentDto(
                 examples = "us-east-1",
                 nullable = true
         )
-        String region
-) {
+        String region,
+        List<String> accessGroups,
+        List<String> effectiveAccessGroups) {
 }

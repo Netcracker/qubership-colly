@@ -12,5 +12,6 @@ public record ProjectDto(String id,
                          List<InstanceRepositoryDto> instanceRepositories,
                          List<PipelineDto> pipelines,
                          ClusterPlatform clusterPlatform,
-                         TemplateRepositoryDto templateRepository) {
+                         TemplateRepositoryDto templateRepository,
+                         List<String> accessGroups) {
 }

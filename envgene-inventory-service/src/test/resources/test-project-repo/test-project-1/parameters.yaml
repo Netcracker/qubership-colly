@@ -2,6 +2,7 @@ name: Test Project 1
 customerName: Test Customer 1
 type: product
 clusterPlatform: ocp
+accessGroups: [ "group1", "group2" ]
 repositories:
   - type: envgeneInstance
     url: https://gitlab.com/test/repo1.git

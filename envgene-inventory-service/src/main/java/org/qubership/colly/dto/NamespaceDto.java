@@ -16,6 +16,6 @@ public record NamespaceDto(
                 examples = "prod-app",
                 required = true
         )
-        String name
-) {
+        String name,
+        String deployPostfix) {
 }

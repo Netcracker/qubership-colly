@@ -23,6 +23,8 @@ public record EnvironmentDto(
         EnvironmentType type,
         String role,
         String region,
+        List<String> accessGroups,
+        List<String> effectiveAccessGroups,
 
         // Fields from operational-service
         String deploymentVersion,

@@ -22,5 +22,7 @@ public record InventoryEnvironmentDto(
         LocalDate expirationDate,
         EnvironmentType type,
         String role,
-        String region) {
+        String region,
+        List<String> accessGroups,
+        List<String> effectiveAccessGroups) {
 }
