@@ -2,8 +2,8 @@ package org.qubership.colly.uiservice.mapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.qubership.colly.uiservice.dto.ClusterDto;
-import org.qubership.colly.uiservice.dto.LightClusterDto;
 import org.qubership.colly.uiservice.dto.EnvironmentDto;
+import org.qubership.colly.uiservice.dto.LightClusterDto;
 import org.qubership.colly.uiservice.dto.NamespaceDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryClusterDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryEnvironmentDto;
@@ -110,7 +110,7 @@ public class DtoMapper {
             return null;
         }
 
-        Boolean synced = operationalCluster != null ? operationalCluster.synced() : null;
+        boolean synced = operationalCluster != null && operationalCluster.synced();
 
         return new ClusterDto(
                 inventoryCluster.id(),
