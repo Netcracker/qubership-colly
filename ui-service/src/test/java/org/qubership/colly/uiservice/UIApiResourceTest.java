@@ -11,8 +11,8 @@ import org.qubership.colly.uiservice.client.OperationalServiceClient;
 import org.qubership.colly.uiservice.dto.EnvironmentStatus;
 import org.qubership.colly.uiservice.dto.EnvironmentType;
 import org.qubership.colly.uiservice.dto.inventory.InventoryClusterDto;
-import org.qubership.colly.uiservice.dto.inventory.InventoryLightClusterDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryEnvironmentDto;
+import org.qubership.colly.uiservice.dto.inventory.InventoryLightClusterDto;
 import org.qubership.colly.uiservice.dto.inventory.InventoryNamespaceDto;
 import org.qubership.colly.uiservice.dto.operational.OperationalClusterDto;
 import org.qubership.colly.uiservice.dto.operational.OperationalEnvironmentDto;
@@ -162,6 +162,31 @@ class UIApiResourceTest {
                 .body("[0].id", equalTo("cluster-1"))
                 .body("[0].name", equalTo("test-cluster"))
                 .body("[0].synced", equalTo(true));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getClusters_fail() {
+        when(operationalServiceClient.getClusters()).thenThrow(new RuntimeException("Error"));
+        given()
+                .when().get("/colly/v2/ui-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].id", equalTo("cluster-1"))
+                .body("[0].name", equalTo("test-cluster"))
+                .body("[0].synced", equalTo(false));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getClusters_fail_inventory_service() {
+        when(inventoryServiceClient.getClusters()).thenThrow(new RuntimeException("Error"));
+        given()
+                .when().get("/colly/v2/ui-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(0));
     }
 
     @Test
