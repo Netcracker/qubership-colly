@@ -20,6 +20,7 @@
         <org.eclipse.jgit.version>7.0.0.202409031743-r</org.eclipse.jgit.version>
         <quarkus-wiremock-test.version>1.4.1</quarkus-wiremock-test.version>
         <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
+        <lombok.version>1.18.42</lombok.version>
     </properties>
 
     <dependencyManagement>
@@ -84,6 +85,11 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-redis-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
         </dependency>
         <dependency>
             <groupId>io.quarkiverse.wiremock</groupId>
