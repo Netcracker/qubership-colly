@@ -2,10 +2,8 @@ package org.qubership.colly.mapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.repository.ClusterRepository;
-import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
 import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.dto.NamespaceDTO;
@@ -19,14 +17,12 @@ public class EnvironmentMapper {
     private final ClusterMapper clusterMapper;
     private final NamespaceRepository namespaceRepository;
     private final ClusterRepository clusterRepository;
-    private final EnvironmentRepository environmentRepository;
 
     @Inject
-    public EnvironmentMapper(ClusterMapper clusterMapper, NamespaceRepository namespaceRepository, ClusterRepository clusterRepository, EnvironmentRepository environmentRepository) {
+    public EnvironmentMapper(ClusterMapper clusterMapper, NamespaceRepository namespaceRepository, ClusterRepository clusterRepository) {
         this.clusterMapper = clusterMapper;
         this.namespaceRepository = namespaceRepository;
         this.clusterRepository = clusterRepository;
-        this.environmentRepository = environmentRepository;
     }
 
     /**
@@ -46,18 +42,6 @@ public class EnvironmentMapper {
                 entity.getCleanInstallationDate(),
                 entity.getMonitoringData()
         );
-    }
-
-    /**
-     * Convert a list of Environment entities to DTOs
-     */
-    public List<EnvironmentDTO> toDTOs(List<CloudPassportEnvironment> entities) {
-        return entities.stream()
-                .map(env -> {
-                    Environment environment = environmentRepository.findById(env.name()).orElse(null);
-                    return toDTO(environment);
-                })
-                .toList();
     }
 
 
