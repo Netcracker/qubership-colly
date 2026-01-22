@@ -70,18 +70,26 @@ public class ClusterResourcesLoader {
         }
     }
 
-    //for testing purposes
+    //package-private for testing purposes
     void loadClusterResources(CoreV1Api coreV1Api, ClusterInfo clusterInfo) {
         Log.info("Start Loading cluster resources for: " + clusterInfo.name());
         Cluster cluster = clusterRepository.findByName(clusterInfo.name());
         if (cluster == null) {
-            cluster = new Cluster(clusterInfo.id(), clusterInfo.name());
+            cluster = Cluster.builder().id(clusterInfo.id()).name(clusterInfo.name()).build();
             Log.info("Cluster " + clusterInfo.name() + " not found in db. Creating new one.");
             clusterRepository.save(cluster);
         }
 
         //it is requirzed to set links to cluster only if it was saved to db. so need to invoke persist two
         List<Environment> environments = loadEnvironments(coreV1Api, cluster, clusterInfo.environments(), clusterInfo.monitoringUrl());
+        try {
+            V1NodeList execute = coreV1Api.listNode().execute();
+            int numberOfNodes = execute.getItems().size();
+            cluster.setNumberOfNodes(numberOfNodes);
+            Log.info("Nodes count for cluster =" + cluster.getName() + " is " + numberOfNodes);
+        } catch (ApiException e) {
+            Log.error("Can't load nodes from cluster " + cluster.getName() + ". " + e.getMessage());
+        }
         cluster.setEnvironmentIds(environments.stream().map(Environment::getId).collect(Collectors.toList()));
         clusterRepository.save(cluster);
         Log.info("Cluster " + clusterInfo.name() + " loaded successfully.");

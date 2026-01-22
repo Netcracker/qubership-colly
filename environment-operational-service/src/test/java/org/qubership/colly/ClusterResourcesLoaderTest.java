@@ -17,13 +17,16 @@ import org.junit.jupiter.api.Test;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.ClusterInfo;
+import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
+import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +68,8 @@ class ClusterResourcesLoaderTest {
 
     @Inject
     RedisDataSource redisDataSource;
+    @Inject
+    ClusterRepository clusterRepository;
 
     private static @NotNull CloudPassportEnvironment createEnvForTests(String name, List<CloudPassportNamespace> namespaces) {
         return new CloudPassportEnvironment(name, name, "some env for tests", namespaces);
@@ -75,7 +80,7 @@ class ClusterResourcesLoaderTest {
         coreV1Api = mock(CoreV1Api.class);
 
         redisDataSource.flushall();
-
+        mockNodesLoading();
         mockAllNamespaceResources();
         wiremock.register(WireMock.get(WireMock.urlPathMatching("/api/v1/query"))
                 .willReturn(WireMock.aResponse()
@@ -89,6 +94,7 @@ class ClusterResourcesLoaderTest {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
                 Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), "http://localhost:" + port);
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
+        mockNodesLoading(new V1Node(), new V1Node());
 
         String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
         V1ConfigMap configMap = new V1ConfigMap()
@@ -115,7 +121,11 @@ class ClusterResourcesLoaderTest {
         Namespace testNamespace = namespaces.stream().filter(ns -> NAMESPACE_NAME.equals(ns.getName())).findFirst().orElse(null);
         assertThat(testNamespace, hasProperty("name", equalTo(NAMESPACE_NAME)));
 
-
+        Cluster cluster = clusterRepository.findById(testEnv.getClusterId());
+        assertThat(cluster, allOf(
+                hasProperty("name", equalTo(CLUSTER_NAME)),
+                hasProperty("synced", equalTo(true)),
+                hasProperty("numberOfNodes", equalTo(2))));
     }
 
     @Test
@@ -262,6 +272,12 @@ class ClusterResourcesLoaderTest {
                 hasProperty("existsInK8s", equalTo(false)),
                 hasProperty("name", equalTo(NAMESPACE_NAME)))));
         assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
+
+        Cluster cluster = clusterRepository.findById(testEnv.getClusterId());
+        assertThat(cluster, allOf(
+                hasProperty("name", equalTo("unreachable-cluster")),
+                hasProperty("synced", equalTo(false))));
+
     }
 
     @Test
@@ -338,6 +354,13 @@ class ClusterResourcesLoaderTest {
         CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
         when(coreV1Api.listNamespace()).thenReturn(nsRequest);
         when(nsRequest.execute()).thenReturn(nsList);
+    }
+
+    private void mockNodesLoading(V1Node... nodes) throws ApiException {
+        V1NodeList items = new V1NodeList().items(Arrays.stream(nodes).toList());
+        CoreV1Api.APIlistNodeRequest nodeRequest = mock(CoreV1Api.APIlistNodeRequest.class);
+        when(coreV1Api.listNode()).thenReturn(nodeRequest);
+        when(nodeRequest.execute()).thenReturn(items);
     }
 
 }

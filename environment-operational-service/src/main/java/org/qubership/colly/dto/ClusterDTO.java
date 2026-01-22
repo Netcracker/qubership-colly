@@ -17,6 +17,9 @@ public record ClusterDTO(
                 required = true
         )
         String name,
+        @Schema(description = "Count of nodes for kubernetes cluster",
+                examples = "3")
+        Integer numberOfNodes,
 
         @Schema(
                 description = "Indicates whether the cluster has been synchronized with Kubernetes API",
