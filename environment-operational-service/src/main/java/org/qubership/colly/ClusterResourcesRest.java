@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
@@ -36,17 +37,20 @@ public class ClusterResourcesRest {
     private final MonitoringService monitoringService;
     private final ClusterMapper clusterMapper;
     private final EnvironmentMapper environmentMapper;
+    private final String syncCronSchedule;
 
     @Inject
     public ClusterResourcesRest(CollyStorage collyStorage,
                                 SecurityIdentity securityIdentity,
                                 MonitoringService monitoringService,
-                                ClusterMapper clusterMapper, EnvironmentMapper environmentMapper) {
+                                ClusterMapper clusterMapper, EnvironmentMapper environmentMapper,
+                                @ConfigProperty(name = "colly.environment-operational-service.cron.schedule") String syncCronSchedule) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.monitoringService = monitoringService;
         this.clusterMapper = clusterMapper;
         this.environmentMapper = environmentMapper;
+        this.syncCronSchedule = syncCronSchedule;
     }
 
     @GET
@@ -421,7 +425,7 @@ public class ClusterResourcesRest {
     })
     public ApplicationMetadata getMetadata() {
         List<String> parameters = monitoringService.getParameters();
-        return new ApplicationMetadata(parameters);
+        return new ApplicationMetadata(parameters, syncCronSchedule);
     }
 }
 

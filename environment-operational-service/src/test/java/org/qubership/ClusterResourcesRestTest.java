@@ -105,7 +105,8 @@ class ClusterResourcesRestTest {
                 .when().get("/colly/v2/operational-service/metadata")
                 .then()
                 .statusCode(200)
-                .body("monitoringColumns", contains("Failed Deployments", "Running Pods"));
+                .body("monitoringColumns", contains("Failed Deployments", "Running Pods"))
+                .body("clusterSyncSchedule", equalTo("0 0 0 1 1 ? 2020"));
     }
 
     @Test
