@@ -11,5 +11,12 @@ public record ApplicationMetadata(
                 examples = "[\"cpu_usage\", \"memory_usage\", \"pod_count\", \"deployment_version\"]",
                 required = true
         )
-        List<String> monitoringColumns) {
+        List<String> monitoringColumns,
+        @Schema(
+                description = "Cron expression defining the schedule for synchronization with Kubernetes clusters",
+                examples = "0 * * * * ?",
+                required = true
+        )
+        String clusterSyncSchedule
+) {
 }

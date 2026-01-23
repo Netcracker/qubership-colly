@@ -24,6 +24,7 @@ import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
@@ -105,7 +106,7 @@ class ClusterResourcesLoaderTest {
                 .data(Map.of("solution-descriptors-summary", exampleOfLongVersion));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
-
+        Instant testStartTime = Instant.now();
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
 
         List<Environment> envs = environmentRepository.findByName("env-test");
@@ -124,7 +125,9 @@ class ClusterResourcesLoaderTest {
         Cluster cluster = clusterRepository.findById(testEnv.getClusterId());
         assertThat(cluster, allOf(
                 hasProperty("name", equalTo(CLUSTER_NAME)),
-                hasProperty("synced", equalTo(true)),
+                hasProperty("lastSuccessfulSyncAt", allOf(
+                        greaterThanOrEqualTo(testStartTime),
+                        lessThanOrEqualTo(Instant.now()))),
                 hasProperty("numberOfNodes", equalTo(2))));
     }
 
@@ -267,17 +270,17 @@ class ClusterResourcesLoaderTest {
         Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElse(null);
         assertThat(testEnv, hasProperty("name", equalTo("env-unreachable")));
         assertThat(testEnv.getNamespaceIds(), hasSize(1));
+        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
         List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
         assertThat(allNamespaces, hasItems(allOf(
                 hasProperty("existsInK8s", equalTo(false)),
                 hasProperty("name", equalTo(NAMESPACE_NAME)))));
-        assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
+
 
         Cluster cluster = clusterRepository.findById(testEnv.getClusterId());
         assertThat(cluster, allOf(
                 hasProperty("name", equalTo("unreachable-cluster")),
-                hasProperty("synced", equalTo(false))));
-
+                hasProperty("lastSuccessfulSyncAt", nullValue())));
     }
 
     @Test

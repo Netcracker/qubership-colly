@@ -2,6 +2,8 @@ package org.qubership.colly.dto;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+import java.time.Instant;
+
 @Schema(description = "Kubernetes cluster operational information")
 public record ClusterDTO(
         @Schema(
@@ -22,9 +24,9 @@ public record ClusterDTO(
         Integer numberOfNodes,
 
         @Schema(
-                description = "Indicates whether the cluster has been synchronized with Kubernetes API",
-                examples = "true",
+                description = "Indicates when the cluster has been synchronized with Kubernetes API",
+                examples = "2026-01-23T07:40:03.463731Z",
                 required = true
         )
-        boolean synced) {
+        Instant lastSuccessfulSyncAt) {
 }
