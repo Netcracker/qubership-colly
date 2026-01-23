@@ -102,10 +102,9 @@ public class ClusterResourcesLoader {
         try {
             V1NamespaceList list = apilistNamespaceRequest.execute();
             k8sNamespaces = list.getItems().stream().collect(Collectors.toMap(v1Namespace -> getNameSafely(v1Namespace.getMetadata()), Function.identity()));
-            cluster.setSynced(true);
+            cluster.setLastSuccessfulSyncAt(Instant.now());
         } catch (ApiException e) {
             k8sNamespaces = new HashMap<>();
-            cluster.setSynced(false);
             Log.error("Can't load namespaces from cluster " + cluster.getName() + ". " + e.getMessage());
         }
 

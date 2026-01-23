@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -12,7 +13,7 @@ import java.util.List;
 public class Cluster {
     private String id;
     private String name;
-    private Boolean synced;
+    private Instant lastSuccessfulSyncAt;
     private Integer numberOfNodes;
     private List<String> environmentIds;
     private List<String> namespaceIds;
