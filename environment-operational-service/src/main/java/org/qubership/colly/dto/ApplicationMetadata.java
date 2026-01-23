@@ -13,7 +13,7 @@ public record ApplicationMetadata(
         )
         List<String> monitoringColumns,
         @Schema(
-                description = "",
+                description = "Cron expression defining the schedule for synchronization with Kubernetes clusters",
                 examples = "0 * * * * ?",
                 required = true
         )
