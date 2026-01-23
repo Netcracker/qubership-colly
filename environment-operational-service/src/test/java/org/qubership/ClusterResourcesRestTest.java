@@ -187,7 +187,7 @@ class ClusterResourcesRestTest {
                 ))
                 .body("cluster.id", equalTo("1"))
                 .body("cluster.name", equalTo("test-cluster"))
-                .body("cluster.synced", equalTo(false));
+                .body("cluster.lastSuccessfulSyncAt", nullValue());
 
     }
 
