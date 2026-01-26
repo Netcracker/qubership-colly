@@ -7,6 +7,7 @@ repositories:
   - type: envgeneInstance
     url: https://gitlab.com/test/repo1.git
     token: test-token-1
+    branch: main
     region: cn
   - type: envgeneInstance
     url: https://gitlab.com/test/repo2.git

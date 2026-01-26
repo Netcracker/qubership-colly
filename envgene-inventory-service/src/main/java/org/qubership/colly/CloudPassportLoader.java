@@ -84,7 +84,7 @@ public class CloudPassportLoader {
 
             for (InstanceRepository instanceRepository : project.instanceRepositories()) {
                 String folderNameToClone = cloudPassportFolder + "/" + index;
-                gitService.cloneRepository(instanceRepository.url(), new File(folderNameToClone));
+                gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), instanceRepository.token(), new File(folderNameToClone));
                 result.add(new GitInfo(instanceRepository, folderNameToClone, project.id()));
                 index++;
             }

@@ -39,10 +39,10 @@ class InventoryServiceRestTest {
     @BeforeEach
     void setUp() {
         doAnswer(invocation -> {
-                    FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(1));
+            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(3));
                     return null;
                 }
-        ).when(gitService).cloneRepository(anyString(), any());
+        ).when(gitService).cloneRepository(anyString(), any(), any(), any());
     }
 
     @Test

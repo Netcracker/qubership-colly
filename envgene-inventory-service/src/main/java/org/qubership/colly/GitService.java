@@ -7,10 +7,8 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.io.IOException;
 
 @ApplicationScoped
 public class GitService {
@@ -18,22 +16,25 @@ public class GitService {
     @ConfigProperty(name = "colly.eis.git.token")
     String gitToken;
 
-    public void cloneRepository(String repositoryUrl, File destinationPath) {
+    public void cloneRepository(String repositoryUrl, String branch, String token, File destinationPath) {
+        String tokenToUse = token != null && !token.isBlank() ? token : gitToken;
         CredentialsProvider credentialsProvider =
-                new UsernamePasswordCredentialsProvider("", gitToken);
+                new UsernamePasswordCredentialsProvider("", tokenToUse);
 
         Log.info("Cloning repository from " + repositoryUrl + " to " + destinationPath);
         Git git = null;
         try {
-            if (gitToken != null && !gitToken.isBlank()) {
+            if (!tokenToUse.isBlank()) {
                 git = Git.cloneRepository()
                         .setURI(repositoryUrl)
+                        .setBranch(branch)
                         .setDirectory(destinationPath)
                         .setCredentialsProvider(credentialsProvider)
                         .call();
             } else {
                 git = Git.cloneRepository()
                         .setURI(repositoryUrl)
+                        .setBranch(branch)
                         .setDirectory(destinationPath)
                         .call();
             }
