@@ -99,7 +99,14 @@ public class CloudPassportLoader {
         CloudPassportData cloudPassportData;
         try (Stream<Path> paths = Files.list(cloudPassportFolderPath)) {
             cloudPassportData = paths
-                    .filter(path -> path.getFileName().toString().equals(clusterName + ".yml"))
+                    .filter(path -> {
+                                String fileName = path.getFileName().toString();
+                                return fileName.equals(clusterName + ".yml")
+                                        || fileName.equals(clusterName + ".yaml")
+                                        || fileName.equals("passport.yaml")
+                                        || fileName.equals("passport.yml");
+                            }
+                    )
                     .map(this::parseCloudPassportDataFile)
                     .findFirst().orElseThrow();
         } catch (Exception e) {
@@ -110,7 +117,13 @@ public class CloudPassportLoader {
         String token;
         try (Stream<Path> credsPath = Files.list(cloudPassportFolderPath)) {
             token = credsPath
-                    .filter(path -> path.getFileName().toString().equals(clusterName + "-creds.yml"))
+                    .filter(path -> {
+                        String fileName = path.getFileName().toString();
+                        return fileName.equals(clusterName + "-creds.yml")
+                                || fileName.equals(clusterName + "-creds.yaml")
+                                || fileName.equals("passport-creds.yml")
+                                || fileName.equals("passport-creds.yaml");
+                    })
                     .map(path -> parseTokenFromCredsFile(path, cloudPassportData))
                     .findFirst().orElseThrow();
 
