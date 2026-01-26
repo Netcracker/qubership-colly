@@ -33,8 +33,8 @@ class ProjectRepoLoaderTest {
             ProjectType.PRODUCT,
             "Test Customer 1",
             List.of(
-                    new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1", "cn"),
-                    new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2", "mb")
+                    new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "main", "test-token-1", "cn"),
+                    new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", null, "test-token-2", "mb")
             ),
             List.of(),
             ClusterPlatform.OCP,
@@ -47,7 +47,7 @@ class ProjectRepoLoaderTest {
             ProjectType.PROJECT,
             "Test Customer 2",
             List.of(
-                    new InstanceRepository("https://gitlab.com/test/repo4.git", "https://gitlab.com/test/repo4.git", "test-token-4", "cn")
+                    new InstanceRepository("https://gitlab.com/test/repo4.git", "https://gitlab.com/test/repo4.git", null, "test-token-4", "cn")
             ),
             List.of(),
             ClusterPlatform.K8S,
@@ -62,10 +62,10 @@ class ProjectRepoLoaderTest {
     @BeforeEach
     void setUp() {
         doAnswer(invocation -> {
-                    FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(1));
+            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(3));
                     return null;
                 }
-        ).when(gitService).cloneRepository(anyString(), any());
+        ).when(gitService).cloneRepository(anyString(), any(), any(), any());
     }
 
     @Test
@@ -99,6 +99,7 @@ class ProjectRepoLoaderTest {
                 repositories:
                   - type: envgeneInstance
                     url: https://gitlab.com/test/repo1.git
+                    branch: main
                     token: test-token-1
                   - type: envgeneInstance
                     url: https://gitlab.com/test/repo2.git
@@ -117,8 +118,8 @@ class ProjectRepoLoaderTest {
                 ProjectType.PRODUCT,
                 "Test Customer",
                 List.of(
-                        new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "test-token-1", null),
-                        new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", "test-token-2", null)
+                        new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "main", "test-token-1", null),
+                        new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", null, "test-token-2", null)
                 ),
                 List.of(),
                 ClusterPlatform.OCP, null,

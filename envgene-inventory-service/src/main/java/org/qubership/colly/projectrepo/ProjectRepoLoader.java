@@ -43,7 +43,7 @@ public class ProjectRepoLoader {
             return null;
         }
 
-        gitService.cloneRepository(projectGitRepoUrl, directory);
+        gitService.cloneRepository(projectGitRepoUrl, null, null, directory);
 
         Path dir = Paths.get(projectRepoFolder);
         try (Stream<Path> walk = Files.walk(dir)) {
@@ -99,6 +99,7 @@ public class ProjectRepoLoader {
                 .map(repoEntity -> new InstanceRepository(
                         repoEntity.url(),//todo do we need id here?
                         repoEntity.url(),
+                        repoEntity.branch(),
                         repoEntity.token(),
                         repoEntity.region()))
                 .toList();
