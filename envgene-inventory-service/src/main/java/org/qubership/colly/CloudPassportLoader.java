@@ -108,7 +108,7 @@ public class CloudPassportLoader {
                             }
                     )
                     .map(this::parseCloudPassportDataFile)
-                    .findFirst().orElseThrow();
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Cloud passport data file with name (" + clusterName + ".yml|yaml, passport.yml|yaml) is not found in " + cloudPassportFolderPath));
         } catch (Exception e) {
             Log.error("Error loading Cloud Passport from " + cloudPassportFolderPath, e);
             return null;
@@ -125,7 +125,7 @@ public class CloudPassportLoader {
                                 || fileName.equals("passport-creds.yaml");
                     })
                     .map(path -> parseTokenFromCredsFile(path, cloudPassportData))
-                    .findFirst().orElseThrow();
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Cloud passport creds file with name (" + clusterName + "-creds.yml|yaml, passport-creds.yml|yaml) is not found in " + cloudPassportFolderPath));
 
         } catch (Exception e) {
             Log.error("Error loading Cloud Passport from " + cloudPassportFolderPath, e);
