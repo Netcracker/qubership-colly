@@ -17,7 +17,12 @@ public record InstanceRepositoryDto(
                 required = true
         )
         String url,
-
+        @Schema(
+                description = "Repository URL",
+                examples = "main",
+                nullable = true
+        )
+        String branch,
         @Schema(
                 description = "Access token for repository authentication",
                 examples = "ghp_1234567890abcdef",

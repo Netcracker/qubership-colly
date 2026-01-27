@@ -98,6 +98,7 @@ public class DtoMapper {
         return new InstanceRepositoryDto(
                 instanceRepository.id(),
                 instanceRepository.url(),
+                instanceRepository.branch(),
                 instanceRepository.token(),
                 instanceRepository.region()
         );

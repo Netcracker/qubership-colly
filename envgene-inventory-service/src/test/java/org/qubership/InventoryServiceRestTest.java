@@ -502,6 +502,7 @@ class InventoryServiceRestTest {
                 .body("instanceRepositories", hasItem(
                         allOf(
                                 hasEntry("url", "gitrepo_with_cloudpassports"),
+                                hasEntry("branch", "main"),
                                 hasEntry("token", "earth-envgene-token-789")
                         )
                 ))
