@@ -23,13 +23,14 @@ project-git-repo/
 
 ### Top-Level Fields
 
-| Field | Type | Required | Description                                                                  |
-|-------|------|----------|------------------------------------------------------------------------------|
-| `customerName` | String | Yes | Customer or organization name                                                |
-| `name` | String | Yes | Project name (unique identifier)                                             |
-| `type` | String | Yes | Project type: `project` or `product`                                         |
-| `clusterPlatform` | String | Yes | Cluster platform: `k8s` or `ocp` (OpenShift Container Platform)              |
-| `repositories` | Array | Yes | List of repository configurations (instance repos, pipelines, template repo) |
+| Field             | Type          | Required | Description                                                                  |
+|-------------------|---------------|----------|------------------------------------------------------------------------------|
+| `customerName`    | String        | Yes      | Customer or organization name                                                |
+| `name`            | String        | Yes      | Project name (unique identifier)                                             |
+| `type`            | String        | Yes      | Project type: `project` or `product`                                         |
+| `clusterPlatform` | String        | Yes      | Cluster platform: `k8s` or `ocp` (OpenShift Container Platform)              |
+| `repositories`    | Array         | Yes      | List of repository configurations (instance repos, pipelines, template repo) |
+| `accessGroups`    | Array[String] | No       | List of access group names for role-based access control                     |
 
 ### Repository Types
 
@@ -39,12 +40,13 @@ The `repositories` array can contain different types of repository configuration
 
 Repositories containing Cloud Passport configurations for environments.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | String | Yes | Must be `envgeneInstance` |
-| `url` | String | Yes | Git repository URL or local path |
-| `token` | String | No | Authentication token for private repositories |
-| `region` | String | No | Geographic region identifier (e.g., `us-east-1`, `eu-west-1`, `cn`, `mb`) |
+| Field    | Type   | Required | Description                                                                |
+|----------|--------|----------|----------------------------------------------------------------------------|
+| `type`   | String | Yes      | Must be `envgeneInstance`                                                  |
+| `url`    | String | Yes      | Git repository URL or local path                                           |
+| `branch` | String | No       | Git branch to use (defaults to repository default branch if not specified) |
+| `token`  | String | No       | Authentication token for private repositories                              |
+| `region` | String | No       | Geographic region identifier (e.g., `us-east-1`, `eu-west-1`, `cn`, `mb`)  |
 
 #### 2. Cluster Provision Pipeline (`clusterProvision`)
 
@@ -109,6 +111,10 @@ customerName: Solar System
 name: saturn
 type: product
 clusterPlatform: ocp
+accessGroups:
+  - saturn-admins
+  - saturn-developers
+  - platform-team
 repositories:
   - type: envgeneInstance
     url: https://github.com/example/envgene-saturn
@@ -130,7 +136,7 @@ repositories:
       defaultTemplateDescriptorName: dev
 ```
 
-### Example 2: Project with Multiple Regions
+### Example 2: Project with Multiple Regions and Feature Branch
 
 ```yaml
 # projects/solar_earth/parameters.yaml
@@ -138,9 +144,12 @@ customerName: Solar System
 name: earth
 type: project
 clusterPlatform: k8s
+accessGroups:
+  - earth-team
 repositories:
   - type: envgeneInstance
     url: https://github.com/example/envgene-earth
+    branch: feature/new-environments  # Using a feature branch
     token: earth-envgene-token-789
     region: cn
   - type: clusterProvision
@@ -185,6 +194,20 @@ repositories:
 
 - **`k8s`**: Standard Kubernetes clusters
 - **`ocp`**: Red Hat OpenShift Container Platform
+
+### Access Groups
+
+The `accessGroups` field enables role-based access control for projects. It defines which user groups have access to the
+project.
+
+- Groups are typically mapped to identity provider groups (e.g., LDAP, Keycloak, Active Directory)
+- Group names are case-sensitive and should match exactly with the identity provider
+
+**Example use cases:**
+
+- Restrict project access to specific teams: `["team-backend", "team-devops"]`
+- Limit access by department: `["dept-engineering"]`
+- Combine role-based groups: `["project-saturn-admins", "project-saturn-developers", "project-saturn-viewers"]`
 
 ### Region
 
