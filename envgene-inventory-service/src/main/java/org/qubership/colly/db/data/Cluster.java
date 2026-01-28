@@ -16,6 +16,7 @@ public class Cluster {
     private String name;
     private String token;
     private String cloudApiHost;
+    private String cloudPublicHost;
     private String monitoringUrl;
     @Builder.Default
     private List<Environment> environments = new ArrayList<>();

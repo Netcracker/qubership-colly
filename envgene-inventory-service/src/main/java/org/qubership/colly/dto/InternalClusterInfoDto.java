@@ -33,6 +33,12 @@ public record InternalClusterInfoDto(
                 required = true
         )
         String cloudApiHost,
+        @Schema(
+                description = "Postfix for all ingresses in cloud",
+                examples = "gr7.eu-west-1.eks.amazonaws.com",
+                required = true
+        )
+        String cloudPublicHost,
 
         @Schema(
                 description = "List of environments deployed on this cluster",

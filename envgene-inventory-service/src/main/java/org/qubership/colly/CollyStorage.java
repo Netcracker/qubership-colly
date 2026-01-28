@@ -74,6 +74,7 @@ public class CollyStorage {
         }
         cluster.setToken(cloudPassport.token());
         cluster.setCloudApiHost(cloudPassport.cloudApiHost());
+        cluster.setCloudPublicHost(cloudPassport.cloudPublicHost());
         cluster.setMonitoringUrl(cloudPassport.monitoringUrl());
         cluster.setGitInfo(cloudPassport.gitInfo());
         cluster.setDashboardUrl(cloudPassport.dashboardUrl());

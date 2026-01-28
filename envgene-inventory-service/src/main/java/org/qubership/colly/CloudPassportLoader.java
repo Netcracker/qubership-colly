@@ -144,7 +144,7 @@ public class CloudPassportLoader {
                     monitoringUri = monitoringUri.replace("${MONITORING_NAMESPACE}", cse.monitoringNamespace());
                 }
             } else if (cse.monitoringNamespace() != null && MONITORING_TYPE_VICTORIA_DB.equals(cse.monitoringType())) {
-                monitoringUri = "http://vmsingle-k8s." + cse.monitoringNamespace() + ":8429";
+                monitoringUri = "https://vmsingle-" + cse.monitoringNamespace() + "." + cloud.cloudPublicHost();
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
@@ -156,7 +156,7 @@ public class CloudPassportLoader {
         String dbaasUrl = null;
         if (cloudPassportData.dbaas() != null) dbaasUrl = cloudPassportData.dbaas().apiDBaaSAddress();
         Log.info("Cloud DBaaS URL: " + dbaasUrl);
-        return new CloudPassport(clusterName, token, cloudApiHost, environments, monitoringUri, gitInfo,
+        return new CloudPassport(clusterName, token, cloudApiHost, cloud.cloudPublicHost(), environments, monitoringUri, gitInfo,
                 cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl);
     }
 

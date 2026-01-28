@@ -7,6 +7,7 @@ cloud:
   CLOUD_API_HOST: 1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com
   CLOUD_API_PORT: "443"
   CLOUD_DEPLOY_TOKEN: cloud-deploy-sa-token
+  CLOUD_PUBLIC_HOST: gr7.eu-west-1.eks.amazonaws.com
   CLOUD_PROTOCOL: https
   PRODUCTION_MODE: "false"
   SOME_UI_URL: https://som-ui.my-cluster.com
