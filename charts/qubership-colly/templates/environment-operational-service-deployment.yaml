@@ -50,7 +50,7 @@ spec:
                 secretKeyRef:
                   key: idpClientId
                   name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
-            - name: QUARKUS_OIDC_CLIENT_SECRET
+            - name: QUARKUS_OIDC_CREDENTIALS_SECRET
               valueFrom:
                 secretKeyRef:
                   key: idpClientSecret
