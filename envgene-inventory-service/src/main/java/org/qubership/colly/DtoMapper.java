@@ -96,7 +96,6 @@ public class DtoMapper {
 
     public InstanceRepositoryDto toDto(InstanceRepository instanceRepository) {
         return new InstanceRepositoryDto(
-                instanceRepository.id(),
                 instanceRepository.url(),
                 instanceRepository.branch(),
                 instanceRepository.token(),
@@ -109,7 +108,6 @@ public class DtoMapper {
             return null;
         }
         return new TemplateRepositoryDto(
-                envgeneTemplateRepository.id(),
                 envgeneTemplateRepository.url(),
                 envgeneTemplateRepository.token(),
                 envgeneTemplateRepository.branch(),

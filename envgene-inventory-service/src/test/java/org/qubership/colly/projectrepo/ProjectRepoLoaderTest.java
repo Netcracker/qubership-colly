@@ -33,14 +33,14 @@ class ProjectRepoLoaderTest {
             ProjectType.PRODUCT,
             "Test Customer 1",
             List.of(
-                    new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "main", "test-token-1", "cn"),
-                    new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", null, "test-token-2", "mb")
+                    new InstanceRepository("https://gitlab.com/test/repo1.git", "main", "test-token-1", "cn"),
+                    new InstanceRepository("https://gitlab.com/test/repo2.git", null, "test-token-2", "mb")
             ),
             List.of(
                     new Pipeline(PipelineType.CLUSTER_PROVISION, "https://gitlab.com/test/pipeline-repo3.git", "test", "test-token-3", null)
             ),
             ClusterPlatform.OCP,
-            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "https://gitlab.com/test/templateRepo.git", "test-token", "main",
+            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "test-token", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")),
             List.of("group1", "group2"));
     public static final Project TEST_PROJECT_2 = new Project(
@@ -49,11 +49,11 @@ class ProjectRepoLoaderTest {
             ProjectType.PROJECT,
             "Test Customer 2",
             List.of(
-                    new InstanceRepository("https://gitlab.com/test/repo4.git", "https://gitlab.com/test/repo4.git", null, "test-token-4", "cn")
+                    new InstanceRepository("https://gitlab.com/test/repo4.git", null, "test-token-4", "cn")
             ),
             List.of(),
             ClusterPlatform.K8S,
-            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "https://gitlab.com/test/templateRepo2.git", "test-token", "main",
+            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "test-token", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-0987654", List.of("ci", "migration"), "ci")),
             List.of());
     @InjectMock
@@ -120,8 +120,8 @@ class ProjectRepoLoaderTest {
                 ProjectType.PRODUCT,
                 "Test Customer",
                 List.of(
-                        new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "main", "test-token-1", null),
-                        new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", null, "test-token-2", null)
+                        new InstanceRepository("https://gitlab.com/test/repo1.git", "main", "test-token-1", null),
+                        new InstanceRepository("https://gitlab.com/test/repo2.git", null, "test-token-2", null)
                 ),
                 List.of(),
                 ClusterPlatform.OCP, null,

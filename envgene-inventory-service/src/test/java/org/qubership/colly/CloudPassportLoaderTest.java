@@ -69,7 +69,7 @@ class CloudPassportLoaderTest {
                             List.of("group1", "group2"),
                             List.of("group1", "group2", "group3"))),
             "http://localhost:8428",
-            new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "main", "42", "cn"),
+            new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),
                     "target/test-cloud-passport-folder/1", "1"),
             "https://dashboard.example.com",
             "https://dbaas.example.com",
@@ -93,7 +93,7 @@ class CloudPassportLoaderTest {
                     List.of(),
                     List.of())),
             "http://vmsingle-k8s.victoria:8429",
-            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/2", "2"),
+            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/2", "2"),
             null,
             null,
             null,
@@ -121,11 +121,11 @@ class CloudPassportLoaderTest {
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
     void load_cloud_passports_from_test_folder() {
         Project project1 = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
-                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "gitrepo_with_cloudpassports", "main", "42", "cn")), List.of(), ClusterPlatform.K8S,
-                new EnvgeneTemplateRepository("gitrepo_template", "gitrepo_template", "44", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")), List.of());
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")), List.of(), ClusterPlatform.K8S,
+                new EnvgeneTemplateRepository("gitrepo_template", "44", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")), List.of());
         Project project2 = new Project("2", "project-2", ProjectType.PROJECT, "some-customer",
-                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "gitrepo_with_unreachable_cluster", "main", "43", "mb")), List.of(), ClusterPlatform.K8S,
-                new EnvgeneTemplateRepository("gitrepo_template2", "gitrepo_template2", "45", "main", new EnvgeneArtifact("my-app:feature-new-ui-09876", List.of("dev", "qa"), "qa")), List.of("group1", "group2"));
+                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb")), List.of(), ClusterPlatform.K8S,
+                new EnvgeneTemplateRepository("gitrepo_template2", "45", "main", new EnvgeneArtifact("my-app:feature-new-ui-09876", List.of("dev", "qa"), "qa")), List.of("group1", "group2"));
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
         assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 
