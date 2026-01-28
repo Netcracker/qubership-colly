@@ -82,6 +82,14 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("name", contains("test-cluster", "unreachable-cluster"))
+                .body(".", hasItem(
+                        allOf(
+                                hasEntry("name", "test-cluster"),
+                                hasEntry("token", "some_token_for_test_cluster"),
+                                hasEntry("cloudApiHost", "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443"),
+                                hasEntry("cloudPublicHost", "gr7.eu-west-1.eks.amazonaws.com"),
+                                hasEntry("monitoringUrl", "http://localhost:8428")
+                        )))
                 .body("environments.flatten()", containsInAnyOrder(
                         hasEntry("name", "env-test"),
                         hasEntry("name", "env-metadata-test"),

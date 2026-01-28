@@ -11,6 +11,8 @@ public record CloudData(
         String cloudApiPort,
         @JsonProperty("CLOUD_DEPLOY_TOKEN")
         String cloudDeployToken,
+        @JsonProperty("CLOUD_PUBLIC_HOST")
+        String cloudPublicHost,
         @JsonProperty("CLOUD_PROTOCOL")
         String cloudProtocol,
         @JsonProperty("CLOUD_DASHBOARD_URL")

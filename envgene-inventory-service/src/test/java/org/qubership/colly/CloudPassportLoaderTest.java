@@ -41,6 +41,7 @@ class CloudPassportLoaderTest {
     private static final CloudPassport TEST_CLUSTER = new CloudPassport("test-cluster",
             "some_token_for_test_cluster",
             "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
+            "gr7.eu-west-1.eks.amazonaws.com",
             Set.of(new CloudPassportEnvironment(
                             "env-test",
                             "some env for tests",
@@ -78,6 +79,7 @@ class CloudPassportLoaderTest {
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
+            "unreachable.url",
             Set.of(new CloudPassportEnvironment(
                     "env-1",
                     "some env for tests",
@@ -92,7 +94,7 @@ class CloudPassportLoaderTest {
                     null,
                     List.of(),
                     List.of())),
-            "http://vmsingle-k8s.victoria:8429",
+            "https://vmsingle-victoria.unreachable.url",
             new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/2", "2"),
             null,
             null,
@@ -179,7 +181,7 @@ class CloudPassportLoaderTest {
 
     @Test
     void testParseTokenFromCredsFile_validYaml(@TempDir Path tempDir) throws IOException {
-        CloudData cloud = new CloudData(null, null, "tokenKey",
+        CloudData cloud = new CloudData(null, null, "tokenKey", null,
                 null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
@@ -197,7 +199,7 @@ class CloudPassportLoaderTest {
 
     @Test
     void testParseTokenFromCredsFile_missingSecretThrows(@TempDir Path tempDir) throws IOException {
-        CloudData cloud = new CloudData(null, null, "missingKey",
+        CloudData cloud = new CloudData(null, null, "missingKey", null,
                 null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
