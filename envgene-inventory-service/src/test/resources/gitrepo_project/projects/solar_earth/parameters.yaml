@@ -12,6 +12,7 @@ repositories:
   - type: clusterProvision
     url: https://github.com/example/cluster-provision-earth
     token: earth-cluster-token-123
+    branch: test
     region: eu-west-1
   - type: envProvision
     url: https://github.com/example/env-provision-earth

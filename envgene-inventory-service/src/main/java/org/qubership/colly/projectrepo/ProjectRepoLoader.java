@@ -129,6 +129,7 @@ public class ProjectRepoLoader {
                 .map(repoEntity -> new Pipeline(
                         PipelineType.fromString(repoEntity.type()),
                         repoEntity.url(),
+                        repoEntity.branch(),
                         repoEntity.token(),
                         repoEntity.region()))
                 .filter(pipeline -> pipeline.type() != null) // фильтруем невалидные типы

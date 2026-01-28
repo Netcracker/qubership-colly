@@ -121,6 +121,7 @@ public class DtoMapper {
         return new PipelineDto(
                 pipeline.type(),
                 pipeline.url(),
+                pipeline.branch(),
                 pipeline.token(),
                 pipeline.region()
         );
