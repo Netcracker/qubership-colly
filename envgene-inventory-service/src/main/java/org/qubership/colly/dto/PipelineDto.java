@@ -18,6 +18,12 @@ public record PipelineDto(
                 required = true
         )
         String url,
+        @Schema(
+                description = "Git branch to use",
+                examples = "main",
+                nullable = true
+        )
+        String branch,
 
         @Schema(
                 description = "Access token for pipeline authentication",

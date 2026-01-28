@@ -517,6 +517,7 @@ class InventoryServiceRestTest {
                                 hasEntry("type", "CLUSTER_PROVISION"),
                                 hasEntry("url", "https://github.com/example/cluster-provision-earth"),
                                 hasEntry("region", "eu-west-1"),
+                                hasEntry("branch", "test"),
                                 hasEntry("token", "earth-cluster-token-123")
 
                         ),
@@ -524,6 +525,7 @@ class InventoryServiceRestTest {
                                 hasEntry("type", "ENV_PROVISION"),
                                 hasEntry("url", "https://github.com/example/env-provision-earth"),
                                 hasEntry("region", "us-east-1"),
+                                hasEntry("branch", null),
                                 hasEntry("token", "earth-env-token-456")
                         )
                 ));

@@ -36,7 +36,9 @@ class ProjectRepoLoaderTest {
                     new InstanceRepository("https://gitlab.com/test/repo1.git", "https://gitlab.com/test/repo1.git", "main", "test-token-1", "cn"),
                     new InstanceRepository("https://gitlab.com/test/repo2.git", "https://gitlab.com/test/repo2.git", null, "test-token-2", "mb")
             ),
-            List.of(),
+            List.of(
+                    new Pipeline(PipelineType.CLUSTER_PROVISION, "https://gitlab.com/test/pipeline-repo3.git", "test", "test-token-3", null)
+            ),
             ClusterPlatform.OCP,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "https://gitlab.com/test/templateRepo.git", "test-token", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")),

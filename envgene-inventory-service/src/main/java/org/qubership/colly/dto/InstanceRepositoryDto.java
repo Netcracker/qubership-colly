@@ -18,7 +18,7 @@ public record InstanceRepositoryDto(
         )
         String url,
         @Schema(
-                description = "Repository URL",
+                description = "Git branch to use",
                 examples = "main",
                 nullable = true
         )
