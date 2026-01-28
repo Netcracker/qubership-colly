@@ -97,7 +97,6 @@ public class ProjectRepoLoader {
     private List<InstanceRepository> convertToInstanceRepositories(List<RepositoryEntity> envgeneInstanceRepos) {
         return envgeneInstanceRepos.stream()
                 .map(repoEntity -> new InstanceRepository(
-                        repoEntity.url(),//todo do we need id here?
                         repoEntity.url(),
                         repoEntity.branch(),
                         repoEntity.token(),
@@ -116,7 +115,6 @@ public class ProjectRepoLoader {
         return repositoryEntities.stream()
                 .findFirst()
                 .map(repoEntity -> new EnvgeneTemplateRepository(
-                        repoEntity.url(),
                         repoEntity.url(),
                         repoEntity.token(),
                         repoEntity.branch(),

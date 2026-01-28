@@ -52,34 +52,37 @@ Repositories containing Cloud Passport configurations for environments.
 
 CI/CD pipelines for cluster provisioning.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | String | Yes | Must be `clusterProvision` |
-| `url` | String | Yes | Pipeline repository URL |
-| `token` | String | No | Authentication token |
-| `region` | String | No | Region where pipeline operates |
+| Field    | Type   | Required | Description                    |
+|----------|--------|----------|--------------------------------|
+| `type`   | String | Yes      | Must be `clusterProvision`     |
+| `url`    | String | Yes      | Pipeline repository URL        |
+| `branch` | String | No       | Git branch to use              |
+| `token`  | String | No       | Authentication token           |
+| `region` | String | No       | Region where pipeline operates |
 
 #### 3. Environment Provision Pipeline (`envProvision`)
 
 CI/CD pipelines for environment provisioning.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | String | Yes | Must be `envProvision` |
-| `url` | String | Yes | Pipeline repository URL |
-| `token` | String | No | Authentication token |
-| `region` | String | No | Region where pipeline operates |
+| Field    | Type   | Required | Description                    |
+|----------|--------|----------|--------------------------------|
+| `type`   | String | Yes      | Must be `envProvision`         |
+| `url`    | String | Yes      | Pipeline repository URL        |
+| `branch` | String | No       | Git branch to use              |
+| `token`  | String | No       | Authentication token           |
+| `region` | String | No       | Region where pipeline operates |
 
 #### 4. Solution Deploy Pipeline (`solutionDeploy`)
 
 CI/CD pipelines for solution deployment.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | String | Yes | Must be `solutionDeploy` |
-| `url` | String | Yes | Pipeline repository URL |
-| `token` | String | No | Authentication token |
-| `region` | String | No | Region where pipeline operates |
+| Field    | Type   | Required | Description                    |
+|----------|--------|----------|--------------------------------|
+| `type`   | String | Yes      | Must be `solutionDeploy`       |
+| `url`    | String | Yes      | Pipeline repository URL        |
+| `branch` | String | No       | Git branch to use              |
+| `token`  | String | No       | Authentication token           |
+| `region` | String | No       | Region where pipeline operates |
 
 #### 5. EnvGene Template Repository (`envgeneTemplate`)
 

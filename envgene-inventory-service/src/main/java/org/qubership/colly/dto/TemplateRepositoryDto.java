@@ -6,13 +6,6 @@ import org.qubership.colly.projectrepo.EnvgeneArtifact;
 @Schema(description = "Template repository configuration for Envgene templates")
 public record TemplateRepositoryDto(
         @Schema(
-                description = "Unique identifier of the template repository",
-                examples = "template-repo-123",
-                required = true
-        )
-        String id,
-
-        @Schema(
                 description = "Repository URL",
                 examples = "https://github.com/organization/templates.git",
                 required = true

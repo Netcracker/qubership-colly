@@ -5,13 +5,6 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 @Schema(description = "Instance repository configuration containing repository access details")
 public record InstanceRepositoryDto(
         @Schema(
-                description = "Unique identifier of the repository",
-                examples = "repo-123",
-                required = true
-        )
-        String id,
-
-        @Schema(
                 description = "Repository URL",
                 examples = "https://github.com/organization/instance-repo.git",
                 required = true
