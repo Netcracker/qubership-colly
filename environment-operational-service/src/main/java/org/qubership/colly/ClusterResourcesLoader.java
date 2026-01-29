@@ -80,7 +80,7 @@ public class ClusterResourcesLoader {
             clusterRepository.save(cluster);
         }
 
-        //it is requirzed to set links to cluster only if it was saved to db. so need to invoke persist two
+        //it is required to set links to cluster only if it was saved to db. so need to invoke persist two
         List<Environment> environments = loadEnvironments(coreV1Api, cluster, clusterInfo.environments(), clusterInfo.monitoringUrl());
         try {
             V1NodeList execute = coreV1Api.listNode().execute();
