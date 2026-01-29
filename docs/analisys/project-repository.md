@@ -89,7 +89,7 @@ repositories:
     token: creds.get('<credential-id>').secret
     # Optional
     # If not set, the "default" branch is used (as in GitLab/GitHub)
-    defaultBranch: string
+    branch: string
     # Optional
     # Geographical region associated with the Environment. This attribute is user-defined
     # Used in cases where specific `pipeline` repositories need to be used for certain environments

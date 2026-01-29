@@ -17,19 +17,25 @@ This is not the full list of attributes for these objects, but only those that w
 
 ## Environment
 
-| Colly Attribute                         | Attribute Type                                                      | Description                                                                                                                                       |
-|-----------------------------------------|---------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| `name`                                  | string                                                              | Environment name, cannot be changed after creation                                                                                                |
-| `status`                                | enum [`PLANNED`, `FREE`, `IN_USE`, `RESERVED`, `DEPRECATED`]        | Current status of the Environment                                                                                                                 |
-| `role`                                  | string (the valid values are configured via a deployment parameter) | Defines the usage role of the Environment within the project. The list is configured via a deployment parameter and can be extended.              |
-| `teams`                                 | list of strings                                                     | Teams assigned to the Environment. If there are multiple teams, their names are separated by commas.                                              |
-| `owners`                                | list of strings                                                     | People responsible for the Environment. If there are multiple, their names are separated by commas.                                               |
-| `deploymentOperations`                  | list of objects                                                     | History of deployment operations per environment; each entry has `completedAt` and `deploymentItems` with SD `name`, `type`, `mode`, `status`.    |
-| `description`                           | string                                                              | Free-form Environment description                                                                                                                 |
-| `namespaces`                            | list of [Namespace](#namespace) objects                             | List of associated namespaces                                                                                                                     |
-| `cluster`                               | [Cluster](#cluster) object                                          | Associated cluster                                                                                                                                |
-| `monitoringData.lastIdpLoginDate`       | string, date-time                                                   | Time of the last successful login to the IDP associated with the Environment                                                                      |
-| `region`                                | string                                                              | Geographical region associated with the Environment. This attribute is user-defined                                                               |
+| Colly Attribute                                   | Attribute Type                                                      | Description                                                                                                                                                                                                                                        |
+|---------------------------------------------------|---------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`                                            | string                                                              | Environment name, cannot be changed after creation                                                                                                                                                                                                 |
+| `status`                                          | enum [`PLANNED`, `FREE`, `IN_USE`, `RESERVED`, `DEPRECATED`]        | Current status of the Environment                                                                                                                                                                                                                  |
+| `role`                                            | string (the valid values are configured via a deployment parameter) | Defines the usage role of the Environment within the project. The list is configured via a deployment parameter and can be extended.                                                                                                               |
+| `teams`                                           | list of strings                                                     | Teams assigned to the Environment. If there are multiple teams, their names are separated by commas.                                                                                                                                               |
+| `owners`                                          | list of strings                                                     | People responsible for the Environment. If there are multiple, their names are separated by commas.                                                                                                                                                |
+| `deploymentOperations`                            | list of objects                                                     | Array of deployment operations for all namespaces related to the Environment. Each element represents a separate deployment operation that may involve one or more namespaces and consists of multiple SD (Solution Descriptor) deployments.       |
+| `deploymentOperations[].completedAt`              | string, date-time                                                   | Time when the deployment operation finished. This operation may involve one or more namespaces that are part of the Environment. The time reflects when all deployment items in this operation completed, regardless of their individual outcomes. |
+| `deploymentOperations[].deploymentItems`          | list of objects                                                     | List of SD (Solution Descriptor) deployments that are part of this deployment operation. Each entry represents a single SD deployment with its details.                                                                                            |
+| `deploymentOperations[].deploymentItems[].name`   | string                                                              | Name and version of the SD in format `name:version`.                                                                                                                                                                                               |
+| `deploymentOperations[].deploymentItems[].type`   | string                                                              | Type of SD (e.g., "product", "project", etc.).                                                                                                                                                                                                     |
+| `deploymentOperations[].deploymentItems[].mode`   | enum [`CLEAN_INSTALL`, `ROLLING_UPDATE`]                            | Deployment mode for the SD: CLEAN_INSTALL (remove all existing resources before deployment) or ROLLING_UPDATE (deploy on top of existing resources).                                                                                               |
+| `deploymentOperations[].deploymentItems[].status` | enum [`SUCCESS`, `FAILURE`]                                         | Result of the deployment operation for this SD.                                                                                                                                                                                                    |
+| `description`                                     | string                                                              | Free-form Environment description                                                                                                                                                                                                                  |
+| `namespaces`                                      | list of [Namespace](#namespace) objects                             | List of associated namespaces                                                                                                                                                                                                                      |
+| `cluster`                                         | [Cluster](#cluster) object                                          | Associated cluster                                                                                                                                                                                                                                 |
+| `monitoringData.lastIdpLoginDate`                 | string, date-time                                                   | Time of the last successful login to the IDP associated with the Environment                                                                                                                                                                       |
+| `region`                                          | string                                                              | Geographical region associated with the Environment. This attribute is user-defined                                                                                                                                                                |
 
 ## Namespace
 
@@ -129,7 +135,7 @@ This is not the full list of attributes for these objects, but only those that w
        1. The user wants to check that the cluster status shown in Colly is up to date and matches the real state of the cluster, so they can make decisions.
           1. Solution:
              1. Cluster attribute `clusterInfoUpdateStatus.lastSuccessAt` shows the time of the last successful sync
-             2. Colly instance attribute `clusterInfoUpdateInterval` shows the sync frequency
+             2. Colly instance (operational service) attribute `clusterInfoUpdateInterval` shows the sync frequency
        2. The user thinks the cluster status data is outdated and wants to trigger a sync manually.
           1. Solution: We do NOT allow users to trigger the sync manually.
        3. An external system integrated with Colly thinks the data is outdated and wants to trigger sync.
@@ -250,6 +256,17 @@ This is not the full list of attributes for these objects, but only those that w
         - in Git
       - Only read or also write `effectiveAccessGroups` and `accessGroups` via Colly?
 
+- [ ] Is information about synchronization with git repositories (inventory service) needed:
+
+    ```yaml
+    # colly operational service
+    projectGitInfoUpdateStatus.lastSuccessAt:
+    # cluster
+    clusterInfoUpdateStatus.lastSuccessAt:
+    # env
+    gitInfoUpdateStatus.lastSuccessAt:
+    ```
+
 ## To implement
 
 - [x] Change environment attributes
@@ -259,23 +276,31 @@ This is not the full list of attributes for these objects, but only those that w
   - [x] Add `role` attribute on Environment
   - [ ] Add deployment parameter to extend `role` valid values
   - [x] Remove default value for `role`
-  - [ ] Implement an interface (/colly/operational-service/v2/metadata) that returns the list of `role` valid values (Low priority)
+  - [ ] Implement an interface (`/colly/operational-service/v2/metadata`) that returns the list of `role` valid values (Low priority)
 - [x] `type`
   - [x] Remove the functionality for auto-generating the `type` attribute. Users should be able to set this value themselves by selecting from a list of allowed values. The list of values should be specified as a deployment parameter.
 - [ ] Include the current Colly API version in the X-API-Version HTTP response header for every API response (Low priority)
 - [x] Add `lastIdpLoginDate` attribute (via configurable monitoringData)
 - [x] Add deployment parameter for `monitoringData` extension
 - [x] Remove `ticketLinks` attribute
-- [ ] Add `deploymentOperations` ( will do via ACHKA in 26.1 )
+- [ ] Add `deploymentOperations` ( will do via ACHKA in 26.1 ) **P2**
   - [ ] Remove `cleanInstallationDate`
 - [x] Add `region` attribute
-- [ ] Add `clusterInfoUpdateInterval`, `clusterInfoUpdateStatus.lastSuccessAt` + remove `synced`
-- [ ] Add `accessGroups` to Project
+- [x] Add `clusterInfoUpdateInterval`, `clusterInfoUpdateStatus.lastSuccessAt` + remove `synced` **2.5.0**
+- [x] Ability to sync per project, not per Colly instance **2.4.0**
+- [x] Add `accessGroups` to Project **2.4.0**
 - [x] Add `clustersPlatform` to Project
-- [ ] Add `envgeneArtifact` to Project
-- [ ] Create default configuration for `monitoringData`
+- [x] Add `envgeneArtifact` to Project
+- [x] Create default configuration for `monitoringData`
 - [ ] Support cred macro
-- [ ] `numberOfNodes`
+- [x] `numberOfNodes` **2.5.0**
 - [ ] The configuration for `monitoringData` is currently shared across all environments - it needs to be made more granular
-- [ ] Add `accessGroups`, `effectiveAccessGroups` to Environment
-- [ ] Add `envgeneArtifact` to Project
+- [x] Add `accessGroups`, `effectiveAccessGroups` to Environment.
+- [ ] add handling of Redis failure - if it fails, need to re-sync with Git and clusters
+- [ ] add Redis probe - completed discovery
+- [ ] add anti-affinity rules
+- [x] add `deployPostfix` **2.4.0**
+- [ ] add BG support for `deployPostfix`
+- [ ] Add `owners` to Cluster. Agree where to store
+- [ ] Support `inventory.cloudPassport` during Cluster "discovery". Priority is unclear, not doing it yet
+- [x] support branch for instance repo **2.5.0**
