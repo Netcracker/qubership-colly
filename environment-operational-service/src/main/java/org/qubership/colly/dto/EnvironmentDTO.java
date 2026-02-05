@@ -49,6 +49,13 @@ public record EnvironmentDTO(
         Instant cleanInstallationDate,
 
         @Schema(
+                description = "List of deployment operations performed in this environment",
+                examples = "",
+                required = true
+        )
+        List<DeploymentOperationDto> deploymentOperations,
+
+        @Schema(
                 description = "Additional monitoring metrics and data collected from the environment",
                 examples = "{\"cpu_usage\": \"75%\", \"memory_usage\": \"60%\", \"pod_count\": \"42\"}",
                 nullable = true

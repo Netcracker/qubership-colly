@@ -1,11 +1,18 @@
 package org.qubership.colly.db.data;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+@Setter
+@Getter
+@NoArgsConstructor
 public class Environment {
 
     private String id;
@@ -14,6 +21,7 @@ public class Environment {
     private String clusterId;
     private Map<String, String> monitoringData;
     private String deploymentVersion;
+    private List<DeploymentOperation> deploymentOperations;
     private List<String> namespaceIds;
 
     public Environment(String id, String name) {
@@ -22,24 +30,8 @@ public class Environment {
         this.namespaceIds = new ArrayList<>();
     }
 
-    public Environment() {
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-
     public List<String> getNamespaceIds() {
         return namespaceIds != null ? Collections.unmodifiableList(namespaceIds) : Collections.emptyList();
-    }
-
-    public void setNamespaceIds(List<String> namespaceIds) {
-        this.namespaceIds = namespaceIds;
     }
 
     public void addNamespaceId(String namespaceId) {
@@ -49,44 +41,11 @@ public class Environment {
         this.namespaceIds.add(namespaceId);
     }
 
-    public String getDeploymentVersion() {
-        return deploymentVersion;
+    public List<DeploymentOperation> getDeploymentOperations() {
+        return deploymentOperations != null ? Collections.unmodifiableList(deploymentOperations) : Collections.emptyList();
     }
 
-    public void setDeploymentVersion(String deploymentVersion) {
-        this.deploymentVersion = deploymentVersion;
+    public void setDeploymentOperations(List<DeploymentOperation> deploymentOperations) {
+        this.deploymentOperations = deploymentOperations != null ? new ArrayList<>(deploymentOperations) : null;
     }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getClusterId() {
-        return clusterId;
-    }
-
-    public void setClusterId(String clusterId) {
-        this.clusterId = clusterId;
-    }
-
-    public Map<String, String> getMonitoringData() {
-        return monitoringData;
-    }
-
-    public void setMonitoringData(Map<String, String> monitoringData) {
-        this.monitoringData = monitoringData;
-    }
-
-    public Instant getCleanInstallationDate() {
-        return cleanInstallationDate;
-    }
-
-    public void setCleanInstallationDate(Instant cleanInstallationDate) {
-        this.cleanInstallationDate = cleanInstallationDate;
-    }
-
 }
