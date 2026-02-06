@@ -2,9 +2,13 @@ package org.qubership.colly.mapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.qubership.colly.db.data.DeploymentItem;
+import org.qubership.colly.db.data.DeploymentOperation;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
+import org.qubership.colly.dto.DeploymentItemDto;
+import org.qubership.colly.dto.DeploymentOperationDto;
 import org.qubership.colly.dto.EnvironmentDTO;
 import org.qubership.colly.dto.NamespaceDTO;
 
@@ -40,6 +44,7 @@ public class EnvironmentMapper {
                 clusterMapper.toDTO(clusterRepository.findById(entity.getClusterId())),
                 entity.getDeploymentVersion(),
                 entity.getCleanInstallationDate(),
+                toDeploymentOperationDtos(entity.getDeploymentOperations()),
                 entity.getMonitoringData()
         );
     }
@@ -56,5 +61,26 @@ public class EnvironmentMapper {
             );
         }
         return namespaceDTOs;
+    }
+
+    private List<DeploymentOperationDto> toDeploymentOperationDtos(List<DeploymentOperation> deploymentOperations) {
+        if (deploymentOperations == null) {
+            return List.of();
+        }
+        return deploymentOperations.stream().map(this::toDTO).toList();
+    }
+
+    public DeploymentOperationDto toDTO(DeploymentOperation entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new DeploymentOperationDto(entity.createdAt(), entity.deploymentItems().stream().map(this::toDTO).toList());
+    }
+
+    public DeploymentItemDto toDTO(DeploymentItem deploymentItem) {
+        if (deploymentItem == null) {
+            return null;
+        }
+        return new DeploymentItemDto(deploymentItem.name(), deploymentItem.status(), deploymentItem.deploymentItemType(), deploymentItem.deploymentMode());
     }
 }
