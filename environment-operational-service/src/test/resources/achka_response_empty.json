@@ -1,0 +1,13 @@
+{
+  "versions": {
+    "None": [
+      {
+        "app_version": "cleanuper:release-1.0.0",
+        "source": null,
+        "ticket_id": null,
+        "deploy_status": null,
+        "deploy_date": 1756355805
+      }
+    ]
+  }
+}

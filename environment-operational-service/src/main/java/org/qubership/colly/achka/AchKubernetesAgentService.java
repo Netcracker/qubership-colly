@@ -2,7 +2,7 @@ package org.qubership.colly.achka;
 
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import jakarta.inject.Inject;
 import org.qubership.colly.db.data.*;
 
 import java.time.Instant;
@@ -17,12 +17,15 @@ import static org.apache.commons.lang3.compare.ComparableUtils.max;
 @ApplicationScoped
 public class AchKubernetesAgentService {
 
+    @Inject
+    AchKubernetesAgentClientFactory clientFactory;
+
     public List<DeploymentOperation> getDeploymentOperations(String cloudPublicHost, List<String> namespaceNames) {
-        AchKubernetesAgentClient achkaClient = RestClientBuilder.newBuilder().baseUri(generateAchkaUrl(cloudPublicHost)).build(AchKubernetesAgentClient.class);
+        AchKubernetesAgentClient achkaClient = clientFactory.create(cloudPublicHost);
         List<DeploymentOperation> deploymentOperations = new ArrayList<>();
         AchKubernetesAgentClient.AchkaResponse achkaResponse = achkaClient.versions(namespaceNames, "deployment_session_id");
         for (String deploymentSessionId : achkaResponse.deploymentSessionIdToApplicationVersions().keySet()) {
-            if (deploymentSessionId.equals("None") || !deploymentSessionId.matches(".*:.*")) {
+            if (deploymentSessionId.equals("None")) {
                 Log.error("Invalid deployment session id: " + deploymentSessionId);
                 continue;
             }
@@ -49,9 +52,5 @@ public class AchKubernetesAgentService {
             deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
         }
         return deploymentOperations;
-    }
-
-    private String generateAchkaUrl(String cloudPublicHost) {
-        return "https://ach-kubernetes-agent-devops-toolkit." + cloudPublicHost;
     }
 }

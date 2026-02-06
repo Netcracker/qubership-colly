@@ -1,5 +1,6 @@
 package org.qubership.colly.achka;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -20,6 +21,8 @@ public interface AchKubernetesAgentClient {
     AchkaResponse versions(@QueryParam("namespace") List<String> namespaces,
                            @QueryParam("group_by") String groupBy);
 
-    record AchkaResponse(Map<String, List<ApplicationsVersion>> deploymentSessionIdToApplicationVersions) {
+    record AchkaResponse(
+            @JsonProperty("versions")
+            Map<String, List<ApplicationsVersion>> deploymentSessionIdToApplicationVersions) {
     }
 }
