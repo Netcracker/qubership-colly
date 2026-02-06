@@ -20,7 +20,7 @@ This is not the full list of attributes for these objects, but only those that w
 | Colly Attribute                                   | Attribute Type                                                      | Description                                                                                                                                                                                                                                        |
 |---------------------------------------------------|---------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `name`                                            | string                                                              | Environment name, cannot be changed after creation                                                                                                                                                                                                 |
-| `status`                                          | enum [`PLANNED`, `FREE`, `IN_USE`, `RESERVED`, `DEPRECATED`]        | Current status of the Environment                                                                                                                                                                                                                  |
+| `status`                                          | enum [`FREE`, `IN_USE`, `RESERVED`, `DEPRECATED`]                   | Current status of the Environment                                                                                                                                                                                                                  |
 | `role`                                            | string (the valid values are configured via a deployment parameter) | Defines the usage role of the Environment within the project. The list is configured via a deployment parameter and can be extended.                                                                                                               |
 | `teams`                                           | list of strings                                                     | Teams assigned to the Environment. If there are multiple teams, their names are separated by commas.                                                                                                                                               |
 | `owners`                                          | list of strings                                                     | People responsible for the Environment. If there are multiple, their names are separated by commas.                                                                                                                                                |
@@ -30,7 +30,8 @@ This is not the full list of attributes for these objects, but only those that w
 | `deploymentOperations[].deploymentItems[].name`   | string                                                              | Name and version of the SD in format `name:version`.                                                                                                                                                                                               |
 | `deploymentOperations[].deploymentItems[].type`   | string                                                              | Type of SD (e.g., "product", "project", etc.).                                                                                                                                                                                                     |
 | `deploymentOperations[].deploymentItems[].mode`   | enum [`CLEAN_INSTALL`, `ROLLING_UPDATE`]                            | Deployment mode for the SD: CLEAN_INSTALL (remove all existing resources before deployment) or ROLLING_UPDATE (deploy on top of existing resources).                                                                                               |
-| `deploymentOperations[].deploymentItems[].status` | enum [`SUCCESS`, `FAILURE`]                                         | Result of the deployment operation for this SD.                                                                                                                                                                                                    |
+| `accessGroups`                                    | string                                                              | List of user groups that can work with the environment                                                                                                                                                                                             |
+| `effectiveAccessGroups`                           | string                                                              | Resolved full list of user groups (contains groups and their descendants). resolved based on `accessGroups`                                                                                                                                        |
 | `description`                                     | string                                                              | Free-form Environment description                                                                                                                                                                                                                  |
 | `namespaces`                                      | list of [Namespace](#namespace) objects                             | List of associated namespaces                                                                                                                                                                                                                      |
 | `cluster`                                         | [Cluster](#cluster) object                                          | Associated cluster                                                                                                                                                                                                                                 |
@@ -267,6 +268,34 @@ This is not the full list of attributes for these objects, but only those that w
     gitInfoUpdateStatus.lastSuccessAt:
     ```
 
+- [ ] deploymentOperations
+
+1. как определяем CLEAN_INSTALL (achka не отдает этот аттрибут)
+2. переименовать mode CLEAN_INSTALL -> "" ROLLING_UPDATE -> ""
+
+- делаем группировку по deployment_session_id - получаем мапу deploymentSessionId -> список апликейшенов которые деплоились за эту сессию (возможно с нескольких СД)
+  - что делаем если ставились отдельно ДД? **просто игнорим**
+- для каждой сессии достаем список аппликейшенов и группируем их в мапу sd_version -> список аппликейшенов
+- для каждого списка аппликейшенов вычисляем
+  - самую раннюю (позднюю) дату деплоя
+  - статус - если хотя бы один апп упал, значит всё failed
+  - по имени СД вычисляем ее тип - PRODUCT/PROJECT 
+  - mode - всегда rolling update - clean install определять по дате создания versions конфиг мапы??
+
+- [ ] `/colly/inventory-service/v2/projectDefaults`
+
+этот интерфейс отдает то что лежит в `/defaults/parameters.yaml` в проектном гите
+
+- [ ] `MAVEN_REPO_NAME`
+
+- добавляем mavenRepoName аттрибут проекта
+- нужно ли MAVEN_REPO_URL? если да, то он один на проект?
+
+```text
+MAVEN_REPO_URL: https://artifactorycn.netcracker.com/
+MAVEN_REPO_NAME: pd.saas-global.mvn.group
+```
+
 ## To implement
 
 - [x] Change environment attributes
@@ -295,7 +324,7 @@ This is not the full list of attributes for these objects, but only those that w
 - [ ] Support cred macro
 - [x] `numberOfNodes` **2.5.0**
 - [ ] The configuration for `monitoringData` is currently shared across all environments - it needs to be made more granular
-- [x] Add `accessGroups`, `effectiveAccessGroups` to Environment.
+- [x] Add `accessGroups`, `effectiveAccessGroups` to Environment. **2.3.0**
 - [ ] add handling of Redis failure - if it fails, need to re-sync with Git and clusters
 - [ ] add Redis probe - completed discovery
 - [ ] add anti-affinity rules
@@ -304,3 +333,4 @@ This is not the full list of attributes for these objects, but only those that w
 - [ ] Add `owners` to Cluster. Agree where to store
 - [ ] Support `inventory.cloudPassport` during Cluster "discovery". Priority is unclear, not doing it yet
 - [x] support branch for instance repo **2.5.0**
+- [ ] Add `ACHKA_URL` finding logic

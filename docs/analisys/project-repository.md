@@ -3,9 +3,9 @@
 - [Project Repository](#project-repository)
   - [Description](#description)
   - [Repository Structure](#repository-structure)
-    - [Global](#global)
-      - [\[Global\] `parameters.yaml`](#global-parametersyaml)
-      - [\[Global\] `credentials.yaml`](#global-credentialsyaml)
+    - [Defaults](#defaults)
+      - [\[Defaults\] `parameters.yaml`](#defaults-parametersyaml)
+      - [\[Defaults\] `credentials.yaml`](#defaults-credentialsyaml)
     - [Projects](#projects)
       - [\[Projects\] `parameters.yaml`](#projects-parametersyaml)
       - [\[Projects\] `credentials.yaml`](#projects-credentialsyaml)
@@ -19,7 +19,7 @@ This document describes the structure and contents of the Project repository.
 ## Repository Structure
 
 ```text
-├── global
+├── defaults
 |   ├── parameters.yaml|yml
 |   └── credentials.yaml|yml
 └── clusters
@@ -31,13 +31,13 @@ This document describes the structure and contents of the Project repository.
         └── credentials.yaml|yml
 ```
 
-### Global
+### Defaults
 
-#### [Global] `parameters.yaml`
+#### [Defaults] `parameters.yaml`
 
-Currently, this file has no contents
+<!-- Currently, this file has no contents -->
 
-<!-- ```yaml
+```yaml
 # Optional
 # Global list of users with access permissions for all projects
 accessGroups:
@@ -47,9 +47,9 @@ accessGroups:
   # Optional
   # User permissions
   permissions: enum[RO, RW]
-``` -->
+```
 
-#### [Global] `credentials.yaml`
+#### [Defaults] `credentials.yaml`
 
 Currently, this file has no contents
 
@@ -75,6 +75,7 @@ accessGroups:
 # Platform type for clusters in this project
 # "ocp" stands for OpenShift, "k8s" for generic Kubernetes
 clustersPlatform: enum[ ocp, k8s ]
+mavenRepoName: string
 # Mandatory
 repositories:
   - # Mandatory
@@ -236,7 +237,8 @@ gitlab-token:
 
 - [x] `projectId` = customerAbbr + projectAbbr
 
-- [ ] Should the Project repository be used as the Maintenance inventory?
+- [x] Should the Project repository be used as the Maintenance inventory?
+  - yes
 
 - [x] Need a mapping from environment to project. For example, an environment attribute `project`.
   - Use case: find the DCL pipeline repository by environment
@@ -252,7 +254,7 @@ gitlab-token:
 
 - [ ] `jiraCustomerName` - is it needed?
 
-- [ ] `envgeneArtifact`
+- [x] `envgeneArtifact`
   - Short term:
     - In the Repository, `envgeneArtifact.name` is set manually in Git
   - Long term:
