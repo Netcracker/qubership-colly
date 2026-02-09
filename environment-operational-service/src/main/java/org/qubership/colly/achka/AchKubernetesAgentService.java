@@ -27,12 +27,12 @@ public class AchKubernetesAgentService {
         AchKubernetesAgentClient achkaClient = clientFactory.create(cloudPublicHost);
         List<DeploymentOperation> deploymentOperations = new ArrayList<>();
         AchKubernetesAgentClient.AchkaResponse achkaResponse = achkaClient.versions(namespaceNames, "deployment_session_id");
-        for (String deploymentSessionId : achkaResponse.deploymentSessionIdToApplicationVersions().keySet()) {
-            if (deploymentSessionId.equals("None")) {
-                Log.error("Invalid deployment session id: " + deploymentSessionId);
+        for (Map.Entry<String, List<ApplicationsVersion>> entry : achkaResponse.deploymentSessionIdToApplicationVersions().entrySet()) {
+            if (entry.getKey().equals("None")) {
+                Log.error("Invalid deployment session id: " + entry);
                 continue;
             }
-            List<ApplicationsVersion> applicationsVersions = achkaResponse.deploymentSessionIdToApplicationVersions().get(deploymentSessionId);
+            List<ApplicationsVersion> applicationsVersions = entry.getValue();
 
             Instant completedAt = Instant.MIN;
             List<DeploymentItem> deploymentItems = new ArrayList<>();
