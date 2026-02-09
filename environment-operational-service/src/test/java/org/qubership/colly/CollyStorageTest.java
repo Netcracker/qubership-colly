@@ -32,9 +32,9 @@ class CollyStorageTest {
 
     @Test
     void syncAllClusters_shouldLoadClusterResourcesInParallel() throws InterruptedException {
-        ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", Set.of(), null);
-        ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", Set.of(), null);
-        ClusterInfo cluster3 = new ClusterInfo("3", "cluster3", "token3", "host3", Set.of(), null);
+        ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", "host1", Set.of(), null);
+        ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", "host2", Set.of(), null);
+        ClusterInfo cluster3 = new ClusterInfo("3", "cluster3", "token3", "host3", "host3", Set.of(), null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2, cluster3);
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
@@ -99,8 +99,8 @@ class CollyStorageTest {
 
     @Test
     void syncAllClusters_shouldHandleExceptionInParallelExecution() {
-        ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", Set.of(), null);
-        ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", Set.of(), null);
+        ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", "host1", Set.of(), null);
+        ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", "host2", Set.of(), null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2);
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
@@ -132,7 +132,7 @@ class CollyStorageTest {
 
     @Test
     void syncAllClusters_load_cloud_passports_once_and_load_cluster_resources_for_each_cluster() {
-        ClusterInfo cluster = new ClusterInfo("1", "test-cluster", "token", "host", Set.of(), null);
+        ClusterInfo cluster = new ClusterInfo("1", "test-cluster", "token", "host", "host", Set.of(), null);
         when(envgeneInventoryService.getClusterInfos()).thenReturn(List.of(cluster));
 
         collyStorage.syncAllClusters();
@@ -144,8 +144,8 @@ class CollyStorageTest {
 
     @Test
     void executeTask_shouldExecuteInCorrectOrder() {
-        ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", Set.of(), null);
-        ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", Set.of(), null);
+        ClusterInfo cluster1 = new ClusterInfo("1", "cluster1", "token1", "host1", "host1", Set.of(), null);
+        ClusterInfo cluster2 = new ClusterInfo("2", "cluster2", "token2", "host2", "host2", Set.of(), null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2);
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);

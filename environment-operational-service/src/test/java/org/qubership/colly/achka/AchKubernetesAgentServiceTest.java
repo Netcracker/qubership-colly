@@ -19,9 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.qubership.colly.achka.AchKubernetesAgentClientMockUtils.mockAchkaRestClient;
 
 @QuarkusTest
 class AchKubernetesAgentServiceTest {
@@ -32,12 +31,6 @@ class AchKubernetesAgentServiceTest {
     @InjectMock
     AchKubernetesAgentClientFactory clientFactory;
 
-    private AchKubernetesAgentClient setupMockClient(AchKubernetesAgentClient.AchkaResponse response) {
-        AchKubernetesAgentClient client = mock(AchKubernetesAgentClient.class);
-        when(clientFactory.create(anyString())).thenReturn(client);
-        when(client.versions(anyList(), anyString())).thenReturn(response);
-        return client;
-    }
 
     @Test
     void shouldSkipNoneDeploymentSessionId() {
@@ -47,7 +40,7 @@ class AchKubernetesAgentServiceTest {
                 )
         ));
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
         assertTrue(result.isEmpty());
     }
@@ -63,7 +56,7 @@ class AchKubernetesAgentServiceTest {
                 )
         ));
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
 
         assertEquals(1, result.size());
@@ -85,7 +78,7 @@ class AchKubernetesAgentServiceTest {
                 )
         ));
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
 
         assertEquals(1, result.size());
@@ -105,7 +98,7 @@ class AchKubernetesAgentServiceTest {
                 )
         ));
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
 
         assertEquals(1, result.size());
@@ -123,7 +116,7 @@ class AchKubernetesAgentServiceTest {
         ));
         var response = new AchKubernetesAgentClient.AchkaResponse(sessions);
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
         assertEquals(2, result.size());
     }
@@ -139,7 +132,7 @@ class AchKubernetesAgentServiceTest {
         ));
         var response = new AchKubernetesAgentClient.AchkaResponse(sessions);
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
 
         assertEquals(1, result.size());
@@ -150,7 +143,7 @@ class AchKubernetesAgentServiceTest {
     void shouldReturnEmptyListForEmptyResponse() {
         var response = new AchKubernetesAgentClient.AchkaResponse(Collections.emptyMap());
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
         assertTrue(result.isEmpty());
     }
@@ -159,7 +152,7 @@ class AchKubernetesAgentServiceTest {
     void shouldPassCorrectParametersToClient() {
         var response = new AchKubernetesAgentClient.AchkaResponse(Collections.emptyMap());
 
-        AchKubernetesAgentClient client = setupMockClient(response);
+        AchKubernetesAgentClient client = mockAchkaRestClient(clientFactory, response);
         List<String> namespaces = List.of("ns1", "ns2");
 
         service.getDeploymentOperations("cloud.example.com", namespaces);
@@ -172,7 +165,7 @@ class AchKubernetesAgentServiceTest {
     void shouldSkipAllSessionsFromAchkaResponseJson() throws IOException {
         AchKubernetesAgentClient.AchkaResponse response = loadAchkaResponse("achka_response_empty.json");
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
 
         // achka_response.json contains only "None" key which is invalid
@@ -183,7 +176,7 @@ class AchKubernetesAgentServiceTest {
     void shouldProcessValidSessionsFromAchkaResponseValidJson() throws IOException {
         AchKubernetesAgentClient.AchkaResponse response = loadAchkaResponse("achka_response_valid.json");
 
-        setupMockClient(response);
+        mockAchkaRestClient(clientFactory, response);
         List<DeploymentOperation> result = service.getDeploymentOperations("cloud.example.com", List.of("ns1"));
 
         // achka_response_valid.json contains:
