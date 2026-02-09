@@ -5,7 +5,10 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
-import org.qubership.colly.db.data.*;
+import org.qubership.colly.db.data.DeploymentItem;
+import org.qubership.colly.db.data.DeploymentItemType;
+import org.qubership.colly.db.data.DeploymentOperation;
+import org.qubership.colly.db.data.DeploymentStatus;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,7 +68,6 @@ class AchKubernetesAgentServiceTest {
         op.deploymentItems().forEach(item -> {
             assertEquals(DeploymentStatus.SUCCESS, item.status());
             assertEquals(DeploymentItemType.PRODUCT, item.deploymentItemType());
-            assertEquals(DeploymentMode.ROLLING_UPDATE, item.deploymentMode());
         });
     }
 
@@ -186,11 +188,11 @@ class AchKubernetesAgentServiceTest {
         assertEquals(2, result.size());
         assertThat(result, containsInAnyOrder(
                 new DeploymentOperation(Instant.ofEpochMilli(1756600000L), List.of(
-                        new DeploymentItem("sd-product-beta:42", DeploymentStatus.FAILED, DeploymentItemType.PRODUCT, DeploymentMode.ROLLING_UPDATE),
-                        new DeploymentItem("sd-product-alpha:1", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT, DeploymentMode.ROLLING_UPDATE)
+                        new DeploymentItem("sd-product-beta:42", DeploymentStatus.FAILED, DeploymentItemType.PRODUCT),
+                        new DeploymentItem("sd-product-alpha:1", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT)
                 )),
                 new DeploymentOperation(Instant.ofEpochMilli(1756700000L), List.of(
-                        new DeploymentItem("sd-product-gamma:3", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT, DeploymentMode.ROLLING_UPDATE)
+                        new DeploymentItem("sd-product-gamma:3", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT)
                 ))
         ));
 

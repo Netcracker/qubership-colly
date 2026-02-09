@@ -3,7 +3,10 @@ package org.qubership.colly.achka;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.qubership.colly.db.data.*;
+import org.qubership.colly.db.data.DeploymentItem;
+import org.qubership.colly.db.data.DeploymentItemType;
+import org.qubership.colly.db.data.DeploymentOperation;
+import org.qubership.colly.db.data.DeploymentStatus;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -47,7 +50,7 @@ public class AchKubernetesAgentService {
                 completedAt = max(completedAt, Instant.ofEpochMilli(Long.parseLong(latest.deployDate())));
                 long failedApps = sdApplicationsVersions.stream().filter(appVer -> appVer.deployStatus().equals("FAILED")).count();
                 DeploymentStatus status = failedApps > 0 ? DeploymentStatus.FAILED : DeploymentStatus.SUCCESS;
-                deploymentItems.add(new DeploymentItem(sdName, status, DeploymentItemType.PRODUCT, DeploymentMode.ROLLING_UPDATE));
+                deploymentItems.add(new DeploymentItem(sdName, status, DeploymentItemType.PRODUCT));
             }
             deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
         }

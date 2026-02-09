@@ -81,6 +81,6 @@ public class EnvironmentMapper {
         if (deploymentItem == null) {
             return null;
         }
-        return new DeploymentItemDto(deploymentItem.name(), deploymentItem.status(), deploymentItem.deploymentItemType(), deploymentItem.deploymentMode());
+        return new DeploymentItemDto(deploymentItem.name(), deploymentItem.status(), deploymentItem.deploymentItemType());
     }
 }
