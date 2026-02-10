@@ -35,12 +35,10 @@ This document describes the structure and contents of the Project repository.
 
 #### [Defaults] `parameters.yaml`
 
-отдельный интерфейс
-
 ```yaml
 # Optional
-# список rw/ro имен и AD групп пользователей под которыми будут создаваться все кластера всех проектов
-# SSP использует эти параметры при создание кластера
+# List of rw/ro names and AD user groups under which all clusters of all projects will be created
+# these parameters are used when creating a cluster
 clusters:
   roAdGroups: list of strings
   rwAdGroups: list of strings
@@ -73,7 +71,7 @@ accessGroups:
 # Platform type for clusters in this project
 # "ocp" stands for OpenShift, "k8s" for generic Kubernetes
 clustersPlatform: enum[ ocp, k8s ]
-# аттрибут который будет использоваться для генерации клауд паспорта
+# Attribute used for Cloud Passport generation
 mavenRepoName: string
 # Mandatory
 repositories:
@@ -240,11 +238,11 @@ gitlab-token:
   - Use case: find the DCL pipeline repository by environment
   - Requestor - The Customer
 
-- [ ] global configuration
+- [x] global configuration
 
 - [ ] `pipeline` is too generic, we need to specify the exact type of pipeline
 
-- [ ] `accessGroups` is a list of user groups for "clusters" or for Colly?
+- [x] `accessGroups` is a list of user groups for "clusters" or for Colly?
   - list of groups that can work with the project => used for access control in SSP:
     - who can see/edit which project/cluster/env
 

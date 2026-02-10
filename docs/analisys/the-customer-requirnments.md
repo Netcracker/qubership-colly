@@ -268,42 +268,40 @@ This is not the full list of attributes for these objects, but only those that w
     gitInfoUpdateStatus.lastSuccessAt:
     ```
 
-- [ ] deploymentOperations
+- [x] deploymentOperations
 
-  1. как определяем CLEAN_INSTALL (achka не отдает этот аттрибут)?
-  2. переименовать mode CLEAN_INSTALL -> "??" ROLLING_UPDATE -> "??"
+  1. How do we determine CLEAN_INSTALL (ACHKA does not provide this attribute)?
+  2. Rename mode CLEAN_INSTALL -> "??" ROLLING_UPDATE -> "??"
 
-  solution: удаляем deploy mode. потому что в Арго мире нет CLEAN_INSTALL -> есть только один тип деплоя.
+  **solution:** remove deploy mode. In the Argo world there is no CLEAN_INSTALL -> there is only one type of deployment.
 
-  - делаем группировку по deployment_session_id - получаем мапу deploymentSessionId -> список апликейшенов которые деплоились за эту сессию (возможно с нескольких СД)
-    - что делаем если ставились отдельно ДД? **просто игнорим**
-  - для каждой сессии достаем список аппликейшенов и группируем их в мапу sd_version -> список аппликейшенов
-  - для каждого списка аппликейшенов вычисляем
-    - самую раннюю (позднюю) дату деплоя
-    - статус - если хотя бы один апп упал, значит всё failed
-    - по имени СД вычисляем ее тип - PRODUCT/PROJECT
-    - mode - всегда rolling update - clean install определять по дате создания versions конфиг мапы??
+- [x] `/colly/inventory-service/v2/projectDefaults`
 
-- [ ] `/colly/inventory-service/v2/projectDefaults`
+    This interface returns what is stored in `/defaults/parameters.yaml` in the project Git repo
 
-  этот интерфейс отдает то что лежит в `/defaults/parameters.yaml` в проектном гите
+    ```yaml
+    clusters:
+      roAdGroups: list of strings
+      rwAdGroups: list of strings
+      owners: list of strings
+    ```
 
-- [ ] `MAVEN_REPO_NAME`
+- [x] `MAVEN_REPO_NAME`
 
-  - добавляем mavenRepoName аттрибут проекта
-  - нужно ли MAVEN_REPO_URL? если да, то он один на проект?
-  - есть предложение положить параметры необходимы для паспорта под одну резиновую мапу
+  - **Add `mavenRepoName` attribute to Project**
+  - Do we need MAVEN_REPO_URL? If yes, is it one per project?
+  - Proposal: put parameters required for passport under a single flexible map
 
   ```text
-  MAVEN_REPO_URL: https://artifactorycn.netcracker.com/ -> пока не нужно
+  MAVEN_REPO_URL: https://artifactorycn.netcracker.com/ -> not needed for now
   MAVEN_REPO_NAME: pd.saas-global.mvn.group
   ```
 
-- [ ] templateDescriptorNames дискавери из артифакта. Сейчас у Егора. Стоит забрать?
-  - Забрать нужно - ввести в Колли интерфейс, который получает апп:вер, испоьзуя апп/рег дефы, скачивает артифакт, обрабатывая контент, возвращает список темплейтов артифакте
-  - Положим в беклог, возьмем позже
+- [ ] `templateDescriptorNames` discovery from artifact.
+  - Add a Colly interface that takes app:ver, uses app/reg defaults, downloads the artifact, processes the content, and returns the list of templates in the artifact
+  - Put in backlog, pick up later
 
-- [ ] Что такое реверт ui парамсетов? Удаление все оверрайдов для энва или энва+нс+апп?
+- [ ] What is revert of UI paramsets? Removal of all overrides for env or env+ns+app?
 
 ## To implement
 
@@ -343,6 +341,6 @@ This is not the full list of attributes for these objects, but only those that w
 - [ ] Support `inventory.cloudPassport` during Cluster "discovery". Priority is unclear, not doing it yet
 - [x] support branch for instance repo **2.5.0**
 - [ ] Add `ACHKA_URL` finding logic
-- [ ] Add defaults
-- [ ] Add maven url
-- [ ] Remove `envgeneArtifact.templateDescriptorNames`
+- [ ] Add `/colly/inventory-service/v2/projectDefaults` API
+- [ ] Add `mavenRepoName` to Project
+- [ ] Remove `envgeneArtifact.templateDescriptorNames` from Project
