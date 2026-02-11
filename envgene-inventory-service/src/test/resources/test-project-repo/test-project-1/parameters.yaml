@@ -3,6 +3,7 @@ customerName: Test Customer 1
 type: product
 clusterPlatform: ocp
 accessGroups: [ "group1", "group2" ]
+mavenRepoName: test.repo
 repositories:
   - type: envgeneInstance
     url: https://gitlab.com/test/repo1.git

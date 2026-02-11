@@ -126,7 +126,8 @@ public class ProjectRepoLoader {
                     ClusterPlatform.fromString(projectEntity.clusterPlatform()),
                     convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId),
                     projectEntity.accessGroups() == null ? List.of() : projectEntity.accessGroups(),
-                    clusterDefaults);
+                    clusterDefaults,
+                    projectEntity.mavenRepoName());
         } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
             return null;
@@ -175,7 +176,7 @@ public class ProjectRepoLoader {
 
     public record ProjectEntity(String name, String customerName, String type,
                                 List<RepositoryEntity> repositories, String clusterPlatform,
-                                List<String> accessGroups) {
+                                List<String> accessGroups, String mavenRepoName) {
     }
 
     public record RepositoryEntity(String type, String url, String token, String region, String branch,

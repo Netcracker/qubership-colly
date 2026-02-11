@@ -48,7 +48,7 @@ class ProjectRepoLoaderTest {
             ClusterPlatform.OCP,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "test-token", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")),
-            List.of("group1", "group2"), CLUSTER_DEFAULTS);
+            List.of("group1", "group2"), CLUSTER_DEFAULTS, "test.repo");
     public static final Project TEST_PROJECT_2 = new Project(
             "test-project-2",
             "Test Project 2",
@@ -61,7 +61,7 @@ class ProjectRepoLoaderTest {
             ClusterPlatform.K8S,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "test-token", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-0987654", List.of("ci", "migration"), "ci")),
-            List.of(), CLUSTER_DEFAULTS);
+            List.of(), CLUSTER_DEFAULTS, null);
     @InjectMock
     GitService gitService;
     @Inject
@@ -132,7 +132,7 @@ class ProjectRepoLoaderTest {
                 List.of(),
                 ClusterPlatform.OCP, null,
                 List.of(),
-                null);
+                null, null);
 
         Project project = loader.processProject(parametersFile, projectDir, null);
         assertThat(project, equalTo(expectedResult));
@@ -155,7 +155,7 @@ class ProjectRepoLoaderTest {
         Files.createDirectories(projectDir);
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
-        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"), null);
+        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"), null, null);
 
         Project project = loader.processProject(parametersFile, projectDir, null);
 

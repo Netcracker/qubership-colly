@@ -513,6 +513,7 @@ class InventoryServiceRestTest {
                 .body("customerName", equalTo("Solar System"))
                 .body("clusterPlatform", equalTo("K8S"))
                 .body("accessGroups", contains("group1", "group2"))
+                .body("mavenRepoName", equalTo("dev.maven.repo"))
                 .body("instanceRepositories", hasItem(
                         allOf(
                                 hasEntry("url", "gitrepo_with_cloudpassports"),
