@@ -274,7 +274,7 @@ class ProjectRepoLoaderTest {
 
         List<Project> projects = loader.loadProjects();
         assertThat(projects, hasSize(1));
-        assertThat(projects.get(0).clusterDefaults(), nullValue());
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
     }
 
     @Test
@@ -284,7 +284,27 @@ class ProjectRepoLoaderTest {
 
         List<Project> projects = loader.loadProjects();
         assertThat(projects, hasSize(1));
-        assertThat(projects.get(0).clusterDefaults(), nullValue());
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_incorrect_location_defaults")
+    void test_project_incorrect_location_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_invalid_yaml_defaults")
+    void test_project_invalid_yaml_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
     }
 
 }
