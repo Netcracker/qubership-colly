@@ -526,6 +526,9 @@ class InventoryServiceRestTest {
                 .body("templateRepository.envgeneArtifact.name", equalTo("my-app:feature-new-ui-123456"))
                 .body("templateRepository.envgeneArtifact.templateDescriptorNames", contains("dev", "qa"))
                 .body("templateRepository.envgeneArtifact.defaultTemplateDescriptorName", equalTo("dev"))
+                .body("clusterDefaults.owners", contains("user1", "user2"))
+                .body("clusterDefaults.roAdGroups", contains("ro-group1", "ro-group2"))
+                .body("clusterDefaults.rwAdGroups", contains("rw-group1"))
                 .body("pipelines", hasItems(
                         allOf(
                                 hasEntry("type", "CLUSTER_PROVISION"),

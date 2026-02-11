@@ -1,0 +1,4 @@
+clusters:
+  roAdGroups: [ "group1", "group2" ]
+  rwAdGroups: [ "group3" ]
+  owners: [ "user1", "user2" ]
