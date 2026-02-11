@@ -3,6 +3,7 @@ name: earth
 type: project
 clusterPlatform: k8s
 accessGroups: [ "group1", "group2" ]
+mavenRepoName: dev.maven.repo
 repositories:
   - type: envgeneInstance
     url: gitrepo_with_cloudpassports

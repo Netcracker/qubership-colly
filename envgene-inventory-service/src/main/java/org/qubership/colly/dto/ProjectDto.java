@@ -71,5 +71,11 @@ public record ProjectDto(
                 description = "Default cluster configuration for the project",
                 nullable = true
         )
-        ClusterDefaultsDto clusterDefaults) {
+        ClusterDefaultsDto clusterDefaults,
+        @Schema(
+                description = "Name of the maven repository. Can be used for cloud passport generation",
+                examples = "dev.global.mvn.group",
+                nullable = true
+        )
+        String mavenRepoName) {
 }
