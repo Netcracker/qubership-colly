@@ -266,4 +266,25 @@ class ProjectRepoLoaderTest {
 
         assertNull(project);
     }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_without_defaults")
+    void test_project_without_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.get(0).clusterDefaults(), nullValue());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_invalid_defaults")
+    void test_project_with_invalid_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.get(0).clusterDefaults(), nullValue());
+    }
+
 }
