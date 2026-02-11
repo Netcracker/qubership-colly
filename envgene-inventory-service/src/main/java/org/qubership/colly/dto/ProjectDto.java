@@ -66,5 +66,10 @@ public record ProjectDto(
                 examples = "[\"developers\", \"admins\"]",
                 nullable = true
         )
-        List<String> accessGroups) {
+        List<String> accessGroups,
+        @Schema(
+                description = "Default cluster configuration for the project",
+                nullable = true
+        )
+        ClusterDefaultsDto clusterDefaults) {
 }

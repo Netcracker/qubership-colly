@@ -1,5 +1,6 @@
 package org.qubership.colly.projectrepo;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
@@ -18,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
+
 
 @ApplicationScoped
 public class ProjectRepoLoader {
@@ -46,16 +48,52 @@ public class ProjectRepoLoader {
         gitService.cloneRepository(projectGitRepoUrl, null, null, directory);
 
         Path dir = Paths.get(projectRepoFolder);
+        ClusterDefaults clusterDefaults = getClusterDefaults(dir);
+
         try (Stream<Path> walk = Files.walk(dir)) {
             return walk.filter(path -> path.toString().endsWith("parameters.yaml") || path.endsWith("parameters.yml"))
-                    .map(path -> processProject(path, path.getParent())).filter(Objects::nonNull).toList();
+                    .map(path -> processProject(path, path.getParent(), clusterDefaults)).filter(Objects::nonNull).toList();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    Project processProject(Path parametersFilePath, Path projectPath) {
+    private ClusterDefaults getClusterDefaults(Path dir) {
+        ClusterDefaults clusterDefaults;
+        try (Stream<Path> walk = Files.walk(dir)) {
+            clusterDefaults = walk.filter(path -> path.toString().endsWith("defaults.yaml") || path.endsWith("defaults.yml"))
+                    .map(path -> processDefaultsFile(path, path.getParent())).filter(Objects::nonNull).findFirst().orElse(null);
+
+        } catch (IOException e) {
+            Log.error("Error loading cluster defaults:", e);
+            return null;
+        }
+        return clusterDefaults;
+    }
+
+    private ClusterDefaults processDefaultsFile(Path pathToDefaultsFile, Path parent) {
+        if (!parent.getFileName().toString().equals("defaults")) {
+            Log.error("Defaults file found in unexpected location: " + pathToDefaultsFile);
+            return null;
+        }
+        Log.info("Processing cluster defaults from file: " + pathToDefaultsFile);
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try (FileInputStream inputStream = new FileInputStream(pathToDefaultsFile.toFile())) {
+            JsonNode root = mapper.readTree(inputStream);
+            JsonNode clustersNode = root.get("clusters");
+            if (clustersNode == null) {
+                Log.warn("No 'clusters' section found in defaults file: " + pathToDefaultsFile);
+                return null;
+            }
+            return mapper.treeToValue(clustersNode, ClusterDefaults.class);
+        } catch (Exception e) {
+            Log.error("Can't read project data from file: " + pathToDefaultsFile, e);
+            return null;
+        }
+    }
+
+    Project processProject(Path parametersFilePath, Path projectPath, ClusterDefaults clusterDefaults) {
         String projectId = projectPath.getFileName().toString();
         Log.info("processing project: " + projectId + " from file: " + parametersFilePath.toString());
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -87,7 +125,8 @@ public class ProjectRepoLoader {
                     convertToPipelines(pipelineRepos),
                     ClusterPlatform.fromString(projectEntity.clusterPlatform()),
                     convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId),
-                    projectEntity.accessGroups() == null ? List.of() : projectEntity.accessGroups());
+                    projectEntity.accessGroups() == null ? List.of() : projectEntity.accessGroups(),
+                    clusterDefaults);
         } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
             return null;
@@ -142,5 +181,6 @@ public class ProjectRepoLoader {
     public record RepositoryEntity(String type, String url, String token, String region, String branch,
                                    EnvgeneArtifact envgeneArtifact) {
     }
+
 
 }

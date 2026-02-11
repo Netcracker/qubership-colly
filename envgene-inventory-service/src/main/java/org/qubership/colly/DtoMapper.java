@@ -5,10 +5,7 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.dto.*;
-import org.qubership.colly.projectrepo.EnvgeneTemplateRepository;
-import org.qubership.colly.projectrepo.InstanceRepository;
-import org.qubership.colly.projectrepo.Pipeline;
-import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.projectrepo.*;
 
 import java.util.List;
 
@@ -91,8 +88,15 @@ public class DtoMapper {
                 project.pipelines().stream().map(this::toDto).toList(),
                 project.clusterPlatform(),
                 toDto(project.envgeneTemplateRepository()),
-                project.accessGroups()
-        );
+                project.accessGroups(),
+                toDto(project.clusterDefaults()));
+    }
+
+    private ClusterDefaultsDto toDto(ClusterDefaults clusterDefaults) {
+        if (clusterDefaults == null) {
+            return null;
+        }
+        return new ClusterDefaultsDto(clusterDefaults.owners(), clusterDefaults.roAdGroups(), clusterDefaults.rwAdGroups());
     }
 
     public InstanceRepositoryDto toDto(InstanceRepository instanceRepository) {

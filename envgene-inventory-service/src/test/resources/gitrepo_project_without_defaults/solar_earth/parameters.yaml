@@ -1,0 +1,10 @@
+customerName: Solar System
+name: earth
+type: project
+clusterPlatform: k8s
+accessGroups: [ "group1", "group2" ]
+repositories:
+  - type: envgeneInstance
+    url: gitrepo_with_cloudpassports
+    token: earth-envgene-token-789
+    branch: main

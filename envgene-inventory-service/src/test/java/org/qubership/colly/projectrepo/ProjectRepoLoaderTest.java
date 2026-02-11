@@ -27,6 +27,12 @@ import static org.mockito.Mockito.doAnswer;
 @QuarkusComponentTest
 class ProjectRepoLoaderTest {
 
+    private static final ClusterDefaults CLUSTER_DEFAULTS = new ClusterDefaults(
+            List.of("user1", "user2"),
+            List.of("group1", "group2"),
+            List.of("group3")
+    );
+
     public static final Project TEST_PROJECT_1 = new Project(
             "test-project-1",
             "Test Project 1",
@@ -42,7 +48,7 @@ class ProjectRepoLoaderTest {
             ClusterPlatform.OCP,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "test-token", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")),
-            List.of("group1", "group2"));
+            List.of("group1", "group2"), CLUSTER_DEFAULTS);
     public static final Project TEST_PROJECT_2 = new Project(
             "test-project-2",
             "Test Project 2",
@@ -55,7 +61,7 @@ class ProjectRepoLoaderTest {
             ClusterPlatform.K8S,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "test-token", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-0987654", List.of("ci", "migration"), "ci")),
-            List.of());
+            List.of(), CLUSTER_DEFAULTS);
     @InjectMock
     GitService gitService;
     @Inject
@@ -125,9 +131,10 @@ class ProjectRepoLoaderTest {
                 ),
                 List.of(),
                 ClusterPlatform.OCP, null,
-                List.of());
+                List.of(),
+                null);
 
-        Project project = loader.processProject(parametersFile, projectDir);
+        Project project = loader.processProject(parametersFile, projectDir, null);
         assertThat(project, equalTo(expectedResult));
     }
 
@@ -148,9 +155,9 @@ class ProjectRepoLoaderTest {
         Files.createDirectories(projectDir);
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
-        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"));
+        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"), null);
 
-        Project project = loader.processProject(parametersFile, projectDir);
+        Project project = loader.processProject(parametersFile, projectDir, null);
 
         assertThat(project, equalTo(expectedResult));
     }
@@ -184,7 +191,7 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir);
+        Project project = loader.processProject(parametersFile, projectDir, null);
 
         assertNotNull(project);
         assertThat(project.instanceRepositories(), hasSize(2));
@@ -213,7 +220,7 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir);
+        Project project = loader.processProject(parametersFile, projectDir, null);
 
         assertNull(project);
     }
@@ -234,7 +241,7 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir);
+        Project project = loader.processProject(parametersFile, projectDir, null);
 
         assertNull(project);
     }
@@ -255,8 +262,49 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir);
+        Project project = loader.processProject(parametersFile, projectDir, null);
 
         assertNull(project);
     }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_without_defaults")
+    void test_project_without_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_invalid_defaults")
+    void test_project_with_invalid_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_incorrect_location_defaults")
+    void test_project_incorrect_location_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_invalid_yaml_defaults")
+    void test_project_invalid_yaml_defaults() {
+
+        List<Project> projects = loader.loadProjects();
+        assertThat(projects, hasSize(1));
+        assertThat(projects.getFirst().clusterDefaults(), nullValue());
+    }
+
 }

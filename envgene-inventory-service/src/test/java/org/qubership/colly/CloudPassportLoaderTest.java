@@ -124,10 +124,10 @@ class CloudPassportLoaderTest {
     void load_cloud_passports_from_test_folder() {
         Project project1 = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")), List.of(), ClusterPlatform.K8S,
-                new EnvgeneTemplateRepository("gitrepo_template", "44", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")), List.of());
+                new EnvgeneTemplateRepository("gitrepo_template", "44", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")), List.of(), null);
         Project project2 = new Project("2", "project-2", ProjectType.PROJECT, "some-customer",
                 List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb")), List.of(), ClusterPlatform.K8S,
-                new EnvgeneTemplateRepository("gitrepo_template2", "45", "main", new EnvgeneArtifact("my-app:feature-new-ui-09876", List.of("dev", "qa"), "qa")), List.of("group1", "group2"));
+                new EnvgeneTemplateRepository("gitrepo_template2", "45", "main", new EnvgeneArtifact("my-app:feature-new-ui-09876", List.of("dev", "qa"), "qa")), List.of("group1", "group2"), null);
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
         assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 

@@ -1,0 +1,4 @@
+cluster: 42
+  roAdGroups: [ "ro-group1", "ro-group2" ]
+  rwAdGroups: [ "rw-group1" ]
+  owners: [ "user1", "user2" ]
