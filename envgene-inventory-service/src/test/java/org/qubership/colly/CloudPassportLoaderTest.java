@@ -75,7 +75,8 @@ class CloudPassportLoaderTest {
             "https://dashboard.example.com",
             "https://dbaas.example.com",
             "https://deployer.example.com",
-            "https://argo.example.com");
+            "https://argo.example.com",
+            "https://achka.example.com");
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -99,7 +100,8 @@ class CloudPassportLoaderTest {
             null,
             null,
             null,
-            null
+            null,
+            "https://ach-kubernetes-agent-devops-toolkit.unreachable.url"
     );
 
     @InjectMock
@@ -182,7 +184,7 @@ class CloudPassportLoaderTest {
     @Test
     void testParseTokenFromCredsFile_validYaml(@TempDir Path tempDir) throws IOException {
         CloudData cloud = new CloudData(null, null, "tokenKey", null,
-                null, null, null);
+                null, null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 
@@ -200,7 +202,7 @@ class CloudPassportLoaderTest {
     @Test
     void testParseTokenFromCredsFile_missingSecretThrows(@TempDir Path tempDir) throws IOException {
         CloudData cloud = new CloudData(null, null, "missingKey", null,
-                null, null, null);
+                null, null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 

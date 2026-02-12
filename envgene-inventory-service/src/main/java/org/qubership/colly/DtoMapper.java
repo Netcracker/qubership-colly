@@ -45,7 +45,8 @@ public class DtoMapper {
                 cluster.getCloudApiHost(),
                 cluster.getCloudPublicHost(),
                 toLightDtos(cluster.getEnvironments()),
-                cluster.getMonitoringUrl()
+                cluster.getMonitoringUrl(),
+                cluster.getAchkaUrl()
         );
     }
 

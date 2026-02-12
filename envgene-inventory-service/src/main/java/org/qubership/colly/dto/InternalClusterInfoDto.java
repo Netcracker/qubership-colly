@@ -51,5 +51,11 @@ public record InternalClusterInfoDto(
                 examples = "http://vmsingle-k8s.victoria:8428",
                 nullable = true
         )
-        String monitoringUrl) {
+        String monitoringUrl,
+        @Schema(
+                description = "URL to ach kubernetes agent",
+                examples = "https://ach-kubernetes-agent-devops-toolkit.gr7.eu-west-1.eks.amazonaws.com",
+                nullable = true
+        )
+        String achkaUrl) {
 }
