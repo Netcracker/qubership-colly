@@ -175,7 +175,7 @@ public class ClusterResourcesLoader {
             }
             environment.setMonitoringData(monitoringService.loadMonitoringData(clusterInfo.monitoringUrl(), environment.getName(), cluster.getName(), namespaceNames));
             environment.setDeploymentVersion(deploymentVersions.toString());
-            environment.setDeploymentOperations(achKubernetesAgentService.getDeploymentOperations(clusterInfo.cloudPublicHost(), namespaceNames));
+            environment.setDeploymentOperations(achKubernetesAgentService.getDeploymentOperations(clusterInfo.achkaUrl(), namespaceNames));
             environmentRepository.save(environment);
 
             envs.add(environment);

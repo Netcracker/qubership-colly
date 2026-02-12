@@ -8,10 +8,9 @@ import java.net.URI;
 @ApplicationScoped
 public class AchKubernetesAgentClientFactory {
 
-    public AchKubernetesAgentClient create(String cloudPublicHost) {
-        String url = "https://ach-kubernetes-agent-devops-toolkit." + cloudPublicHost;
+    public AchKubernetesAgentClient create(String achkaUrl) {
         return RestClientBuilder.newBuilder()
-                .baseUri(URI.create(url))
+                .baseUri(URI.create(achkaUrl))
                 .build(AchKubernetesAgentClient.class);
     }
 }

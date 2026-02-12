@@ -23,8 +23,8 @@ public class AchKubernetesAgentService {
     @Inject
     AchKubernetesAgentClientFactory clientFactory;
 
-    public List<DeploymentOperation> getDeploymentOperations(String cloudPublicHost, List<String> namespaceNames) {
-        AchKubernetesAgentClient achkaClient = clientFactory.create(cloudPublicHost);
+    public List<DeploymentOperation> getDeploymentOperations(String achkaUrl, List<String> namespaceNames) {
+        AchKubernetesAgentClient achkaClient = clientFactory.create(achkaUrl);
         List<DeploymentOperation> deploymentOperations = new ArrayList<>();
         AchKubernetesAgentClient.AchkaResponse achkaResponse = achkaClient.versions(namespaceNames, "deployment_session_id");
         for (Map.Entry<String, List<ApplicationsVersion>> entry : achkaResponse.deploymentSessionIdToApplicationVersions().entrySet()) {

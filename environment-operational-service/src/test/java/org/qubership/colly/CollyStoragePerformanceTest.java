@@ -35,7 +35,7 @@ class CollyStoragePerformanceTest {
         final int simulatedWorkTimeMs = 200;
 
         List<ClusterInfo> clusterInfos = IntStream.range(0, clusterCount)
-                .mapToObj(i -> new ClusterInfo("cluster" + i, "cluster" + i, "token" + i, "host" + i, "host" + i, Set.of(), null))
+                .mapToObj(i -> new ClusterInfo("cluster" + i, "cluster" + i, "token" + i, "host" + i, "host" + i, Set.of(), null, null))
                 .toList();
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
@@ -78,7 +78,7 @@ class CollyStoragePerformanceTest {
         final int simulatedWorkTimeMs = 100;
 
         List<ClusterInfo> clusterInfos = IntStream.range(0, clusterCount)
-                .mapToObj(i -> new ClusterInfo("stress-cluster" + i, "stress-cluster" + i, "token" + i, "host" + i, "host" + i, Set.of(), null))
+                .mapToObj(i -> new ClusterInfo("stress-cluster" + i, "stress-cluster" + i, "token" + i, "host" + i, "host" + i, Set.of(), null, null))
                 .toList();
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);

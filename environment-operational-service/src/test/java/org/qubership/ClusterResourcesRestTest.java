@@ -47,9 +47,9 @@ class ClusterResourcesRestTest {
 
         Mockito.when(envgeneInventoryServiceRest.getClusterInfos()).thenReturn(List.of(
                 new ClusterInfo("1", "test-cluster", "cloud-deploy-sa-token", "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
-                        "host", Set.of(new CloudPassportEnvironment("42", "env-test", "some description", List.of(new CloudPassportNamespace("422", "namespace-1")))), "http://localhost:8428"),
+                        "host", Set.of(new CloudPassportEnvironment("42", "env-test", "some description", List.of(new CloudPassportNamespace("422", "namespace-1")))), "http://localhost:8428", "https://achka.cloud.example.com"),
                 new ClusterInfo("2", "unreachable-cluster", "cloud-deploy-sa-token", "https://some.unreachable.url:8443",
-                        "host", Set.of(new CloudPassportEnvironment("43", "env-1", "", List.of())), "http://vmsingle-k8s.victoria:8429")));
+                        "host", Set.of(new CloudPassportEnvironment("43", "env-1", "", List.of())), "http://vmsingle-k8s.victoria:8429", "https://achka.cloud.example.com")));
 
         var response = new AchKubernetesAgentClient.AchkaResponse(Map.of(
                 "123456-3456780-34567", List.of(

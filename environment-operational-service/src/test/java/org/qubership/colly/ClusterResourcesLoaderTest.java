@@ -54,7 +54,7 @@ class ClusterResourcesLoaderTest {
     private static final String CLUSTER_NAME = "cluster";
     private static final String CLUSTER_ID = "1";
     private static final ClusterInfo CLOUD_PASSPORT = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-            "example.com", Set.of(createEnvForTests(ENV_1, List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), null);
+            "example.com", Set.of(createEnvForTests(ENV_1, List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), null, "https://achka.cloud.example.com");
     private static final OffsetDateTime DATE_2024 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     private static final OffsetDateTime DATE_2025 = OffsetDateTime.of(2025, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
     @Inject
@@ -101,7 +101,8 @@ class ClusterResourcesLoaderTest {
     @Test
     void loadClusterResources_from_cloud_passport() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                "example.com", Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), "http://localhost:" + port);
+                "example.com", Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))),
+                "http://localhost:" + port, "https://achka.cloud.example.com");
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
         mockNodesLoading(new V1Node(), new V1Node());
 
@@ -147,7 +148,7 @@ class ClusterResourcesLoaderTest {
                                 new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
                                 new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3))
                 )
-        ), null);
+        ), null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
@@ -169,7 +170,7 @@ class ClusterResourcesLoaderTest {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
                 "example.com", Set.of(createEnvForTests("env-3-namespaces",
                 List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
-                        new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2)))), null);
+                        new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2)))), null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
@@ -215,7 +216,7 @@ class ClusterResourcesLoaderTest {
                 "example.com", Set.of(createEnvForTests("env-3-namespaces",
                 List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
                         new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
-                        new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3)))), null);
+                        new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3)))), null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
         V1ConfigMap configMap1 = new V1ConfigMap()
@@ -249,7 +250,7 @@ class ClusterResourcesLoaderTest {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
                 "example.com", Set.of(createEnvForTests("env-2-namespaces",
                 List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
-                        new CloudPassportNamespace("42", "non-existing-namespace")))), null);
+                        new CloudPassportNamespace("42", "non-existing-namespace")))), null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
@@ -267,7 +268,7 @@ class ClusterResourcesLoaderTest {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, "unreachable-cluster", "42", "https://some.unreachable.url",
                 "example.com", Set.of(createEnvForTests("env-unreachable",
                 List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))),
-                "http://localhost:" + port);
+                "http://localhost:" + port, "https://achka.cloud.example.com");
 
         CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
         when(coreV1Api.listNamespace()).thenReturn(nsRequest);
@@ -295,7 +296,8 @@ class ClusterResourcesLoaderTest {
     void load_namespace_that_created_after_first_loading() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
                 "example.com", Set.of(createEnvForTests("env-with-new-namespace",
-                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME), new CloudPassportNamespace("42", "new-namespace")))), null);
+                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME), new CloudPassportNamespace("42", "new-namespace")))),
+                null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);

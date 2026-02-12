@@ -34,9 +34,9 @@ class CollyStorageExceptionHandlingTest {
 
     @Test
     void syncAllClusters_shouldContinueExecutionWhenSomeClustersFail() throws InterruptedException {
-        ClusterInfo cluster1 = new ClusterInfo("1", "stable-cluster", "token1", "host1", "host1", Set.of(), null);
-        ClusterInfo cluster2 = new ClusterInfo("2", "failing-cluster", "token2", "host2", "host2", Set.of(), null);
-        ClusterInfo cluster3 = new ClusterInfo("3", "another-stable-cluster", "token3", "host3", "host3", Set.of(), null);
+        ClusterInfo cluster1 = new ClusterInfo("1", "stable-cluster", "token1", "host1", "host1", Set.of(), null, null);
+        ClusterInfo cluster2 = new ClusterInfo("2", "failing-cluster", "token2", "host2", "host2", Set.of(), null, null);
+        ClusterInfo cluster3 = new ClusterInfo("3", "another-stable-cluster", "token3", "host3", "host3", Set.of(), null, null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2, cluster3);
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
@@ -78,8 +78,8 @@ class CollyStorageExceptionHandlingTest {
 
     @Test
     void syncAllClusters_shouldHandleAllClustersFailingGracefully() {
-        ClusterInfo cluster1 = new ClusterInfo("1", "failing-cluster1", "token1", "host1", "host1", Set.of(), null);
-        ClusterInfo cluster2 = new ClusterInfo("2", "failing-cluster2", "token2", "host2", "host2", Set.of(), null);
+        ClusterInfo cluster1 = new ClusterInfo("1", "failing-cluster1", "token1", "host1", "host1", Set.of(), null, null);
+        ClusterInfo cluster2 = new ClusterInfo("2", "failing-cluster2", "token2", "host2", "host2", Set.of(), null, null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2);
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
@@ -93,7 +93,7 @@ class CollyStorageExceptionHandlingTest {
 
     @Test
     void syncAllClusters_shouldHandleInterruptedException() throws InterruptedException {
-        ClusterInfo cluster = new ClusterInfo("1", "interrupted-cluster", "token", "host", "host", Set.of(), null);
+        ClusterInfo cluster = new ClusterInfo("1", "interrupted-cluster", "token", "host", "host", Set.of(), null, null);
         when(envgeneInventoryService.getClusterInfos()).thenReturn(List.of(cluster));
 
         CountDownLatch startLatch = new CountDownLatch(1);
@@ -140,9 +140,9 @@ class CollyStorageExceptionHandlingTest {
 
     @Test
     void syncAllClusters_shouldHandleMixedExceptionTypes() {
-        ClusterInfo cluster1 = new ClusterInfo("1", "runtime-exception-cluster", "token1", "host1", "host1", Set.of(), null);
-        ClusterInfo cluster2 = new ClusterInfo("2", "illegal-argument-cluster", "token2", "host2", "host2", Set.of(), null);
-        ClusterInfo cluster3 = new ClusterInfo("3", "successful-cluster", "token3", "host3", "host3", Set.of(), null);
+        ClusterInfo cluster1 = new ClusterInfo("1", "runtime-exception-cluster", "token1", "host1", "host1", Set.of(), null, null);
+        ClusterInfo cluster2 = new ClusterInfo("2", "illegal-argument-cluster", "token2", "host2", "host2", Set.of(), null, null);
+        ClusterInfo cluster3 = new ClusterInfo("3", "successful-cluster", "token3", "host3", "host3", Set.of(), null, null);
         List<ClusterInfo> clusterInfos = List.of(cluster1, cluster2, cluster3);
 
         when(envgeneInventoryService.getClusterInfos()).thenReturn(clusterInfos);
