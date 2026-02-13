@@ -3,6 +3,8 @@ package org.qubership.colly.achka;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jetbrains.annotations.NotNull;
 import org.qubership.colly.db.data.DeploymentItem;
 import org.qubership.colly.db.data.DeploymentItemType;
 import org.qubership.colly.db.data.DeploymentOperation;
@@ -20,11 +22,18 @@ import static org.apache.commons.lang3.compare.ComparableUtils.max;
 @ApplicationScoped
 public class AchKubernetesAgentService {
 
+    private final String sdProductPattern;
+    private final String sdProjectPattern;
     AchKubernetesAgentClientFactory clientFactory;
 
+
     @Inject
-    public AchKubernetesAgentService(AchKubernetesAgentClientFactory clientFactory) {
+    public AchKubernetesAgentService(AchKubernetesAgentClientFactory clientFactory,
+                                     @ConfigProperty(name = "colly.environment-operational-service.sd.product.pattern") String sdProductPattern,
+                                     @ConfigProperty(name = "colly.environment-operational-service.sd.project.pattern") String sdProjectPattern) {
         this.clientFactory = clientFactory;
+        this.sdProductPattern = sdProductPattern;
+        this.sdProjectPattern = sdProjectPattern;
     }
 
     public List<DeploymentOperation> getDeploymentOperations(String achkaUrl, List<String> namespaceNames) {
@@ -54,10 +63,24 @@ public class AchKubernetesAgentService {
                 completedAt = max(completedAt, Instant.ofEpochMilli(Long.parseLong(latest.deployDate())));
                 long failedApps = sdApplicationsVersions.stream().filter(appVer -> appVer.deployStatus().equals("FAILED")).count();
                 DeploymentStatus status = failedApps > 0 ? DeploymentStatus.FAILED : DeploymentStatus.SUCCESS;
-                deploymentItems.add(new DeploymentItem(sdNameToAppVers.getKey(), status, DeploymentItemType.PRODUCT));
+                DeploymentItemType type = calculateSdType(sdNameToAppVers);
+                deploymentItems.add(new DeploymentItem(sdNameToAppVers.getKey(), status, type));
             }
             deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
         }
         return deploymentOperations;
+    }
+
+    private @NotNull DeploymentItemType calculateSdType(Map.Entry<String, List<ApplicationsVersion>> sdNameToAppVers) {
+        DeploymentItemType type;
+        if (sdNameToAppVers.getKey().matches(sdProductPattern)) {
+            type = DeploymentItemType.PRODUCT;
+        } else if (sdNameToAppVers.getKey().matches(sdProjectPattern)) {
+            type = DeploymentItemType.PROJECT;
+        } else {
+            Log.warn("SD name " + sdNameToAppVers.getKey() + " does not match neither product nor project pattern, defaulting to UNKNOWN");
+            type = DeploymentItemType.UNKNOWN;
+        }
+        return type;
     }
 }

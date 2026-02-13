@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,7 +56,7 @@ class AchKubernetesAgentServiceTest {
                 "session:123", List.of(
                         new ApplicationsVersion("sd-product-a", "SUCCESS", "1000000", "t1"),
                         new ApplicationsVersion("sd-product-a", "SUCCESS", "2000000", "t2"),
-                        new ApplicationsVersion("sd-product-b", "SUCCESS", "3000000", "t3")
+                        new ApplicationsVersion("sd-project-b", "SUCCESS", "3000000", "t3")
                 )
         ));
 
@@ -65,10 +66,10 @@ class AchKubernetesAgentServiceTest {
         assertEquals(1, result.size());
         DeploymentOperation op = result.getFirst();
         assertEquals(2, op.deploymentItems().size());
-        op.deploymentItems().forEach(item -> {
-            assertEquals(DeploymentStatus.SUCCESS, item.status());
-            assertEquals(DeploymentItemType.PRODUCT, item.deploymentItemType());
-        });
+        assertThat(op.deploymentItems(), containsInAnyOrder(
+                new DeploymentItem("sd-product-a", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT),
+                new DeploymentItem("sd-project-b", DeploymentStatus.SUCCESS, DeploymentItemType.PROJECT)
+        ));
     }
 
     @Test
@@ -84,10 +85,8 @@ class AchKubernetesAgentServiceTest {
         List<DeploymentOperation> result = service.getDeploymentOperations("https://achka.cloud.example.com", List.of("ns1"));
 
         assertEquals(1, result.size());
-        assertEquals(1, result.getFirst().deploymentItems().size());
-        DeploymentItem item = result.getFirst().deploymentItems().getFirst();
-        assertEquals(DeploymentStatus.FAILED, item.status());
-        assertEquals("sd-product-a", item.name());
+        assertThat(result.getFirst().deploymentItems(),
+                contains(new DeploymentItem("sd-product-a", DeploymentStatus.FAILED, DeploymentItemType.PRODUCT)));
     }
 
     @Test
@@ -186,7 +185,7 @@ class AchKubernetesAgentServiceTest {
         // - "some-session-id" with 2 sd: sd-product-alpha (SUCCESS), sd-product-beta (FAILED)
         // - "some-session-id-2" with 1 sd: sd-product-gamma (SUCCESS)
         assertEquals(2, result.size());
-        assertThat(result, containsInAnyOrder(
+        assertThat(result, contains(
                 new DeploymentOperation(Instant.ofEpochMilli(1756600000L), List.of(
                         new DeploymentItem("sd-product-beta:42", DeploymentStatus.FAILED, DeploymentItemType.PRODUCT),
                         new DeploymentItem("sd-product-alpha:1", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT)
