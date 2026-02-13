@@ -18,7 +18,5 @@ public record CloudData(
         @JsonProperty("CLOUD_DASHBOARD_URL")
         String cloudDashboardUrl,
         @JsonProperty("CMDB_URL")
-        String cloudCmdbUrl,
-        @JsonProperty("ACHKA_URL")
-        String achkaUrl) {
+        String cloudCmdbUrl) {
 }

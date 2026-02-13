@@ -159,7 +159,7 @@ class CloudPassportLoaderTest {
                   MONITORING_EXT_MONITORING_QUERY_URL: "http://monitoring.example.com"
                 dbaas:
                   API_DBAAS_ADDRESS: https://dbaas.example.com
-                argocd:
+                devops:
                   ARGOCD_URL: https://argo.example.com
                 """;
         Path file = tempDir.resolve("data.yml");
@@ -177,14 +177,14 @@ class CloudPassportLoaderTest {
         assertThat(result.cse().monitoringExtMonitoringQueryUrl(), equalTo("http://monitoring.example.com"));
 
         assertThat(result.dbaas().apiDBaaSAddress(), equalTo("https://dbaas.example.com"));
-        assertThat(result.argocd().argocdUrl(), equalTo("https://argo.example.com"));
+        assertThat(result.devops().argocdUrl(), equalTo("https://argo.example.com"));
 
     }
 
     @Test
     void testParseTokenFromCredsFile_validYaml(@TempDir Path tempDir) throws IOException {
         CloudData cloud = new CloudData(null, null, "tokenKey", null,
-                null, null, null, null);
+                null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 
@@ -202,7 +202,7 @@ class CloudPassportLoaderTest {
     @Test
     void testParseTokenFromCredsFile_missingSecretThrows(@TempDir Path tempDir) throws IOException {
         CloudData cloud = new CloudData(null, null, "missingKey", null,
-                null, null, null, null);
+                null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 

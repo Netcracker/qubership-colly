@@ -14,10 +14,10 @@ cloud:
   ANOTHER_UI_URL: https://another-ui.my-cluster.com
   CLOUD_DASHBOARD_URL: https://dashboard.example.com
   CMDB_URL: https://deployer.example.com
-  ACHKA_URL: https://achka.example.com
 cse:
   MONITORING_EXT_MONITORING_QUERY_URL: http://localhost:8428
 dbaas:
   API_DBAAS_ADDRESS: https://dbaas.example.com
-argocd:
+devops:
   ARGOCD_URL: https://argo.example.com
+  ACHKA_URL: https://achka.example.com
