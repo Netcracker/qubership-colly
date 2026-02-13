@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.compare.ComparableUtils.max;
@@ -22,9 +23,9 @@ import static org.apache.commons.lang3.compare.ComparableUtils.max;
 @ApplicationScoped
 public class AchKubernetesAgentService {
 
-    private final String sdProductPattern;
-    private final String sdProjectPattern;
-    AchKubernetesAgentClientFactory clientFactory;
+    private final AchKubernetesAgentClientFactory clientFactory;
+    private final Pattern productPattern;
+    private final Pattern projectPattern;
 
 
     @Inject
@@ -32,8 +33,8 @@ public class AchKubernetesAgentService {
                                      @ConfigProperty(name = "colly.environment-operational-service.sd.product.pattern") String sdProductPattern,
                                      @ConfigProperty(name = "colly.environment-operational-service.sd.project.pattern") String sdProjectPattern) {
         this.clientFactory = clientFactory;
-        this.sdProductPattern = sdProductPattern;
-        this.sdProjectPattern = sdProjectPattern;
+        this.productPattern = Pattern.compile(sdProductPattern);
+        this.projectPattern = Pattern.compile(sdProjectPattern);
     }
 
     public List<DeploymentOperation> getDeploymentOperations(String achkaUrl, List<String> namespaceNames) {
@@ -73,9 +74,10 @@ public class AchKubernetesAgentService {
 
     private @NotNull DeploymentItemType calculateSdType(Map.Entry<String, List<ApplicationsVersion>> sdNameToAppVers) {
         DeploymentItemType type;
-        if (sdNameToAppVers.getKey().matches(sdProductPattern)) {
+
+        if (productPattern.matcher(sdNameToAppVers.getKey()).find()) {
             type = DeploymentItemType.PRODUCT;
-        } else if (sdNameToAppVers.getKey().matches(sdProjectPattern)) {
+        } else if (projectPattern.matcher(sdNameToAppVers.getKey()).find()) {
             type = DeploymentItemType.PROJECT;
         } else {
             Log.warn("SD name " + sdNameToAppVers.getKey() + " does not match neither product nor project pattern, defaulting to UNKNOWN");
