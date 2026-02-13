@@ -20,8 +20,12 @@ import static org.apache.commons.lang3.compare.ComparableUtils.max;
 @ApplicationScoped
 public class AchKubernetesAgentService {
 
-    @Inject
     AchKubernetesAgentClientFactory clientFactory;
+
+    @Inject
+    public AchKubernetesAgentService(AchKubernetesAgentClientFactory clientFactory) {
+        this.clientFactory = clientFactory;
+    }
 
     public List<DeploymentOperation> getDeploymentOperations(String achkaUrl, List<String> namespaceNames) {
         AchKubernetesAgentClient achkaClient = clientFactory.create(achkaUrl);
@@ -37,10 +41,10 @@ public class AchKubernetesAgentService {
             Instant completedAt = Instant.MIN;
             List<DeploymentItem> deploymentItems = new ArrayList<>();
             Map<String, List<ApplicationsVersion>> sdToApplications = applicationsVersions.stream().collect(Collectors.groupingBy(ApplicationsVersion::source));
-            for (String sdName : sdToApplications.keySet()) {
-                List<ApplicationsVersion> sdApplicationsVersions = sdToApplications.get(sdName);
+            for (Map.Entry<String, List<ApplicationsVersion>> sdNameToAppVers : sdToApplications.entrySet()) {
+                List<ApplicationsVersion> sdApplicationsVersions = sdNameToAppVers.getValue();
                 if (sdApplicationsVersions.isEmpty()) {
-                    Log.warn("No applications versions found for SD: " + sdName);
+                    Log.warn("No applications versions found for SD: " + sdNameToAppVers.getKey());
                     continue;
                 }
 
@@ -50,7 +54,7 @@ public class AchKubernetesAgentService {
                 completedAt = max(completedAt, Instant.ofEpochMilli(Long.parseLong(latest.deployDate())));
                 long failedApps = sdApplicationsVersions.stream().filter(appVer -> appVer.deployStatus().equals("FAILED")).count();
                 DeploymentStatus status = failedApps > 0 ? DeploymentStatus.FAILED : DeploymentStatus.SUCCESS;
-                deploymentItems.add(new DeploymentItem(sdName, status, DeploymentItemType.PRODUCT));
+                deploymentItems.add(new DeploymentItem(sdNameToAppVers.getKey(), status, DeploymentItemType.PRODUCT));
             }
             deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
         }
