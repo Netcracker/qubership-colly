@@ -10,6 +10,7 @@ import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -17,12 +18,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.achka.AchKubernetesAgentClient;
 import org.qubership.colly.achka.AchKubernetesAgentClientFactory;
+import org.qubership.colly.achka.ApplicationsVersion;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.ClusterInfo;
-import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
+import org.qubership.colly.db.data.*;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
@@ -37,6 +37,8 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -95,7 +97,6 @@ class ClusterResourcesLoaderTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"status\":\"success\",\"data\":{\"resultType\":\"vector\",\"result\":[{\"metric\":{},\"value\":[1747924558,\"1\"]}]},\"stats\":{\"seriesFetched\": \"1\",\"executionTimeMsec\":4}}")));
-        mockAchkaRestClient(clientFactory, new AchKubernetesAgentClient.AchkaResponse(Map.of()));
     }
 
     @Test
@@ -105,6 +106,14 @@ class ClusterResourcesLoaderTest {
                 "http://localhost:" + port, "https://achka.cloud.example.com");
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
         mockNodesLoading(new V1Node(), new V1Node());
+        var response = new AchKubernetesAgentClient.AchkaResponse(Map.of(
+                "session:456", List.of(
+                        new ApplicationsVersion("sd-product:111", "SUCCESS", "1000000", "t1"),
+                        new ApplicationsVersion("sd-project:123", "FAILED", "2000000", "t2")
+                )
+        ));
+
+        mockAchkaRestClient(clientFactory, response);
 
         String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
         V1ConfigMap configMap = new V1ConfigMap()
@@ -125,6 +134,12 @@ class ClusterResourcesLoaderTest {
                 hasProperty("deploymentVersion", equalTo(exampleOfLongVersion + "\n")),
                 hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant()))));
 
+        assertThat(testEnv.getDeploymentOperations(), contains(
+                new DeploymentOperation(Instant.ofEpochMilli(2000000L),
+                        List.of(
+                                new DeploymentItem("sd-project:123", DeploymentStatus.FAILED, DeploymentItemType.PROJECT),
+                                new DeploymentItem("sd-product:111", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT)
+                        ))));
         assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
 
         List<Namespace> namespaces = namespaceRepository.findByClusterId(CLUSTER_ID);
@@ -321,6 +336,27 @@ class ClusterResourcesLoaderTest {
         assertThat(allNamespaces2, hasItems(
                 allOf(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("existsInK8s", equalTo(true))),
                 allOf(hasProperty("name", equalTo("new-namespace")), hasProperty("existsInK8s", equalTo(true)))));
+
+    }
+
+    @Test
+    void load_environments_achka_unavailable() throws ApiException {
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                "host", Set.of(createEnvForTests("env-1-namespace",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME))
+                )
+        ), null, "http://localhost");
+        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
+
+        AchKubernetesAgentClient client = mock(AchKubernetesAgentClient.class);
+        when(clientFactory.create(anyString())).thenReturn(client);
+        when(client.versions(anyList(), anyString())).thenThrow(NotFoundException.class);
+
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
+
+        Environment testEnv = environmentRepository.findByName("env-1-namespace").getFirst();
+        assertThat(testEnv, hasProperty("name", equalTo("env-1-namespace")));
+        assertThat(testEnv.getDeploymentOperations(), emptyIterable());
 
     }
 

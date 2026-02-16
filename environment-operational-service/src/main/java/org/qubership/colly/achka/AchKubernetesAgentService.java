@@ -38,9 +38,19 @@ public class AchKubernetesAgentService {
     }
 
     public List<DeploymentOperation> getDeploymentOperations(String achkaUrl, List<String> namespaceNames) {
-        AchKubernetesAgentClient achkaClient = clientFactory.create(achkaUrl);
         List<DeploymentOperation> deploymentOperations = new ArrayList<>();
-        AchKubernetesAgentClient.AchkaResponse achkaResponse = achkaClient.versions(namespaceNames, "deployment_session_id");
+        AchKubernetesAgentClient.AchkaResponse achkaResponse;
+        try {
+            AchKubernetesAgentClient achkaClient = clientFactory.create(achkaUrl);
+            achkaResponse = achkaClient.versions(namespaceNames, "deployment_session_id");
+        } catch (Exception e) {
+            Log.errorf(e, "Unable to load data from achka: %s and namespaceNames: %s", achkaUrl, namespaceNames);
+            return deploymentOperations;
+        }
+        if (achkaResponse == null) {
+            Log.warnf("Achka %s returned null for namespaces: %s", achkaUrl, namespaceNames);
+            return deploymentOperations;
+        }
         for (Map.Entry<String, List<ApplicationsVersion>> entry : achkaResponse.deploymentSessionIdToApplicationVersions().entrySet()) {
             if (entry.getKey().equals("None")) {
                 Log.error("Invalid deployment session id: " + entry);
