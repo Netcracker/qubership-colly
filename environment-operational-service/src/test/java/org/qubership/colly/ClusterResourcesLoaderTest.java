@@ -131,7 +131,6 @@ class ClusterResourcesLoaderTest {
         Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv, allOf(
                 hasProperty("name", equalTo("env-test")),
-                hasProperty("deploymentVersion", equalTo(exampleOfLongVersion + "\n")),
                 hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant()))));
 
         assertThat(testEnv.getDeploymentOperations(), contains(
@@ -210,7 +209,6 @@ class ClusterResourcesLoaderTest {
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         List<Environment> envs = environmentRepository.findByName(ENV_1);
         Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
-        assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2024.toInstant()));
 
         configMap = new V1ConfigMap()
@@ -221,42 +219,6 @@ class ClusterResourcesLoaderTest {
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         envs = environmentRepository.findByName(ENV_1);
         testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
-        assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 2.0.0\n"));
-        assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
-    }
-
-    @Test
-    void combine_deployment_version_for_namespaces() throws ApiException {
-        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                "example.com", Set.of(createEnvForTests("env-3-namespaces",
-                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
-                        new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
-                        new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3)))), null, "https://achka.cloud.example.com");
-        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
-
-        V1ConfigMap configMap1 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
-
-        mockConfigMaps(List.of(configMap1), NAMESPACE_NAME);
-
-        V1ConfigMap configMap2 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2024))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
-
-        mockConfigMaps(List.of(configMap2), NAMESPACE_NAME_2);
-
-        V1ConfigMap configMap3 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
-
-        mockConfigMaps(List.of(configMap3), NAMESPACE_NAME_3);
-
-
-        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
-        List<Environment> envs = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
-        assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\nMyVersion 2.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
 

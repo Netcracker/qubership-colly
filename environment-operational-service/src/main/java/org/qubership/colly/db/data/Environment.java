@@ -20,7 +20,6 @@ public class Environment {
     private Instant cleanInstallationDate;
     private String clusterId;
     private Map<String, String> monitoringData;
-    private String deploymentVersion;
     private List<DeploymentOperation> deploymentOperations;
     private List<String> namespaceIds;
 

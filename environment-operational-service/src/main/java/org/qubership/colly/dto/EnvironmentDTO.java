@@ -35,13 +35,6 @@ public record EnvironmentDTO(
         ClusterDTO cluster,
 
         @Schema(
-                description = "Current deployment version from k8s data",
-                examples = "1.2.3",
-                nullable = true
-        )
-        String deploymentVersion,
-
-        @Schema(
                 description = "Timestamp of the clean installation (ISO 8601 format)",
                 examples = "2024-01-15T10:30:00Z",
                 nullable = true

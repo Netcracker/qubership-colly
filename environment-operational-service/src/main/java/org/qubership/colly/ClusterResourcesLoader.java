@@ -44,9 +44,6 @@ public class ClusterResourcesLoader {
     @ConfigProperty(name = "colly.environment-operational-service.config-map.versions.name")
     String versionsConfigMapName;
 
-    @ConfigProperty(name = "colly.environment-operational-service.config-map.versions.data-field-name")
-    String versionsConfigMapDataFieldName;
-
     @Inject
     public ClusterResourcesLoader(NamespaceRepository namespaceRepository,
                                   ClusterRepository clusterRepository,
@@ -130,8 +127,6 @@ public class ClusterResourcesLoader {
             } else {
                 Log.info("environment " + environment.getName() + " exists");
             }
-            StringBuilder deploymentVersions = new StringBuilder();
-
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaces()) {
                 Log.info("Start working with namespace = " + cloudPassportNamespace.name());
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
@@ -160,11 +155,7 @@ public class ClusterResourcesLoader {
                     environment.setCleanInstallationDate(configMapCreationTime);
                 }
 
-                String deploymentVersionForNamespace = versionsConfigMap.getData().get(versionsConfigMapDataFieldName);
-                if (deploymentVersionForNamespace != null && !deploymentVersionForNamespace.trim().isEmpty() && !deploymentVersions.toString().contains(deploymentVersionForNamespace)) {
-                    deploymentVersions.append(deploymentVersionForNamespace).append("\n");
-                }
-                Log.info("Namespace " + namespace.getName() + " is loaded successfully. Deployment versions are: " + deploymentVersions);
+                Log.info("Namespace " + namespace.getName() + " was loaded successfully.");
             }
             // Get namespace names from environment's namespace IDs
             List<String> namespaceNames = new ArrayList<>();
@@ -174,7 +165,6 @@ public class ClusterResourcesLoader {
                 }
             }
             environment.setMonitoringData(monitoringService.loadMonitoringData(clusterInfo.monitoringUrl(), environment.getName(), cluster.getName(), namespaceNames));
-            environment.setDeploymentVersion(deploymentVersions.toString());
             environment.setDeploymentOperations(achKubernetesAgentService.getDeploymentOperations(clusterInfo.achkaUrl(), namespaceNames));
             environmentRepository.save(environment);
 
