@@ -18,6 +18,7 @@ import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.ClusterInfo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,7 +54,6 @@ class ClusterResourcesRestTest {
 
         var response = new AchKubernetesAgentClient.AchkaResponse(Map.of(
                 "123456-3456780-34567", List.of(
-                        new ApplicationsVersion("sd-product-a", "SUCCESS", "1000000", "t1"),
                         new ApplicationsVersion("sd-product-a", "FAILED", "2000000", "t2")
                 )
         ));
@@ -201,6 +201,15 @@ class ClusterResourcesRestTest {
                                 hasEntry("name", "namespace-1")
                         )
                 ))
+                .body("deploymentOperations", contains(
+                        allOf(
+                                hasEntry("completedAt", Instant.ofEpochMilli(2000000L).toString())
+                        )))
+                .body("deploymentOperations[0].deploymentItems", contains(
+                        allOf(
+                                hasEntry("name", "sd-product-a"),
+                                hasEntry("status", "FAILED"),
+                                hasEntry("deploymentItemType", "PRODUCT"))))
                 .body("cluster.id", equalTo("1"))
                 .body("cluster.name", equalTo("test-cluster"))
                 .body("cluster.lastSuccessfulSyncAt", nullValue());
