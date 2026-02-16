@@ -118,7 +118,7 @@ class ClusterResourcesLoaderTest {
         String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
         V1ConfigMap configMap = new V1ConfigMap()
                 .metadata(new V1ObjectMeta()
-                        .name("sd-versions")
+                        .name("versions")
                         .uid("configmap-uid")
                         .creationTimestamp(DATE_2024))
                 .data(Map.of("solution-descriptors-summary", exampleOfLongVersion));
@@ -202,7 +202,7 @@ class ClusterResourcesLoaderTest {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         V1ConfigMap configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2024))
+                .metadata(new V1ObjectMeta().name("versions").uid("configmap-uid").creationTimestamp(DATE_2024))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
@@ -212,7 +212,7 @@ class ClusterResourcesLoaderTest {
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2024.toInstant()));
 
         configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
+                .metadata(new V1ObjectMeta().name("versions").uid("configmap-uid").creationTimestamp(DATE_2025))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
@@ -337,7 +337,7 @@ class ClusterResourcesLoaderTest {
         V1ConfigMapList configMapList = new V1ConfigMapList().items(configMap1);
         CoreV1Api.APIlistNamespacedConfigMapRequest configMapRequest = mock(CoreV1Api.APIlistNamespacedConfigMapRequest.class);
         when(coreV1Api.listNamespacedConfigMap(targetNamespace)).thenReturn(configMapRequest);
-        when(configMapRequest.fieldSelector("metadata.name=" + "sd-versions")).thenReturn(configMapRequest);
+        when(configMapRequest.fieldSelector("metadata.name=" + "versions")).thenReturn(configMapRequest);
         when(configMapRequest.execute()).thenReturn(configMapList);
     }
 

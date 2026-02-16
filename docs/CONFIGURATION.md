@@ -243,20 +243,20 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 
 #### Operational Service
 
-| Variable                                                   | Description                                                                        | Default                        |
-|------------------------------------------------------------|------------------------------------------------------------------------------------|--------------------------------|
-| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CRON_SCHEDULE`      | Cluster synchronization schedule                                                   | `0 * * * * ?`                  |
-| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_MONITORING_<NAME>_NAME`  | Define custom monitoring metric name                                          | -                              |
-| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_MONITORING_<NAME>_QUERY` | Query that calculates metric for environment                                  | -                              |
-| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CLUSTER_RESOURCE_LOADER_THREAD_POOL_SIZE` | Parallel processing threads                         | 5                              |
-| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CONFIG_MAP_VERSIONS_NAME`            | Name of the config map in namespace with installation status | `sd-versions`                  |
-| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CONFIG_MAP_VERSIONS_DATA_FIELD_NAME` | Data field name in config map with installed component info   | `solution-descriptors-summary` |
-| `QUARKUS_REST_CLIENT_ENVGENE_INVENTORY_SERVICE_URL`        | Inventory service URL                                                              | `http://localhost:8081`        |
-| `QUARKUS_OIDC_AUTH_SERVER_URL`                             | OIDC provider URL (e.g., Keycloak realm URL)                                       | -                              |
-| `QUARKUS_OIDC_CLIENT_ID`                                   | OIDC client ID                                                                     | `colly-environment-operational-service` |
-| `QUARKUS_OIDC_CREDENTIALS_SECRET`                          | OIDC client secret                                                                 | -                              |
-| `QUARKUS_OIDC_CLIENT_SERVICE_CLIENT_GRANT_TYPE`            | Grant type for service-to-service calls                                            | `client`                       |
-| `QUARKUS_REDIS_HOSTS`                                      | Redis connection URL                                                               | `redis://redis:6379`           |
+| Variable                                                                         | Description                                                  | Default                                 |
+|----------------------------------------------------------------------------------|--------------------------------------------------------------|-----------------------------------------|
+| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CRON_SCHEDULE`                            | Cluster synchronization schedule                             | `0 * * * * ?`                           |
+| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_MONITORING_<NAME>_NAME`                   | Define custom monitoring metric name                         | -                                       |
+| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_MONITORING_<NAME>_QUERY`                  | Query that calculates metric for environment                 | -                                       |
+| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CLUSTER_RESOURCE_LOADER_THREAD_POOL_SIZE` | Parallel processing threads                                  | 5                                       |
+| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CONFIG_MAP_VERSIONS_NAME`                 | Name of the config map in namespace with installation status | `versions`                              |
+| `COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_CONFIG_MAP_VERSIONS_DATA_FIELD_NAME`      | Data field name in config map with installed component info  | `solution-descriptors-summary`          |
+| `QUARKUS_REST_CLIENT_ENVGENE_INVENTORY_SERVICE_URL`                              | Inventory service URL                                        | `http://localhost:8081`                 |
+| `QUARKUS_OIDC_AUTH_SERVER_URL`                                                   | OIDC provider URL (e.g., Keycloak realm URL)                 | -                                       |
+| `QUARKUS_OIDC_CLIENT_ID`                                                         | OIDC client ID                                               | `colly-environment-operational-service` |
+| `QUARKUS_OIDC_CREDENTIALS_SECRET`                                                | OIDC client secret                                           | -                                       |
+| `QUARKUS_OIDC_CLIENT_SERVICE_CLIENT_GRANT_TYPE`                                  | Grant type for service-to-service calls                      | `client`                                |
+| `QUARKUS_REDIS_HOSTS`                                                            | Redis connection URL                                         | `redis://redis:6379`                    |
 
 #### UI Service
 
