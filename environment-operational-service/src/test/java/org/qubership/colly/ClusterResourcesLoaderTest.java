@@ -7,19 +7,22 @@ import io.kubernetes.client.openapi.models.*;
 import io.quarkiverse.wiremock.devservice.ConnectWireMock;
 import io.quarkiverse.wiremock.devservice.WireMockConfigKey;
 import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.qubership.colly.achka.AchKubernetesAgentClient;
+import org.qubership.colly.achka.AchKubernetesAgentClientFactory;
+import org.qubership.colly.achka.ApplicationsVersion;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.ClusterInfo;
-import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
+import org.qubership.colly.db.data.*;
 import org.qubership.colly.db.repository.ClusterRepository;
 import org.qubership.colly.db.repository.EnvironmentRepository;
 import org.qubership.colly.db.repository.NamespaceRepository;
@@ -34,9 +37,12 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.qubership.colly.achka.AchKubernetesAgentClientMockUtils.mockAchkaRestClient;
 
 @QuarkusTest
 @ConnectWireMock
@@ -50,7 +56,7 @@ class ClusterResourcesLoaderTest {
     private static final String CLUSTER_NAME = "cluster";
     private static final String CLUSTER_ID = "1";
     private static final ClusterInfo CLOUD_PASSPORT = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-            Set.of(createEnvForTests(ENV_1, List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), null);
+            "example.com", Set.of(createEnvForTests(ENV_1, List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), null, "https://achka.cloud.example.com");
     private static final OffsetDateTime DATE_2024 = OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     private static final OffsetDateTime DATE_2025 = OffsetDateTime.of(2025, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
     @Inject
@@ -71,6 +77,9 @@ class ClusterResourcesLoaderTest {
     RedisDataSource redisDataSource;
     @Inject
     ClusterRepository clusterRepository;
+
+    @InjectMock
+    AchKubernetesAgentClientFactory clientFactory;
 
     private static @NotNull CloudPassportEnvironment createEnvForTests(String name, List<CloudPassportNamespace> namespaces) {
         return new CloudPassportEnvironment(name, name, "some env for tests", namespaces);
@@ -93,14 +102,23 @@ class ClusterResourcesLoaderTest {
     @Test
     void loadClusterResources_from_cloud_passport() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), "http://localhost:" + port);
+                "example.com", Set.of(createEnvForTests("env-test", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))),
+                "http://localhost:" + port, "https://achka.cloud.example.com");
         mockNamespaceLoading("clusterName", List.of(NAMESPACE_NAME));
         mockNodesLoading(new V1Node(), new V1Node());
+        var response = new AchKubernetesAgentClient.AchkaResponse(Map.of(
+                "session:456", List.of(
+                        new ApplicationsVersion("sd-product:111", "SUCCESS", "1000000", "t1"),
+                        new ApplicationsVersion("sd-project:123", "FAILED", "2000000", "t2")
+                )
+        ));
+
+        mockAchkaRestClient(clientFactory, response);
 
         String exampleOfLongVersion = "MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0MyVersion 1.0.0";
         V1ConfigMap configMap = new V1ConfigMap()
                 .metadata(new V1ObjectMeta()
-                        .name("sd-versions")
+                        .name("versions")
                         .uid("configmap-uid")
                         .creationTimestamp(DATE_2024))
                 .data(Map.of("solution-descriptors-summary", exampleOfLongVersion));
@@ -113,9 +131,14 @@ class ClusterResourcesLoaderTest {
         Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
         assertThat(testEnv, allOf(
                 hasProperty("name", equalTo("env-test")),
-                hasProperty("deploymentVersion", equalTo(exampleOfLongVersion + "\n")),
                 hasProperty("cleanInstallationDate", equalTo(DATE_2024.toInstant()))));
 
+        assertThat(testEnv.getDeploymentOperations(), contains(
+                new DeploymentOperation(Instant.ofEpochMilli(2000000L),
+                        List.of(
+                                new DeploymentItem("sd-project:123", DeploymentStatus.FAILED, DeploymentItemType.PROJECT),
+                                new DeploymentItem("sd-product:111", DeploymentStatus.SUCCESS, DeploymentItemType.PRODUCT)
+                        ))));
         assertThat(testEnv.getClusterId(), equalTo(CLUSTER_ID));
 
         List<Namespace> namespaces = namespaceRepository.findByClusterId(CLUSTER_ID);
@@ -134,12 +157,12 @@ class ClusterResourcesLoaderTest {
     @Test
     void load_resources_one_env_several_namespaces() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(createEnvForTests("env-3-namespaces",
-                                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
-                                        new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
-                                        new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3))
-                        )
-                ), null);
+                "host", Set.of(createEnvForTests("env-3-namespaces",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
+                                new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
+                                new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3))
+                )
+        ), null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
@@ -159,9 +182,9 @@ class ClusterResourcesLoaderTest {
     @Test
     void load_resources_twice() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(createEnvForTests("env-3-namespaces",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
-                                new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2)))), null);
+                "example.com", Set.of(createEnvForTests("env-3-namespaces",
+                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
+                        new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2)))), null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
@@ -179,69 +202,32 @@ class ClusterResourcesLoaderTest {
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         V1ConfigMap configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2024))
+                .metadata(new V1ObjectMeta().name("versions").uid("configmap-uid").creationTimestamp(DATE_2024))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         List<Environment> envs = environmentRepository.findByName(ENV_1);
         Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
-        assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2024.toInstant()));
 
         configMap = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
+                .metadata(new V1ObjectMeta().name("versions").uid("configmap-uid").creationTimestamp(DATE_2025))
                 .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
         mockConfigMaps(List.of(configMap), NAMESPACE_NAME);
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, CLOUD_PASSPORT);
         envs = environmentRepository.findByName(ENV_1);
         testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
-        assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 2.0.0\n"));
-        assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
-    }
-
-    @Test
-    void combine_deployment_version_for_namespaces() throws ApiException {
-        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(createEnvForTests("env-3-namespaces",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
-                                new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2),
-                                new CloudPassportNamespace(NAMESPACE_NAME_3, NAMESPACE_NAME_3)))), null);
-        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2, NAMESPACE_NAME_3));
-
-        V1ConfigMap configMap1 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
-
-        mockConfigMaps(List.of(configMap1), NAMESPACE_NAME);
-
-        V1ConfigMap configMap2 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2024))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
-
-        mockConfigMaps(List.of(configMap2), NAMESPACE_NAME_2);
-
-        V1ConfigMap configMap3 = new V1ConfigMap()
-                .metadata(new V1ObjectMeta().name("sd-versions").uid("configmap-uid").creationTimestamp(DATE_2025))
-                .data(Map.of("solution-descriptors-summary", "MyVersion 2.0.0"));
-
-        mockConfigMaps(List.of(configMap3), NAMESPACE_NAME_3);
-
-
-        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
-        List<Environment> envs = environmentRepository.findByName("env-3-namespaces");
-        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
-        assertThat(testEnv.getDeploymentVersion(), equalTo("MyVersion 1.0.0\nMyVersion 2.0.0\n"));
         assertThat(testEnv.getCleanInstallationDate(), equalTo(DATE_2025.toInstant()));
     }
 
     @Test
     void try_to_load_namespace_from_cloud_passport_that_does_not_exist_in_k8s() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(createEnvForTests("env-2-namespaces",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
-                                new CloudPassportNamespace("42", "non-existing-namespace")))), null);
+                "example.com", Set.of(createEnvForTests("env-2-namespaces",
+                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME),
+                        new CloudPassportNamespace("42", "non-existing-namespace")))), null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
@@ -257,9 +243,9 @@ class ClusterResourcesLoaderTest {
     @Test
     void load_resources_from_unreachable_cluster() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, "unreachable-cluster", "42", "https://some.unreachable.url",
-                Set.of(createEnvForTests("env-unreachable",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))),
-                "http://localhost:" + port);
+                "example.com", Set.of(createEnvForTests("env-unreachable",
+                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))),
+                "http://localhost:" + port, "https://achka.cloud.example.com");
 
         CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
         when(coreV1Api.listNamespace()).thenReturn(nsRequest);
@@ -286,8 +272,9 @@ class ClusterResourcesLoaderTest {
     @Test
     void load_namespace_that_created_after_first_loading() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
-                Set.of(createEnvForTests("env-with-new-namespace",
-                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME), new CloudPassportNamespace("42", "new-namespace")))), null);
+                "example.com", Set.of(createEnvForTests("env-with-new-namespace",
+                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME), new CloudPassportNamespace("42", "new-namespace")))),
+                null, "https://achka.cloud.example.com");
         mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
 
         clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
@@ -315,6 +302,27 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
+    void load_environments_achka_unavailable() throws ApiException {
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                "host", Set.of(createEnvForTests("env-1-namespace",
+                        List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME))
+                )
+        ), null, "http://localhost");
+        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
+
+        AchKubernetesAgentClient client = mock(AchKubernetesAgentClient.class);
+        when(clientFactory.create(anyString())).thenReturn(client);
+        when(client.versions(anyList(), anyString())).thenThrow(NotFoundException.class);
+
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
+
+        Environment testEnv = environmentRepository.findByName("env-1-namespace").getFirst();
+        assertThat(testEnv, hasProperty("name", equalTo("env-1-namespace")));
+        assertThat(testEnv.getDeploymentOperations(), emptyIterable());
+
+    }
+
+    @Test
     void testHelloEndpoint() {
         Assertions.assertNotNull(wiremock);
         wiremock.register(WireMock.get(WireMock.urlMatching("/api/v1/query?query=*"))
@@ -329,7 +337,7 @@ class ClusterResourcesLoaderTest {
         V1ConfigMapList configMapList = new V1ConfigMapList().items(configMap1);
         CoreV1Api.APIlistNamespacedConfigMapRequest configMapRequest = mock(CoreV1Api.APIlistNamespacedConfigMapRequest.class);
         when(coreV1Api.listNamespacedConfigMap(targetNamespace)).thenReturn(configMapRequest);
-        when(configMapRequest.fieldSelector("metadata.name=" + "sd-versions")).thenReturn(configMapRequest);
+        when(configMapRequest.fieldSelector("metadata.name=" + "versions")).thenReturn(configMapRequest);
         when(configMapRequest.execute()).thenReturn(configMapList);
     }
 

@@ -57,6 +57,10 @@ spec:
                   name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
+            {{- range $key, $value := .Values.colly.environmentOperationalService.sdPatterns }}
+            - name: COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_SD_{{ $key | upper }}_PATTERN
+              value: {{ $value | quote }}
+            {{- end }}
             {{- range .Values.colly.environmentOperationalService.monitoring }}
             - name: COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_MONITORING_{{ .key | upper | replace "-" "_" }}_NAME
               value: {{ .name | quote }}

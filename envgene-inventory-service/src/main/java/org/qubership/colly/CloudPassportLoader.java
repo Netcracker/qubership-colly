@@ -149,15 +149,20 @@ public class CloudPassportLoader {
         }
         Log.info("Monitoring URI: " + monitoringUri);
         String argoUrl = null;
-        if (Objects.nonNull(cloudPassportData.argocd())) {
-            argoUrl = cloudPassportData.argocd().argocdUrl();
+        String achkaUrl = "https://ach-kubernetes-agent-devops-toolkit." + cloud.cloudPublicHost();
+        DevopsData devops = cloudPassportData.devops();
+        if (Objects.nonNull(devops)) {
+            argoUrl = devops.argocdUrl();
+            if (devops.achkaUrl() != null) {
+                achkaUrl = devops.achkaUrl();
+            }
         }
-        Log.infof("Cloud Deployer URL: %s. Cloud Argo URL: %s", cloud.cloudCmdbUrl(), argoUrl);
+        Log.infof("Cloud Deployer URL: %s. Cloud Argo URL: %s, Achka URL: %s", cloud.cloudCmdbUrl(), argoUrl, achkaUrl);
         String dbaasUrl = null;
         if (cloudPassportData.dbaas() != null) dbaasUrl = cloudPassportData.dbaas().apiDBaaSAddress();
         Log.info("Cloud DBaaS URL: " + dbaasUrl);
         return new CloudPassport(clusterName, token, cloudApiHost, cloud.cloudPublicHost(), environments, monitoringUri, gitInfo,
-                cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl);
+                cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl, achkaUrl);
     }
 
     private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {

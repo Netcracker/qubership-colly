@@ -10,6 +10,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.qubership.colly.achka.AchKubernetesAgentService;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.ClusterInfo;
@@ -23,7 +24,10 @@ import org.qubership.colly.monitoring.MonitoringService;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,22 +39,21 @@ public class ClusterResourcesLoader {
     private final ClusterRepository clusterRepository;
     private final EnvironmentRepository environmentRepository;
     private final MonitoringService monitoringService;
+    private final AchKubernetesAgentService achKubernetesAgentService;
 
     @ConfigProperty(name = "colly.environment-operational-service.config-map.versions.name")
     String versionsConfigMapName;
-
-    @ConfigProperty(name = "colly.environment-operational-service.config-map.versions.data-field-name")
-    String versionsConfigMapDataFieldName;
 
     @Inject
     public ClusterResourcesLoader(NamespaceRepository namespaceRepository,
                                   ClusterRepository clusterRepository,
                                   EnvironmentRepository environmentRepository,
-                                  MonitoringService monitoringService) {
+                                  MonitoringService monitoringService, AchKubernetesAgentService achKubernetesAgentService) {
         this.namespaceRepository = namespaceRepository;
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.monitoringService = monitoringService;
+        this.achKubernetesAgentService = achKubernetesAgentService;
     }
 
 
@@ -80,8 +83,8 @@ public class ClusterResourcesLoader {
             clusterRepository.save(cluster);
         }
 
-        //it is requirzed to set links to cluster only if it was saved to db. so need to invoke persist two
-        List<Environment> environments = loadEnvironments(coreV1Api, cluster, clusterInfo.environments(), clusterInfo.monitoringUrl());
+        //it is required to set links to cluster only if it was saved to db. so need to invoke persist two
+        List<Environment> environments = loadEnvironments(coreV1Api, cluster, clusterInfo);
         try {
             V1NodeList execute = coreV1Api.listNode().execute();
             int numberOfNodes = execute.getItems().size();
@@ -95,7 +98,7 @@ public class ClusterResourcesLoader {
         Log.info("Cluster " + clusterInfo.name() + " loaded successfully.");
     }
 
-    private List<Environment> loadEnvironments(CoreV1Api coreV1Api, Cluster cluster, Collection<CloudPassportEnvironment> environments, String monitoringUri) {
+    private List<Environment> loadEnvironments(CoreV1Api coreV1Api, Cluster cluster, ClusterInfo clusterInfo) {
         Log.info("Start loading environments for cluster " + cluster.getName());
         CoreV1Api.APIlistNamespaceRequest apilistNamespaceRequest = coreV1Api.listNamespace();
         Map<String, V1Namespace> k8sNamespaces;
@@ -109,8 +112,8 @@ public class ClusterResourcesLoader {
         }
 
         List<Environment> envs = new ArrayList<>();
-        Log.info("Namespaces are loaded for " + cluster.getName() + ". Count is " + k8sNamespaces.size() + ". Environments count = " + environments.size());
-        for (CloudPassportEnvironment cloudPassportEnvironment : environments) {
+        Log.info("Namespaces are loaded for " + cluster.getName() + ". Count is " + k8sNamespaces.size() + ". Environments count = " + clusterInfo.environments().size());
+        for (CloudPassportEnvironment cloudPassportEnvironment : clusterInfo.environments()) {
             List<Environment> envList = environmentRepository.findByName(cloudPassportEnvironment.name());
             Environment environment = envList.stream()
                     .filter(env -> cluster.getId().equals(env.getClusterId()))
@@ -124,8 +127,6 @@ public class ClusterResourcesLoader {
             } else {
                 Log.info("environment " + environment.getName() + " exists");
             }
-            StringBuilder deploymentVersions = new StringBuilder();
-
             for (CloudPassportNamespace cloudPassportNamespace : cloudPassportEnvironment.namespaces()) {
                 Log.info("Start working with namespace = " + cloudPassportNamespace.name());
                 V1Namespace v1Namespace = k8sNamespaces.get(cloudPassportNamespace.name());
@@ -154,11 +155,7 @@ public class ClusterResourcesLoader {
                     environment.setCleanInstallationDate(configMapCreationTime);
                 }
 
-                String deploymentVersionForNamespace = versionsConfigMap.getData().get(versionsConfigMapDataFieldName);
-                if (deploymentVersionForNamespace != null && !deploymentVersionForNamespace.trim().isEmpty() && !deploymentVersions.toString().contains(deploymentVersionForNamespace)) {
-                    deploymentVersions.append(deploymentVersionForNamespace).append("\n");
-                }
-                Log.info("Namespace " + namespace.getName() + " is loaded successfully. Deployment versions are: " + deploymentVersions);
+                Log.info("Namespace " + namespace.getName() + " was loaded successfully.");
             }
             // Get namespace names from environment's namespace IDs
             List<String> namespaceNames = new ArrayList<>();
@@ -167,8 +164,8 @@ public class ClusterResourcesLoader {
                     namespaceRepository.findByUid(nsId).ifPresent(ns -> namespaceNames.add(ns.getName()));
                 }
             }
-            environment.setMonitoringData(monitoringService.loadMonitoringData(monitoringUri, environment.getName(), cluster.getName(), namespaceNames));
-            environment.setDeploymentVersion(deploymentVersions.toString());
+            environment.setMonitoringData(monitoringService.loadMonitoringData(clusterInfo.monitoringUrl(), environment.getName(), cluster.getName(), namespaceNames));
+            environment.setDeploymentOperations(achKubernetesAgentService.getDeploymentOperations(clusterInfo.achkaUrl(), namespaceNames));
             environmentRepository.save(environment);
 
             envs.add(environment);
