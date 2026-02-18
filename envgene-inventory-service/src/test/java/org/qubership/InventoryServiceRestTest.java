@@ -525,7 +525,6 @@ class InventoryServiceRestTest {
                 .body("templateRepository.token", equalTo("test-token"))
                 .body("templateRepository.branch", equalTo("main"))
                 .body("templateRepository.envgeneArtifact.name", equalTo("my-app:feature-new-ui-123456"))
-                .body("templateRepository.envgeneArtifact.templateDescriptorNames", contains("dev", "qa"))
                 .body("templateRepository.envgeneArtifact.defaultTemplateDescriptorName", equalTo("dev"))
                 .body("clusterDefaults.owners", contains("user1", "user2"))
                 .body("clusterDefaults.roAdGroups", contains("ro-group1", "ro-group2"))

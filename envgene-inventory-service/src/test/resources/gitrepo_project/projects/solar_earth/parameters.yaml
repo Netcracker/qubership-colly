@@ -25,5 +25,4 @@ repositories:
     branch: main
     envgeneArtifact:
       name: my-app:feature-new-ui-123456
-      templateDescriptorNames: ["dev", "qa"]
       defaultTemplateDescriptorName: dev

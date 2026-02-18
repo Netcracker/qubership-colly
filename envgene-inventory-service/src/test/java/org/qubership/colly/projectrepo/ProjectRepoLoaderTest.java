@@ -47,7 +47,7 @@ class ProjectRepoLoaderTest {
             ),
             ClusterPlatform.OCP,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "test-token", "main",
-                    new EnvgeneArtifact("my-app:feature-new-ui-123456", List.of("dev", "qa"), "dev")),
+                    new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
             List.of("group1", "group2"), CLUSTER_DEFAULTS, "test.repo");
     public static final Project TEST_PROJECT_2 = new Project(
             "test-project-2",
@@ -60,7 +60,7 @@ class ProjectRepoLoaderTest {
             List.of(),
             ClusterPlatform.K8S,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "test-token", "main",
-                    new EnvgeneArtifact("my-app:feature-new-ui-0987654", List.of("ci", "migration"), "ci")),
+                    new EnvgeneArtifact("my-app:feature-new-ui-0987654", "ci")),
             List.of(), CLUSTER_DEFAULTS, null);
     @InjectMock
     GitService gitService;

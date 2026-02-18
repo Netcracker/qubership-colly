@@ -16,5 +16,4 @@ repositories:
     branch: main
     envgeneArtifact:
       name: my-app:feature-new-ui-0987654
-      templateDescriptorNames: ["ci", "migration"]
       defaultTemplateDescriptorName: ci
