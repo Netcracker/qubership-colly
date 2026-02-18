@@ -98,11 +98,10 @@ Template repositories for environment generation.
 
 **EnvGene Artifact Fields:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | String | Yes      | Artifact name with optional version/tag (e.g., `my-app:feature-new-ui-123456`) |
-| `templateDescriptorNames` | Array[String] | No       | List of available template descriptors (e.g., `["dev", "qa", "prod"]`) |
-| `defaultTemplateDescriptorName` | String | Yes      | Default template descriptor to use (must be in the list above) |
+| Field                           | Type   | Required | Description                                                                    |
+|---------------------------------|--------|----------|--------------------------------------------------------------------------------|
+| `name`                          | String | Yes      | Artifact name with optional version/tag (e.g., `my-app:feature-new-ui-123456`) |
+| `defaultTemplateDescriptorName` | String | Yes      | Default template descriptor to use                                             |
 
 ## Configuration Examples
 
@@ -135,7 +134,6 @@ repositories:
     branch: main
     envgeneArtifact:
       name: my-app:feature-new-ui-123456
-      templateDescriptorNames: ["dev", "qa"]
       defaultTemplateDescriptorName: dev
 ```
 
@@ -169,7 +167,6 @@ repositories:
     branch: main
     envgeneArtifact:
       name: my-app:feature-new-ui-123456
-      templateDescriptorNames: ["dev", "qa"]
       defaultTemplateDescriptorName: dev
 ```
 
