@@ -31,6 +31,9 @@ colly:
       hosts: redis://redis:6379
       username: ""
       password: ""
+    sdPatterns:
+      product: "(?i)product"
+      project: "(?i)project"
     ports:
       http: 8080
     monitoring:

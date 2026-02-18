@@ -1,0 +1,45 @@
+{
+  "versions": {
+    "None": [
+      {
+        "app_version": "cleanuper:release-1.0.0",
+        "source": null,
+        "ticket_id": null,
+        "deploy_status": null,
+        "deploy_date": 1756355805
+      }
+    ],
+    "some-session-id": [
+      {
+        "app_version": "app-a:1.0.0",
+        "source": "sd-product-alpha:1",
+        "ticket_id": "TICKET-001",
+        "deploy_status": "SUCCESS",
+        "deploy_date": 1756400000
+      },
+      {
+        "app_version": "app-b:1.0.0",
+        "source": "sd-product-alpha:1",
+        "ticket_id": "TICKET-001",
+        "deploy_status": "SUCCESS",
+        "deploy_date": 1756500000
+      },
+      {
+        "app_version": "app-c:2.0.0",
+        "source": "sd-product-beta:42",
+        "ticket_id": "TICKET-002",
+        "deploy_status": "FAILED",
+        "deploy_date": 1756600000
+      }
+    ],
+    "some-session-id-2": [
+      {
+        "app_version": "app-d:3.0.0",
+        "source": "sd-product-gamma:3",
+        "ticket_id": "TICKET-003",
+        "deploy_status": "SUCCESS",
+        "deploy_date": 1756700000
+      }
+    ]
+  }
+}

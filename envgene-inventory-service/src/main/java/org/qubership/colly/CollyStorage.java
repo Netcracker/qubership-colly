@@ -81,6 +81,7 @@ public class CollyStorage {
         cluster.setDbaasUrl(cloudPassport.dbaasUrl());
         cluster.setDeployerUrl(cloudPassport.deployerUrl());
         cluster.setArgoUrl(cloudPassport.argoUrl());
+        cluster.setAchkaUrl(cluster.getAchkaUrl());
 
         // Persist cluster first to ensure it has an ID
         clusterRepository.persist(cluster);

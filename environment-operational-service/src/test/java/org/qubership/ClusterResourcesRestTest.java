@@ -11,16 +11,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.qubership.colly.EnvgeneInventoryServiceRest;
+import org.qubership.colly.achka.AchKubernetesAgentClient;
+import org.qubership.colly.achka.AchKubernetesAgentClientFactory;
+import org.qubership.colly.achka.ApplicationsVersion;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.cloudpassport.ClusterInfo;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.Matchers.*;
+import static org.qubership.colly.achka.AchKubernetesAgentClientMockUtils.mockAchkaRestClient;
 
 @QuarkusTest
 // @TestTransaction - removed for Redis
@@ -29,6 +35,9 @@ class ClusterResourcesRestTest {
     @InjectMock
     @RestClient
     EnvgeneInventoryServiceRest envgeneInventoryServiceRest;
+
+    @InjectMock
+    AchKubernetesAgentClientFactory clientFactory;
 
     @Inject
     RedisDataSource redisDataSource;
@@ -39,10 +48,16 @@ class ClusterResourcesRestTest {
 
         Mockito.when(envgeneInventoryServiceRest.getClusterInfos()).thenReturn(List.of(
                 new ClusterInfo("1", "test-cluster", "cloud-deploy-sa-token", "https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443",
-                        Set.of(new CloudPassportEnvironment("42", "env-test", "some description", List.of(new CloudPassportNamespace("422", "namespace-1")))), "http://localhost:8428"),
+                        "host", Set.of(new CloudPassportEnvironment("42", "env-test", "some description", List.of(new CloudPassportNamespace("422", "namespace-1")))), "http://localhost:8428", "https://achka.cloud.example.com"),
                 new ClusterInfo("2", "unreachable-cluster", "cloud-deploy-sa-token", "https://some.unreachable.url:8443",
-                        Set.of(new CloudPassportEnvironment("43", "env-1", "", List.of())), "http://vmsingle-k8s.victoria:8429")));
+                        "host", Set.of(new CloudPassportEnvironment("43", "env-1", "", List.of())), "http://vmsingle-k8s.victoria:8429", "https://achka.cloud.example.com")));
 
+        var response = new AchKubernetesAgentClient.AchkaResponse(Map.of(
+                "123456-3456780-34567", List.of(
+                        new ApplicationsVersion("sd-product-a", "FAILED", "2000000", "t2")
+                )
+        ));
+        mockAchkaRestClient(clientFactory, response);
     }
 
     @Test
@@ -186,6 +201,15 @@ class ClusterResourcesRestTest {
                                 hasEntry("name", "namespace-1")
                         )
                 ))
+                .body("deploymentOperations", contains(
+                        allOf(
+                                hasEntry("completedAt", Instant.ofEpochMilli(2000000L).toString())
+                        )))
+                .body("deploymentOperations[0].deploymentItems", contains(
+                        allOf(
+                                hasEntry("name", "sd-product-a"),
+                                hasEntry("status", "FAILED"),
+                                hasEntry("deploymentItemType", "PRODUCT"))))
                 .body("cluster.id", equalTo("1"))
                 .body("cluster.name", equalTo("test-cluster"))
                 .body("cluster.lastSuccessfulSyncAt", nullValue());

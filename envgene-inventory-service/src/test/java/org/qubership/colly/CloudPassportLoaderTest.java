@@ -75,7 +75,8 @@ class CloudPassportLoaderTest {
             "https://dashboard.example.com",
             "https://dbaas.example.com",
             "https://deployer.example.com",
-            "https://argo.example.com");
+            "https://argo.example.com",
+            "https://achka.example.com");
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -99,7 +100,8 @@ class CloudPassportLoaderTest {
             null,
             null,
             null,
-            null
+            null,
+            "https://ach-kubernetes-agent-devops-toolkit.unreachable.url"
     );
 
     @InjectMock
@@ -157,7 +159,7 @@ class CloudPassportLoaderTest {
                   MONITORING_EXT_MONITORING_QUERY_URL: "http://monitoring.example.com"
                 dbaas:
                   API_DBAAS_ADDRESS: https://dbaas.example.com
-                argocd:
+                devops:
                   ARGOCD_URL: https://argo.example.com
                 """;
         Path file = tempDir.resolve("data.yml");
@@ -175,7 +177,7 @@ class CloudPassportLoaderTest {
         assertThat(result.cse().monitoringExtMonitoringQueryUrl(), equalTo("http://monitoring.example.com"));
 
         assertThat(result.dbaas().apiDBaaSAddress(), equalTo("https://dbaas.example.com"));
-        assertThat(result.argocd().argocdUrl(), equalTo("https://argo.example.com"));
+        assertThat(result.devops().argocdUrl(), equalTo("https://argo.example.com"));
 
     }
 
