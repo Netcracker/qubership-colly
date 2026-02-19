@@ -17,6 +17,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
+import org.qubership.colly.db.SyncInfoRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.*;
@@ -33,6 +34,7 @@ public class InventoryServiceRest {
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
+    private final SyncInfoRepository syncInfoRepository;
     private final String syncCronSchedule;
 
 
@@ -40,10 +42,12 @@ public class InventoryServiceRest {
     public InventoryServiceRest(CollyStorage collyStorage,
                                 SecurityIdentity securityIdentity,
                                 DtoMapper dtoMapper,
+                                SyncInfoRepository syncInfoRepository,
                                 @ConfigProperty(name = "colly.eis.cron.schedule") String syncCronSchedule) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.dtoMapper = dtoMapper;
+        this.syncInfoRepository = syncInfoRepository;
         this.syncCronSchedule = syncCronSchedule;
     }
 
@@ -788,7 +792,7 @@ public class InventoryServiceRest {
             )
     })
     public ApplicationMetadataDto getMetadata() {
-        return new ApplicationMetadataDto(syncCronSchedule);
+        return new ApplicationMetadataDto(syncCronSchedule, syncInfoRepository.getLastProjectSyncAt());
     }
 
 }
