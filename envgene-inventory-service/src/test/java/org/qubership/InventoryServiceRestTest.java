@@ -621,4 +621,27 @@ class InventoryServiceRestTest {
                 .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
     }
+
+    @Test
+    void get_metadata_without_auth() {
+        given()
+                .when().get("/colly/v2/inventory-service/metadata")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_metadata() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+        given()
+                .when().get("/colly/v2/inventory-service/metadata")
+                .then()
+                .statusCode(200)
+                .body("syncSchedule", equalTo("0 0 0 1 1 ? 2020"))
+                .body("lastProjectSyncAt", notNullValue());
+    }
 }

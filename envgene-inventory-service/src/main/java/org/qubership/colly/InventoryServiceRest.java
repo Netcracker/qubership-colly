@@ -7,6 +7,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
@@ -16,6 +17,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
+import org.qubership.colly.db.SyncInfoRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.*;
@@ -32,14 +34,21 @@ public class InventoryServiceRest {
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
+    private final SyncInfoRepository syncInfoRepository;
+    private final String syncCronSchedule;
+
 
     @Inject
     public InventoryServiceRest(CollyStorage collyStorage,
                                 SecurityIdentity securityIdentity,
-                                DtoMapper dtoMapper) {
+                                DtoMapper dtoMapper,
+                                SyncInfoRepository syncInfoRepository,
+                                @ConfigProperty(name = "colly.eis.cron.schedule") String syncCronSchedule) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.dtoMapper = dtoMapper;
+        this.syncInfoRepository = syncInfoRepository;
+        this.syncCronSchedule = syncCronSchedule;
     }
 
     @GET
@@ -734,6 +743,56 @@ public class InventoryServiceRest {
         userInfo.put("username", securityIdentity.getPrincipal().getName());
         userInfo.put("isAdmin", securityIdentity.hasRole("admin"));
         return Response.ok(userInfo).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/metadata")
+    @Operation(
+            summary = "Get application metadata",
+            description = "Retrieves application metadata including synchronization schedule. Requires authentication."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved application metadata",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = ApplicationMetadataDto.class),
+                            examples = @ExampleObject(
+                                    name = "metadata-response",
+                                    summary = "Example metadata response",
+                                    value = """
+                                            {
+                                              syncSchedule: "0 * * * * ?"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - authentication required",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Authentication required\"}"
+                            )
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal server error occurred\"}"
+                            )
+                    )
+            )
+    })
+    public ApplicationMetadataDto getMetadata() {
+        return new ApplicationMetadataDto(syncCronSchedule, syncInfoRepository.getLastProjectSyncAt());
     }
 
 }

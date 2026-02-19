@@ -11,6 +11,7 @@ import org.qubership.colly.cloudpassport.CloudPassportNamespace;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
+import org.qubership.colly.db.SyncInfoRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
@@ -18,6 +19,7 @@ import org.qubership.colly.dto.PatchEnvironmentDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +30,7 @@ public class CollyStorage {
     private final ClusterRepository clusterRepository;
     private final EnvironmentRepository environmentRepository;
     private final ProjectRepository projectRepository;
+    private final SyncInfoRepository syncInfoRepository;
     private final CloudPassportLoader cloudPassportLoader;
     private final UpdateEnvironmentService updateEnvironmentService;
     private final ProjectRepoLoader projectRepoLoader;
@@ -36,10 +39,12 @@ public class CollyStorage {
     public CollyStorage(
             ClusterRepository clusterRepository,
             EnvironmentRepository environmentRepository, ProjectRepository projectRepository,
+            SyncInfoRepository syncInfoRepository,
             CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService, ProjectRepoLoader projectRepoLoader) {
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.projectRepository = projectRepository;
+        this.syncInfoRepository = syncInfoRepository;
         this.cloudPassportLoader = cloudPassportLoader;
         this.updateEnvironmentService = updateEnvironmentService;
         this.projectRepoLoader = projectRepoLoader;
@@ -50,6 +55,7 @@ public class CollyStorage {
         Log.info("Task for loading data from git has started");
         List<Project> projects = projectRepoLoader.loadProjects();
         projects.forEach(projectRepository::persist);
+        syncInfoRepository.saveLastProjectSyncAt(Instant.now());
         Log.info("Projects loaded: " + projects.size());
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
         Log.info("Cloud passports loaded: " + cloudPassports.size());
