@@ -6,6 +6,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.GitService;
@@ -234,15 +235,7 @@ class InventoryServiceRestTest {
     @Test
     @TestSecurity(user = "test")
     void get_environment_by_id() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        Environment environment = environmentRepository.listAll().stream()
-                .filter(e -> e.getName().equals("env-metadata-test"))
-                .findFirst()
-                .orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId())
@@ -341,11 +334,7 @@ class InventoryServiceRestTest {
     @Test
     @TestSecurity(user = "admin", roles = "admin")
     void update_environment_with_auth() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-        Environment environment = environmentRepository.listAll().stream().filter(e -> e.getName().equals("env-test")).findFirst().orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-test");
         given()
                 .contentType("application/json")
                 .body("{\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
@@ -391,15 +380,7 @@ class InventoryServiceRestTest {
     @Test
     @TestSecurity(user = "test")
     void update_environment_without_admin_role() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        Environment environment = environmentRepository.listAll().stream()
-                .filter(e -> e.getName().equals("env-test"))
-                .findFirst()
-                .orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-test");
 
         given()
                 .contentType("application/json")
@@ -447,15 +428,7 @@ class InventoryServiceRestTest {
     @Test
     @TestSecurity(user = "test")
     void sync_for_particular_project() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        Environment environment = environmentRepository.listAll().stream()
-                .filter(e -> e.getName().equals("env-metadata-test"))
-                .findFirst()
-                .orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
         environmentRepository.deleteById(environment.getId());
 
@@ -566,15 +539,7 @@ class InventoryServiceRestTest {
     @TestSecurity(user = "admin", roles = "admin")
     void update_environment_with_empty_fields() {
         // Setup: sync to get env-metadata-test which has expirationDate = "2025-12-31"
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        Environment environment = environmentRepository.listAll().stream()
-                .filter(e -> e.getName().equals("env-metadata-test"))
-                .findFirst()
-                .orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
         // Verify initial state
         given()
@@ -625,74 +590,89 @@ class InventoryServiceRestTest {
     @Test
     @TestSecurity(user = "test")
     void get_ui_parameters_environment_level() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        Environment environment = environmentRepository.listAll().stream()
-                .filter(e -> e.getName().equals("env-metadata-test"))
-                .findFirst()
-                .orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", hasSize(1))
-                .body("parameters.DEPLOYMENT.find { it.name == 'ENV_DEPLOY_PARAMETER' }.value", equalTo("some value"))
-                .body("parameters.RUNTIME", hasSize(1))
-                .body("parameters.RUNTIME.find { it.name == 'ENV_RUNTIME_PARAMETER' }.value", equalTo("some value"))
-                .body("parameters.PIPELINE", hasSize(1))
-                .body("parameters.PIPELINE.find { it.name == 'ENV_PIPELINE_PARAMETER' }.value", equalTo("some value"));
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "ENV_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value")
+                )))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "ENV_RUNTIME_PARAMETER"),
+                        hasEntry("value", "some value")
+                )))
+                .body("parameters.PIPELINE", contains(allOf(
+                        hasEntry("name", "ENV_PIPELINE_PARAMETER"),
+                        hasEntry("value", "some value")
+                )));
     }
 
     @Test
     @TestSecurity(user = "test")
     void get_ui_parameters_namespace_level() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        Environment environment = environmentRepository.listAll().stream()
-                .filter(e -> e.getName().equals("env-metadata-test"))
-                .findFirst()
-                .orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", hasSize(1))
-                .body("parameters.DEPLOYMENT.find { it.name == 'CORE_DEPLOY_PARAMETER' }.value", equalTo("some value"))
-                .body("parameters.RUNTIME", hasSize(1))
-                .body("parameters.RUNTIME.find { it.name == 'CORE_RUNTIME_PARAMETER' }.value", equalTo("some value3"))
-                .body("parameters.PIPELINE", hasSize(1))
-                .body("parameters.PIPELINE.find { it.name == 'CORE_PIPELINE_PARAMETER' }.value", equalTo("some value2"));
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "CORE_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value")
+                )))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "CORE_RUNTIME_PARAMETER"),
+                        hasEntry("value", "some value3")
+                )))
+                .body("parameters.PIPELINE", contains(allOf(
+                        hasEntry("name", "CORE_PIPELINE_PARAMETER"),
+                        hasEntry("value", "some value2")
+                )));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_namespace_level_non_existent_namespace() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=invalid-ns")
+                .then()
+                .statusCode(404);
     }
 
     @Test
     @TestSecurity(user = "test")
     void get_ui_parameters_application_level() {
-        given()
-                .when().post("/colly/v2/inventory-service/manual-sync")
-                .then()
-                .statusCode(204);
-
-        Environment environment = environmentRepository.listAll().stream()
-                .filter(e -> e.getName().equals("env-metadata-test"))
-                .findFirst()
-                .orElseThrow();
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", hasSize(1))
-                .body("parameters.DEPLOYMENT.find { it.name == 'MY_APP_DEPLOY_PARAMETER' }.value", equalTo("foo"))
-                .body("parameters.RUNTIME", hasSize(1))
-                .body("parameters.RUNTIME.find { it.name == 'MY_APP_RUNTIME_PARAMETER' }.value", equalTo("bar"))
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "MY_APP_DEPLOY_PARAMETER"),
+                        hasEntry("value", "foo")
+                )))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "MY_APP_RUNTIME_PARAMETER"),
+                        hasEntry("value", "bar")
+                )))
                 .body("parameters.PIPELINE", nullValue());
+    }
+
+    private @NotNull Environment prepareEnvironmentForTests(String envName) {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        return environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals(envName))
+                .findFirst()
+                .orElseThrow();
     }
 }
