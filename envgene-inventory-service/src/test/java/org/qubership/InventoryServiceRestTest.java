@@ -254,10 +254,14 @@ class InventoryServiceRestTest {
                 .body("labels", contains("label1", "label2"))
                 .body("accessGroups", contains("group1", "group2"))
                 .body("effectiveAccessGroups", contains("group1", "group2", "group3"))
-                .body("namespaces", contains(
+                .body("namespaces", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "test-ns"),
                                 hasEntry("deployPostfix", "core")
+                        ),
+                        allOf(
+                                hasEntry("name", "test-bss"),
+                                hasEntry("deployPostfix", "bss")
                         )
                 ));
     }
@@ -612,6 +616,20 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void get_ui_parameters_environment_level_env_without_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty())
+                .body("parameters.PIPELINE", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_ui_parameters_namespace_level() {
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
@@ -646,6 +664,20 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void get_ui_parameters_namespace_level__namespace_without_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-bss")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty())
+                .body("parameters.PIPELINE", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_ui_parameters_application_level() {
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
@@ -661,7 +693,7 @@ class InventoryServiceRestTest {
                         hasEntry("name", "MY_APP_RUNTIME_PARAMETER"),
                         hasEntry("value", "bar")
                 )))
-                .body("parameters.PIPELINE", nullValue());
+                .body("parameters.PIPELINE", empty());
     }
 
     private @NotNull Environment prepareEnvironmentForTests(String envName) {

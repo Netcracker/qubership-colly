@@ -60,7 +60,8 @@ class CloudPassportLoaderTest {
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
-                            List.of(new CloudPassportNamespace("test-ns", "core")),
+                            List.of(new CloudPassportNamespace("test-bss", "bss"),
+                                    new CloudPassportNamespace("test-ns", "core")),
                             List.of("owner from metadata"),
                             List.of("label1", "label2"), List.of("team-from-metadata"),
                             EnvironmentStatus.IN_USE,

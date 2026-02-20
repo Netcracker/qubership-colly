@@ -12,21 +12,14 @@ import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
-import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
-import org.qubership.colly.db.data.ParamsetLevel;
+import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.ParameterDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
 import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @ApplicationScoped
 public class CollyStorage {
@@ -239,7 +232,7 @@ public class CollyStorage {
 
         List<Paramset> paramsets = environment.getParamsets();
         if (paramsets == null || paramsets.isEmpty()) {
-            return new UiParametersDto(Map.of());
+            return emptyUiParameters();
         }
 
         ParamsetLevel requestedLevel;
@@ -268,16 +261,22 @@ public class CollyStorage {
                 .filter(p -> requestedLevel != ParamsetLevel.APPLICATION || applicationName.equals(p.applicationName()))
                 .toList();
 
-        var grouped = filtered.stream()
-                .collect(Collectors.groupingBy(
-                        Paramset::paramsetContext,
-                        Collectors.flatMapping(
-                                p -> p.parameters().entrySet().stream()
-                                        .map(e -> new ParameterDto(e.getKey(), e.getValue())),
-                                Collectors.toList()
-                        )
-                ));
-
+        Map<ParamsetContext, List<ParameterDto>> grouped = new EnumMap<>(ParamsetContext.class);
+        for (ParamsetContext ctx : ParamsetContext.values()) {
+            grouped.put(ctx, new ArrayList<>());
+        }
+        for (Paramset filteredParamset : filtered) {
+            List<ParameterDto> list = grouped.get(filteredParamset.paramsetContext());
+            filteredParamset.parameters().forEach((name, value) -> list.add(new ParameterDto(name, value)));
+        }
         return new UiParametersDto(grouped);
+    }
+
+    private UiParametersDto emptyUiParameters() {
+        Map<ParamsetContext, List<ParameterDto>> result = new EnumMap<>(ParamsetContext.class);
+        for (ParamsetContext ctx : ParamsetContext.values()) {
+            result.put(ctx, List.of());
+        }
+        return new UiParametersDto(result);
     }
 }
