@@ -1,0 +1,4 @@
+name: core-pipeline-ui-override
+parameters:
+  CORE_PIPELINE_PARAMETER: "some value2"
+applications: [ ]

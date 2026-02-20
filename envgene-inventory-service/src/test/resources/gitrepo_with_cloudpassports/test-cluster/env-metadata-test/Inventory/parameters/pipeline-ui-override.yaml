@@ -1,0 +1,4 @@
+name: pipeline-ui-override
+parameters:
+  ENV_PIPELINE_PARAMETER: "some value"
+applications: [ ]

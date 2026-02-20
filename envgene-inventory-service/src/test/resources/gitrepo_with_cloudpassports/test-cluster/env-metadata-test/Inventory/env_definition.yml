@@ -15,3 +15,21 @@ inventory:
   description: "description from inventory"
   owners: "owner from inventory"
   tenantName: "Applications"
+envTemplate:
+  envSpecificParamsets: # deployment context
+    core:
+      - core-deploy-ui-override
+      - core-my-app-deploy-ui-override
+    cloud:
+      - deploy-ui-override
+  envSpecificTechnicalParamsets: # runtime context
+    core:
+      - core-runtime-ui-override
+      - core-my-app-runtime-ui-override
+    cloud:
+      - runtime-ui-override
+  envSpecificE2EParamsets: # pipeline context
+    core:
+      - core-pipeline-ui-override
+    cloud:
+      - pipeline-ui-override

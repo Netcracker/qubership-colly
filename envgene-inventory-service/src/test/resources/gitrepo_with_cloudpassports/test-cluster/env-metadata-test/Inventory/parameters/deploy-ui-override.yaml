@@ -1,0 +1,4 @@
+name: deploy-ui-override
+parameters:
+  ENV_DEPLOY_PARAMETER: "some value"
+applications: [ ]

@@ -1,0 +1,4 @@
+name: runtime-ui-override
+parameters:
+  ENV_RUNTIME_PARAMETER: "some value"
+applications: [ ]
