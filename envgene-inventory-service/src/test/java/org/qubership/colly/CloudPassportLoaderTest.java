@@ -8,14 +8,13 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.qubership.colly.cloudpassport.CloudPassport;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
-import org.qubership.colly.cloudpassport.CloudPassportNamespace;
-import org.qubership.colly.cloudpassport.GitInfo;
+import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.db.data.ParamsetContext;
+import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.projectrepo.*;
 
 import java.io.File;
@@ -25,6 +24,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,6 +55,7 @@ class CloudPassportLoaderTest {
                             null,
                             null,
                             List.of(),
+                            List.of(),
                             List.of()),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
@@ -68,7 +69,17 @@ class CloudPassportLoaderTest {
                             "QA",
                             "cm",
                             List.of("group1", "group2"),
-                            List.of("group1", "group2", "group3"))),
+                            List.of("group1", "group2", "group3"),
+                            List.of(
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_DEPLOY_PARAMETER", "some value")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("MY_APP_DEPLOY_PARAMETER", "foo")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_DEPLOY_PARAMETER", "some value")),
+                                    new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_RUNTIME_PARAMETER", "some value3")),
+                                    new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("MY_APP_RUNTIME_PARAMETER", "bar")),
+                                    new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_RUNTIME_PARAMETER", "some value")),
+                                    new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_PIPELINE_PARAMETER", "some value2")),
+                                    new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_PIPELINE_PARAMETER", "some value"))
+                            ))),
             "http://localhost:8428",
             new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),
                     "target/test-cloud-passport-folder/1", "1"),
@@ -93,6 +104,7 @@ class CloudPassportLoaderTest {
                     EnvironmentType.ENVIRONMENT,
                     null,
                     null,
+                    List.of(),
                     List.of(),
                     List.of())),
             "https://vmsingle-victoria.unreachable.url",

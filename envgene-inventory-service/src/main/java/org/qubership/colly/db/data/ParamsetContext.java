@@ -1,6 +1,6 @@
 package org.qubership.colly.db.data;
 
-public enum ParametersContext {
+public enum ParamsetContext {
     DEPLOYMENT,
     RUNTIME,
     PIPELINE

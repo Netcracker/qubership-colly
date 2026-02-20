@@ -75,16 +75,16 @@ class UpdateEnvironmentServiceTest {
         Path path = Paths.get(testCluster.getGitInfo().folderName() + "/gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
-        assertEquals("new description", envDefinition.getInventory().getMetadata().description());
-        assertNull(envDefinition.getInventory().getDescription());
-        assertThat(envDefinition.getInventory().getMetadata().owners(), contains("new owner"));
-        assertThat(envDefinition.getInventory().getMetadata().teams(), contains("new test-team"));
-        assertNull(envDefinition.getInventory().getOwners());
-        assertThat(envDefinition.getInventory().getMetadata().labels(), contains("ci", "dev"));
-        assertEquals("DESIGN_TIME", envDefinition.getInventory().getMetadata().type());
-        assertEquals("Dev", envDefinition.getInventory().getMetadata().role());
-        assertThat(envDefinition.getInventory().getMetadata().status(), is("IN_USE"));
-        assertThat(envDefinition.getInventory().getMetadata().expirationDate(), is("2025-12-31"));
+        assertEquals("new description", envDefinition.inventory().getMetadata().description());
+        assertNull(envDefinition.inventory().getDescription());
+        assertThat(envDefinition.inventory().getMetadata().owners(), contains("new owner"));
+        assertThat(envDefinition.inventory().getMetadata().teams(), contains("new test-team"));
+        assertNull(envDefinition.inventory().getOwners());
+        assertThat(envDefinition.inventory().getMetadata().labels(), contains("ci", "dev"));
+        assertEquals("DESIGN_TIME", envDefinition.inventory().getMetadata().type());
+        assertEquals("Dev", envDefinition.inventory().getMetadata().role());
+        assertThat(envDefinition.inventory().getMetadata().status(), is("IN_USE"));
+        assertThat(envDefinition.inventory().getMetadata().expirationDate(), is("2025-12-31"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 

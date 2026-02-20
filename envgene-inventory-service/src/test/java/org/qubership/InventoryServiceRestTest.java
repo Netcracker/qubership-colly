@@ -621,4 +621,78 @@ class InventoryServiceRestTest {
                 .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
     }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_environment_level() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", hasSize(1))
+                .body("parameters.DEPLOYMENT.find { it.name == 'ENV_DEPLOY_PARAMETER' }.value", equalTo("some value"))
+                .body("parameters.RUNTIME", hasSize(1))
+                .body("parameters.RUNTIME.find { it.name == 'ENV_RUNTIME_PARAMETER' }.value", equalTo("some value"))
+                .body("parameters.PIPELINE", hasSize(1))
+                .body("parameters.PIPELINE.find { it.name == 'ENV_PIPELINE_PARAMETER' }.value", equalTo("some value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_namespace_level() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", hasSize(1))
+                .body("parameters.DEPLOYMENT.find { it.name == 'CORE_DEPLOY_PARAMETER' }.value", equalTo("some value"))
+                .body("parameters.RUNTIME", hasSize(1))
+                .body("parameters.RUNTIME.find { it.name == 'CORE_RUNTIME_PARAMETER' }.value", equalTo("some value3"))
+                .body("parameters.PIPELINE", hasSize(1))
+                .body("parameters.PIPELINE.find { it.name == 'CORE_PIPELINE_PARAMETER' }.value", equalTo("some value2"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_application_level() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        Environment environment = environmentRepository.listAll().stream()
+                .filter(e -> e.getName().equals("env-metadata-test"))
+                .findFirst()
+                .orElseThrow();
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", hasSize(1))
+                .body("parameters.DEPLOYMENT.find { it.name == 'MY_APP_DEPLOY_PARAMETER' }.value", equalTo("foo"))
+                .body("parameters.RUNTIME", hasSize(1))
+                .body("parameters.RUNTIME.find { it.name == 'MY_APP_RUNTIME_PARAMETER' }.value", equalTo("bar"))
+                .body("parameters.PIPELINE", nullValue());
+    }
 }

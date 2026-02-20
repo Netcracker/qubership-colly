@@ -18,5 +18,6 @@ public record CloudPassportEnvironment(String name,
                                        String role,
                                        String region,
                                        List<String> accessGroups,
-                                       List<String> effectiveAccessGroups) {
+                                       List<String> effectiveAccessGroups,
+                                       List<Paramset> paramsets) {
 }

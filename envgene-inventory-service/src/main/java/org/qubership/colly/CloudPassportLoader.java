@@ -9,13 +9,12 @@ import jakarta.inject.Inject;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.qubership.colly.cloudpassport.CloudPassport;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
-import org.qubership.colly.cloudpassport.CloudPassportNamespace;
-import org.qubership.colly.cloudpassport.GitInfo;
+import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.cloudpassport.envgen.*;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
+import org.qubership.colly.db.data.ParamsetContext;
+import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.projectrepo.InstanceRepository;
 import org.qubership.colly.projectrepo.Project;
 
@@ -193,7 +192,7 @@ public class CloudPassportLoader {
         }
         try (FileInputStream inputStream = new FileInputStream(envDevinitionPath.toFile())) {
             EnvDefinition envDefinition = mapper.readValue(inputStream, EnvDefinition.class);
-            Inventory inventory = envDefinition.getInventory();
+            Inventory inventory = envDefinition.inventory();
             Log.info("Processing environment " + inventory.getEnvironmentName());
             InventoryMetadata inventoryMetadata = inventory.getMetadata();
             String description = inventoryMetadata == null || inventoryMetadata.description() == null
@@ -229,12 +228,97 @@ public class CloudPassportLoader {
             List<String> effectiveAccessGroups = inventoryMetadata == null || inventoryMetadata.effectiveAccessGroups() == null
                     ? List.of()
                     : inventoryMetadata.effectiveAccessGroups();
+            List<Paramset> paramsets = parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role, region,
-                    accessGroups, effectiveAccessGroups);
+                    accessGroups, effectiveAccessGroups, paramsets);
         } catch (IOException e) {
             throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
         }
+    }
+
+    private List<Paramset> parseParamsets(EnvTemplate envTemplate, Path inventoryDir) {
+        if (envTemplate == null) {
+            return List.of();
+        }
+        List<Paramset> paramsets = new ArrayList<>();
+        parseParamsetsForContext(envTemplate.envSpecificParamsets(), ParamsetContext.DEPLOYMENT, "deploy-ui-override", inventoryDir, paramsets);
+        parseParamsetsForContext(envTemplate.envSpecificTechnicalParamsets(), ParamsetContext.RUNTIME, "runtime-ui-override", inventoryDir, paramsets);
+        parseParamsetsForContext(envTemplate.envSpecificE2EParamsets(), ParamsetContext.PIPELINE, "pipeline-ui-override", inventoryDir, paramsets);
+        return paramsets;
+    }
+
+    private void parseParamsetsForContext(Map<String, List<String>> paramsetMap, ParamsetContext paramsetContext,
+                                          String suffix, Path inventoryDir, List<Paramset> result) {
+        if (paramsetMap == null) {
+            return;
+        }
+        for (Map.Entry<String, List<String>> entry : paramsetMap.entrySet()) {
+            String deployPostfix = entry.getKey();
+            List<String> paramsetNames = entry.getValue();
+            if (paramsetNames == null) {
+                continue;
+            }
+            for (String paramsetName : paramsetNames) {
+                if (!paramsetName.contains(suffix)) {
+                    continue;
+                }
+                Paramset paramset = parseParamsetFile(paramsetName, deployPostfix, paramsetContext, suffix, inventoryDir);
+                if (paramset != null) {
+                    result.add(paramset);
+                }
+            }
+        }
+    }
+
+    private Paramset parseParamsetFile(String paramsetName, String deployPostfix, ParamsetContext paramsetContext,
+                                       String suffix, Path inventoryDir) {
+        Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(paramsetName + ".yaml");
+        if (!Files.isRegularFile(paramsetFilePath)) {
+            Log.warn("Paramset file not found: " + paramsetFilePath);
+            return null;
+        }
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try (FileInputStream inputStream = new FileInputStream(paramsetFilePath.toFile())) {
+            ParamsetFileData fileData = mapper.readValue(inputStream, ParamsetFileData.class);
+
+            ParamsetLevel level;
+            String applicationName = null;
+            Map<String, String> parameters;
+
+            if (paramsetName.equals(suffix) && deployPostfix.equals("cloud")) { //cloud is the reserved word for environment level paramsets
+                level = ParamsetLevel.ENVIRONMENT;
+                parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
+            } else if (paramsetName.equals(deployPostfix + "-" + suffix)) {
+                level = ParamsetLevel.NAMESPACE;
+                parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
+            } else if (paramsetName.startsWith(deployPostfix + "-") && paramsetName.endsWith("-" + suffix)) {
+                level = ParamsetLevel.APPLICATION;
+                String prefix = deployPostfix + "-";
+                String suffixWithDash = "-" + suffix;
+                applicationName = paramsetName.substring(prefix.length(), paramsetName.length() - suffixWithDash.length());
+                parameters = extractApplicationParameters(fileData, applicationName);
+            } else {
+                Log.warn("Cannot determine level for paramset: " + paramsetName + " with deployPostfix: " + deployPostfix);
+                return null;
+            }
+
+            return new Paramset(paramsetContext, level, deployPostfix, applicationName, parameters);
+        } catch (IOException e) {
+            Log.error("Error reading paramset file: " + paramsetFilePath, e);
+            return null;
+        }
+    }
+
+    private Map<String, String> extractApplicationParameters(ParamsetFileData fileData, String applicationName) {
+        if (fileData.applications() == null) {
+            return Map.of();
+        }
+        return fileData.applications().stream()
+                .filter(app -> applicationName.equals(app.appName()))
+                .findFirst()
+                .map(app -> app.parameters() != null ? app.parameters() : Map.<String, String>of())
+                .orElse(Map.of());
     }
 
     private CloudPassportNamespace parseNamespaceFile(Path namespaceFilePath) {
