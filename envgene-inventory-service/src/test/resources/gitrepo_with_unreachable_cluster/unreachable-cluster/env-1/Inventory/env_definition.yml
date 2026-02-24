@@ -2,3 +2,21 @@ inventory:
   environmentName: "env-1"
   description: "some env for tests"
   tenantName: "Applications"
+envTemplate:
+  envSpecificParamsets:
+    core:
+      - core-deploy-ui-override
+      - core-my-app-deploy-ui-override
+    cloud:
+      - deploy-ui-override
+  envSpecificTechnicalParamsets:
+    core:
+      - core-runtime-ui-override
+      - core-my-app-runtime-ui-override
+    cloud:
+      - runtime-ui-override
+  envSpecificE2EParamsets:
+    core:
+      - core-pipeline-ui-override
+    cloud:
+      - pipeline-ui-override

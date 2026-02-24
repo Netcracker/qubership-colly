@@ -56,7 +56,7 @@ class CloudPassportLoaderTest {
                             null,
                             List.of(),
                             List.of(),
-                            List.of()),
+                            List.of(new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value")))),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",

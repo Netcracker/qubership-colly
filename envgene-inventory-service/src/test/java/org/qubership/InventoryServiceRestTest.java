@@ -614,6 +614,18 @@ class InventoryServiceRestTest {
                 )));
     }
 
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_environment_level_non_existent_env() {
+        prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/non-existent-env/ui-parameters")
+                .then()
+                .statusCode(404);
+    }
+
     @Test
     @TestSecurity(user = "test")
     void get_ui_parameters_environment_level_env_without_paramsets() {
@@ -693,6 +705,80 @@ class InventoryServiceRestTest {
                         hasEntry("name", "MY_APP_RUNTIME_PARAMETER"),
                         hasEntry("value", "bar")
                 )))
+                .body("parameters.PIPELINE", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_application_level_namespace_without_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-bss&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty())
+                .body("parameters.PIPELINE", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_application_level_non_existent_app() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=invalid_app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty())
+                .body("parameters.PIPELINE", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_no_associated_paramsets_except_one() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty())
+                .body("parameters.PIPELINE", empty());
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "CORE_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value"))))
+                .body("parameters.RUNTIME", empty())
+                .body("parameters.PIPELINE", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_no_associated_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-1");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty())
+                .body("parameters.PIPELINE", empty());
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty())
                 .body("parameters.PIPELINE", empty());
     }
 
