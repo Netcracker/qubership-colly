@@ -170,6 +170,7 @@ public class CloudPassportLoader {
                     .map(path -> path.resolve(ENV_DEFINITION_YML_FILENAME))
                     .filter(Files::isRegularFile)
                     .map(this::processEnvDefinition)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
         } catch (Exception e) {
             Log.error("Error loading Environments from " + clusterFolderPath, e);
@@ -186,14 +187,18 @@ public class CloudPassportLoader {
                     .filter(Files::isRegularFile)
                     .sorted()
                     .map(this::parseNamespaceFile)
+                    .filter(Objects::nonNull)
                     .toList();
         } catch (IOException e) {
-            Log.error("Error loading environment name from " + environmentPath, e);
+            Log.error("Error loading namespaces from " + environmentPath, e);
         }
         try (FileInputStream inputStream = new FileInputStream(envDevinitionPath.toFile())) {
+            Log.info("Processing environment in folder: " + envDevinitionPath);
             EnvDefinition envDefinition = mapper.readValue(inputStream, EnvDefinition.class);
             Inventory inventory = envDefinition.inventory();
-            Log.info("Processing environment " + inventory.getEnvironmentName());
+            if (inventory == null) {
+                return null;
+            }
             InventoryMetadata inventoryMetadata = inventory.getMetadata();
             String description = inventoryMetadata == null || inventoryMetadata.description() == null
                     ? inventory.getDescription()
@@ -233,7 +238,8 @@ public class CloudPassportLoader {
                     owners, labels, teams, environmentStatus, expirationDate, type, role, region,
                     accessGroups, effectiveAccessGroups, paramsets);
         } catch (IOException e) {
-            throw new IllegalStateException("Error during read file: " + envDevinitionPath, e);
+            Log.error("Error loading environment from " + environmentPath, e);
+            return null;
         }
     }
 
@@ -329,7 +335,8 @@ public class CloudPassportLoader {
             String deployPostfix = namespaceFilePath.getParent().getFileName().toString();
             return new CloudPassportNamespace(namespace.getName(), deployPostfix);
         } catch (IOException e) {
-            throw new IllegalStateException("Error during read file: " + namespaceFilePath, e);
+            Log.error("Error reading namespace file: " + namespaceFilePath, e);
+            return null;
         }
     }
 

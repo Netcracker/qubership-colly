@@ -22,14 +22,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -149,10 +147,27 @@ class CloudPassportLoaderTest {
     }
 
     @Test
-    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "/nonexistent/path")
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
     void load_cloud_passports_from_test_folder_with_empty_folder() {
-        List<CloudPassport> result = loader.loadCloudPassports(new ArrayList<>());
-        assertTrue(result.isEmpty());
+        Project project1 = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn")), List.of(), ClusterPlatform.K8S,
+                new EnvgeneTemplateRepository("gitrepo_template", "44", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")), List.of(), null, null);
+
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project1));
+        assertThat(result, contains(new CloudPassport("cluster-with-invalid-envs",
+                "some_token_for_cluster_with_invalid_envs",
+                "https://42.gr7.eu-west-1.eks.amazonaws.com:443",
+                "gr7.eu-west-1.eks.amazonaws.com",
+                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, null, List.of(), List.of(), List.of())),
+                "http://localhost:8428",
+                new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn"),
+                        "target/test-cloud-passport-folder/1", "1"),
+                "https://dashboard.example.com",
+                "https://dbaas.example.com",
+                "https://deployer.example.com",
+                "https://argo.example.com",
+                "https://ach-kubernetes-agent-devops-toolkit.gr7.eu-west-1.eks.amazonaws.com"
+        )));
     }
 
 
