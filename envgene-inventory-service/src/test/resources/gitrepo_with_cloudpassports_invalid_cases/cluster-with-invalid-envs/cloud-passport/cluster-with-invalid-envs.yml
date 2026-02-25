@@ -1,0 +1,22 @@
+# The contents of this file is generated from Cloud Passport discovery procedure.
+# Contents will be overwritten by next discovery.
+# Please do not modify this file.
+---
+version: 1.5
+cloud:
+  CLOUD_API_HOST: 42.gr7.eu-west-1.eks.amazonaws.com
+  CLOUD_API_PORT: "443"
+  CLOUD_DEPLOY_TOKEN: cloud-deploy-sa-token
+  CLOUD_PUBLIC_HOST: gr7.eu-west-1.eks.amazonaws.com
+  CLOUD_PROTOCOL: https
+  PRODUCTION_MODE: "false"
+  SOME_UI_URL: https://som-ui.my-cluster.com
+  ANOTHER_UI_URL: https://another-ui.my-cluster.com
+  CLOUD_DASHBOARD_URL: https://dashboard.example.com
+  CMDB_URL: https://deployer.example.com
+cse:
+  MONITORING_EXT_MONITORING_QUERY_URL: http://localhost:8428
+dbaas:
+  API_DBAAS_ADDRESS: https://dbaas.example.com
+devops:
+  ARGOCD_URL: https://argo.example.com

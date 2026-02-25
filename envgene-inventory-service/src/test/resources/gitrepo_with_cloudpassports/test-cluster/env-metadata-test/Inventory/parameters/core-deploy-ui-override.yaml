@@ -1,0 +1,4 @@
+name: core-deploy-ui-override
+parameters:
+  CORE_DEPLOY_PARAMETER: "some value"
+applications: [ ]

@@ -5,3 +5,21 @@ inventory:
   owners: "test-owner"
   tenantName: "Applications"
   team: "team-1"
+envTemplate:
+  envSpecificParamsets:
+    bss:
+      - bss-deploy-ui-override
+      - bss-my-app-deploy-ui-override
+    cloud:
+      - deploy-ui-override
+  envSpecificTechnicalParamsets:
+    bss:
+      - bss-runtime-ui-override
+      - bss-my-app-runtime-ui-override
+    cloud:
+      - runtime-ui-override
+  envSpecificE2EParamsets:
+    bss:
+      - bss-pipeline-ui-override
+    cloud:
+      - pipeline-ui-override

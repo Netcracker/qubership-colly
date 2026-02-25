@@ -8,19 +8,18 @@ import jakarta.ws.rs.NotFoundException;
 import org.qubership.colly.cloudpassport.CloudPassport;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.CloudPassportNamespace;
+import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
-import org.qubership.colly.db.data.Cluster;
-import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
+import org.qubership.colly.db.data.*;
+import org.qubership.colly.dto.ParameterDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
+import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @ApplicationScoped
 public class CollyStorage {
@@ -130,6 +129,7 @@ public class CollyStorage {
         finalEnvironment.setRegion(cloudPassportEnvironment.region());
         finalEnvironment.setAccessGroups(cloudPassportEnvironment.accessGroups());
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
+        finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
 
         Log.info("Environment " + finalEnvironment.getName() + " has been loaded from CloudPassport");
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));
@@ -222,5 +222,61 @@ public class CollyStorage {
 
     public Cluster getCluster(String id) {
         return clusterRepository.findById(id);
+    }
+
+    public UiParametersDto getUiParameters(String environmentId, String namespaceName, String applicationName) {
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        List<Paramset> paramsets = environment.getParamsets();
+        if (paramsets == null || paramsets.isEmpty()) {
+            return emptyUiParameters();
+        }
+
+        ParamsetLevel requestedLevel;
+        String deployPostfix = null;
+
+        if (applicationName != null && !applicationName.isEmpty()) {
+            requestedLevel = ParamsetLevel.APPLICATION;
+        } else if (namespaceName != null && !namespaceName.isEmpty()) {
+            requestedLevel = ParamsetLevel.NAMESPACE;
+        } else {
+            requestedLevel = ParamsetLevel.ENVIRONMENT;
+        }
+
+        if (requestedLevel != ParamsetLevel.ENVIRONMENT) {
+            Namespace namespace = environment.getNamespaces().stream()
+                    .filter(ns -> ns.getName().equals(namespaceName))
+                    .findFirst()
+                    .orElseThrow(() -> new NotFoundException("Namespace with name=" + namespaceName + " not found in environment " + environmentId));
+            deployPostfix = namespace.getDeployPostfix();
+        }
+
+        final String dp = deployPostfix;
+        var filtered = paramsets.stream()
+                .filter(p -> p.level() == requestedLevel)
+                .filter(p -> requestedLevel == ParamsetLevel.ENVIRONMENT || dp.equals(p.deployPostfix()))
+                .filter(p -> requestedLevel != ParamsetLevel.APPLICATION || applicationName.equals(p.applicationName()))
+                .toList();
+
+        Map<ParamsetContext, List<ParameterDto>> grouped = new EnumMap<>(ParamsetContext.class);
+        for (ParamsetContext ctx : ParamsetContext.values()) {
+            grouped.put(ctx, new ArrayList<>());
+        }
+        for (Paramset filteredParamset : filtered) {
+            List<ParameterDto> list = grouped.get(filteredParamset.paramsetContext());
+            filteredParamset.parameters().forEach((name, value) -> list.add(new ParameterDto(name, value)));
+        }
+        return new UiParametersDto(grouped);
+    }
+
+    private UiParametersDto emptyUiParameters() {
+        Map<ParamsetContext, List<ParameterDto>> result = new EnumMap<>(ParamsetContext.class);
+        for (ParamsetContext ctx : ParamsetContext.values()) {
+            result.put(ctx, List.of());
+        }
+        return new UiParametersDto(result);
     }
 }

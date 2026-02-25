@@ -1,0 +1,16 @@
+# The contents of this file is generated from Cloud Passport discovery procedure.
+# Contents will be overwritten by next discovery.
+# Please do not modify this file.
+cloud-deploy-sa-token:
+  type: "secret"
+  data:
+    secret: "some_token_for_cluster_with_invalid_envs"
+cmdb:
+  type: "usernamePassword"
+  data:
+    username: "admin"
+    password: "42"
+consul:
+  type: "secret"
+  data:
+    secret: "tftfyf"

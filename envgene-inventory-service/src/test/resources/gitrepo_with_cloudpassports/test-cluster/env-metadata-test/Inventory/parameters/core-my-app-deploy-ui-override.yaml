@@ -1,0 +1,6 @@
+name: core-my-app-deploy-ui-override
+parameters: { }
+applications:
+  - appName: "my-app"
+    parameters:
+      MY_APP_DEPLOY_PARAMETER: "foo"

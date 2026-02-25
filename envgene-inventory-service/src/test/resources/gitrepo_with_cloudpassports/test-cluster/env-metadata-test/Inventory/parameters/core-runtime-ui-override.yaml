@@ -1,0 +1,4 @@
+name: core-runtime-ui-override
+parameters:
+  CORE_RUNTIME_PARAMETER: "some value3"
+applications: [ ]

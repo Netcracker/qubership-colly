@@ -680,6 +680,36 @@ public class InventoryServiceRest {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments/{environmentId}/ui-parameters")
+    @Operation(
+            summary = "Get UI parameters for environment",
+            description = "Retrieves UI parameters for a specific environment, which can be used to customize the user interface based on environment attributes. Requires authentication."
+    )
+    public Response getUiParameters(
+            @Parameter(
+                    description = "ID of the environment to retrieve UI parameters for",
+                    required = true,
+                    example = "96180fe7-f025-465f-bbbf-5e83f301a614"
+            )
+            @PathParam("environmentId") String environmentId,
+            @QueryParam("namespaceName") String namespaceName,
+            @QueryParam("applicationName") String applicationName) {
+        try {
+            UiParametersDto uiParameters = collyStorage.getUiParameters(environmentId, namespaceName, applicationName);
+            return Response.ok(uiParameters).build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", e.getMessage()))
+                    .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", "Failed to retrieve UI parameters: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
     @PermitAll
     @Operation(

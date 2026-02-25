@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.qubership.colly.cloudpassport.Paramset;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class Environment {
     private List<String> accessGroups;
     private List<String> effectiveAccessGroups;
     private List<Namespace> namespaces;
+    private List<Paramset> paramsets;
 
 
     public Environment(String id, String name) {

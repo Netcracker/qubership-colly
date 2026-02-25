@@ -1,0 +1,6 @@
+name: core-my-app-runtime-ui-override
+parameters: { }
+applications:
+  - appName: "my-app"
+    parameters:
+      MY_APP_RUNTIME_PARAMETER: "bar"
