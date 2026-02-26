@@ -58,11 +58,11 @@ public class UpdateEnvironmentService {
             try {
                 writeParamsetFile(fileName, paramsetFilePath, level, applicationName, newParams);
                 Log.info("Written paramset file: " + paramsetFilePath);
-            } catch (IOException e) {
-                throw new IllegalStateException("Error writing paramset file " + paramsetFilePath, e);
+                addParamsetReferenceToEnvDefinition(inventoryDir, context, deployPostfix, fileName);
+            } catch (IOException | InterruptedException e) {
+                throw new IllegalStateException("Error updating paramset " + fileName, e);
             }
         }
-        //todo update env_definition file
 
         String commitMessage = commitInfo.commitMessage() != null
                 ? commitInfo.commitMessage()
@@ -98,6 +98,33 @@ public class UpdateEnvironmentService {
             case ENVIRONMENT -> suffix;
             case NAMESPACE -> deployPostfix + "-" + suffix;
             case APPLICATION -> deployPostfix + "-" + applicationName + "-" + suffix;
+        };
+    }
+
+    private void addParamsetReferenceToEnvDefinition(Path inventoryDir, ParamsetContext context,
+                                                     String deployPostfix, String paramsetName)
+            throws IOException, InterruptedException {
+        if (!isYqAvailable()) {
+            throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
+        }
+        Path envDefPath = inventoryDir.resolve("env_definition.yml");
+        if (!Files.isRegularFile(envDefPath)) {
+            Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference update");
+            return;
+        }
+        String sectionName = getEnvTemplateSectionName(context);
+        String yqPath = ".envTemplate." + sectionName + "[\"" + deployPostfix + "\"]";
+        String expression = yqPath + " |= ((. // []) + [\"" + escapeForYq(paramsetName) + "\"] | unique)";
+        ProcessBuilder pb = new ProcessBuilder("yq", "eval", expression, envDefPath.toString(), "--inplace");
+        executeYqCommand(pb);
+        Log.info("Added paramset reference '" + paramsetName + "' to " + sectionName + "[" + deployPostfix + "]");
+    }
+
+    private String getEnvTemplateSectionName(ParamsetContext context) {
+        return switch (context) {
+            case DEPLOYMENT -> "envSpecificParamsets";
+            case RUNTIME -> "envSpecificTechnicalParamsets";
+            case PIPELINE -> "envSpecificE2EParamsets";
         };
     }
 

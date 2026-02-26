@@ -207,6 +207,95 @@ class UpdateEnvironmentServiceTest {
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), commitInfo.commitMessage(), null, commitInfo.username(), commitInfo.email());
     }
 
+    @Test
+    void updateParamset_shouldAddReferencesToEnvDefinition() throws IOException {
+        // Given — env-test has no 'core' deployPostfix in envTemplate
+        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("CORE_DEPLOY_PARAM", "value")));
+        params.put(ParamsetContext.RUNTIME, List.of(new ParameterDto("CORE_RUNTIME_PARAM", "value")));
+        params.put(ParamsetContext.PIPELINE, List.of());
+
+        // When
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                ParamsetLevel.NAMESPACE, "core", null, params, COMMIT_INFO);
+
+        // Then
+        Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
+
+        assertThat(envDefinition.envTemplate().envSpecificParamsets().get("core"),
+                contains("core-deploy-ui-override"));
+        assertThat(envDefinition.envTemplate().envSpecificTechnicalParamsets().get("core"),
+                contains("core-runtime-ui-override"));
+        // pipeline was empty — no reference added
+        assertNull(envDefinition.envTemplate().envSpecificE2EParamsets().get("core"));
+        // existing 'bss' references unchanged
+        assertThat(envDefinition.envTemplate().envSpecificParamsets().get("bss"),
+                contains("bss-deploy-ui-override", "bss-my-app-deploy-ui-override"));
+    }
+
+    @Test
+    void updateParamset_shouldNotDuplicateReferenceOnRepeatCall() throws IOException {
+        // Given
+        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("CORE_DEPLOY_PARAM", "value")));
+        params.put(ParamsetContext.RUNTIME, List.of());
+        params.put(ParamsetContext.PIPELINE, List.of());
+
+        // When — call twice with same params
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                ParamsetLevel.NAMESPACE, "core", null, params, COMMIT_INFO);
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                ParamsetLevel.NAMESPACE, "core", null, params, COMMIT_INFO);
+
+        // Then — reference appears exactly once
+        Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
+
+        List<String> coreDeployRefs = envDefinition.envTemplate().envSpecificParamsets().get("core");
+        assertThat(coreDeployRefs, contains("core-deploy-ui-override"));
+    }
+
+    @Test
+    void updateParamset_shouldCreateEnvSpecificE2EParamsetsCloudSectionIfMissing() throws IOException {
+        // Given — overwrite env_definition.yml without envSpecificE2EParamsets section
+        Path envDefPath = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
+        Files.writeString(envDefPath, """
+                inventory:
+                  environmentName: "env-test"
+                  description: "some env for tests"
+                envTemplate:
+                  envSpecificParamsets:
+                    cloud:
+                      - deploy-ui-override
+                  envSpecificTechnicalParamsets:
+                    cloud:
+                      - runtime-ui-override
+                """);
+
+        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, List.of());
+        params.put(ParamsetContext.RUNTIME, List.of());
+        params.put(ParamsetContext.PIPELINE, List.of(new ParameterDto("PIPELINE_PARAM", "value")));
+
+        // When
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                ParamsetLevel.ENVIRONMENT, "cloud", null, params, COMMIT_INFO);
+
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
+        assertThat(envDefinition.envTemplate().envSpecificE2EParamsets().get("cloud"),
+                contains("pipeline-ui-override"));
+        // Other sections untouched
+        assertThat(envDefinition.envTemplate().envSpecificParamsets().get("cloud"),
+                contains("deploy-ui-override"));
+        assertThat(envDefinition.envTemplate().envSpecificTechnicalParamsets().get("cloud"),
+                contains("runtime-ui-override"));
+    }
+
     private void copyDirectory(Path source, Path target) throws IOException {
         Files.walk(source).forEach(sourcePath -> {
             try {
