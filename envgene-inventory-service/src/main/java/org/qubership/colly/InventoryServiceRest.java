@@ -727,7 +727,7 @@ public class InventoryServiceRest {
             SetUiParametersDto uiParametersDto
     ) {
         try {
-            collyStorage.setUiParameters(environmentId, namespaceName, applicationName, uiParametersDto.commitInfo(), uiParametersDto.parameters());
+            collyStorage.setUiParameters(environmentId, namespaceName, applicationName, uiParametersDto);
             return Response.ok().build();
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)

@@ -14,7 +14,6 @@ import org.qubership.colly.cloudpassport.envgen.ParamsetFileData;
 import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.CommitInfoDto;
 import org.qubership.colly.dto.ParameterDto;
-import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.InstanceRepository;
 
 import java.io.IOException;
@@ -28,8 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 
@@ -115,31 +113,31 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateParamset_shouldWriteNamespaceLevelParameters() throws IOException {
         // Given
-        Environment envMetadataTest = new Environment("2", "env-metadata-test");
         Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
         params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("NEW_DEPLOY_PARAM", "new-deploy-value")));
         params.put(ParamsetContext.RUNTIME, List.of(new ParameterDto("NEW_RUNTIME_PARAM", "new-runtime-value")));
         params.put(ParamsetContext.PIPELINE, List.of());
-        UiParametersDto uiParametersDto = new UiParametersDto(params);
         CommitInfoDto commitInfo = new CommitInfoDto("my commit message", "user", "user@test.com");
 
         // When
-        updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
-                ParamsetLevel.NAMESPACE, "core", null, uiParametersDto, commitInfo);
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                ParamsetLevel.NAMESPACE, "core", null, params, commitInfo);
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory");
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
 
         ParamsetFileData deployFile = mapper.readValue(
                 inventoryDir.resolve("parameters/core-deploy-ui-override.yaml").toFile(),
                 ParamsetFileData.class);
-        assertEquals(Map.of("NEW_DEPLOY_PARAM", "new-deploy-value"), deployFile.parameters());
+        ParamsetFileData expectedDeploymentParamset = new ParamsetFileData("core-deploy-ui-override", Map.of("NEW_DEPLOY_PARAM", "new-deploy-value"), List.of());
+        assertThat(deployFile, equalTo(expectedDeploymentParamset));
 
         ParamsetFileData runtimeFile = mapper.readValue(
                 inventoryDir.resolve("parameters/core-runtime-ui-override.yaml").toFile(),
                 ParamsetFileData.class);
-        assertEquals(Map.of("NEW_RUNTIME_PARAM", "new-runtime-value"), runtimeFile.parameters());
+        ParamsetFileData expectedRuntimeParamset = new ParamsetFileData("core-runtime-ui-override", Map.of("NEW_RUNTIME_PARAM", "new-runtime-value"), List.of());
+        assertThat(runtimeFile, equalTo(expectedRuntimeParamset));
 
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), commitInfo.commitMessage(), null, commitInfo.username(), commitInfo.email());
     }
@@ -147,25 +145,25 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateParamset_shouldWriteEnvironmentLevelParameters() throws IOException {
         // Given
-        Environment envMetadataTest = new Environment("2", "env-metadata-test");
         Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
         params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("ENV_DEPLOY_PARAM", "updated-env-value")));
         params.put(ParamsetContext.RUNTIME, List.of());
         params.put(ParamsetContext.PIPELINE, List.of());
-        UiParametersDto uiParametersDto = new UiParametersDto(params);
 
         // When — commitInfo is null, so default message should be used
-        updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
-                ParamsetLevel.ENVIRONMENT, "cloud", null, uiParametersDto, COMMIT_INFO);
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                ParamsetLevel.ENVIRONMENT, "cloud", null, params, COMMIT_INFO);
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory");
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
 
         ParamsetFileData deployFile = mapper.readValue(
                 inventoryDir.resolve("parameters/deploy-ui-override.yaml").toFile(),
                 ParamsetFileData.class);
-        assertEquals(Map.of("ENV_DEPLOY_PARAM", "updated-env-value"), deployFile.parameters());
+
+        ParamsetFileData expectedDeploymentParamset = new ParamsetFileData("deploy-ui-override", Map.of("ENV_DEPLOY_PARAM", "updated-env-value"), List.of());
+        assertThat(deployFile, equalTo(expectedDeploymentParamset));
 
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), COMMIT_INFO.commitMessage(), null, COMMIT_INFO.username(), COMMIT_INFO.email());
     }
@@ -173,37 +171,38 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateParamset_shouldWriteApplicationLevelParameters() throws IOException {
         // Given
-        Environment envMetadataTest = new Environment("2", "env-metadata-test");
         Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
         params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("MY_APP_PARAM", "new-app-value")));
         params.put(ParamsetContext.RUNTIME, List.of(new ParameterDto("MY_APP_RUNTIME_PARAM", "new-runtime-value")));
         params.put(ParamsetContext.PIPELINE, List.of());
-        UiParametersDto uiParametersDto = new UiParametersDto(params);
         CommitInfoDto commitInfo = new CommitInfoDto("update my-app params", "user", "user@test.com");
 
         // When
-        updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
-                ParamsetLevel.APPLICATION, "core", "my-app", uiParametersDto, commitInfo);
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                ParamsetLevel.APPLICATION, "core", "my-app", params, commitInfo);
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory");
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
 
-        ParamsetFileData deployFile = mapper.readValue(
+        ParamsetFileData deployParamset = mapper.readValue(
                 inventoryDir.resolve("parameters/core-my-app-deploy-ui-override.yaml").toFile(),
                 ParamsetFileData.class);
-        assertNotNull(deployFile.applications());
-        assertEquals(1, deployFile.applications().size());
-        assertEquals("my-app", deployFile.applications().get(0).appName());
-        assertEquals(Map.of("MY_APP_PARAM", "new-app-value"), deployFile.applications().get(0).parameters());
+        ParamsetFileData expectedDeploymentParamset = new ParamsetFileData(
+                "core-my-app-deploy-ui-override",
+                Map.of(),
+                List.of(new ParamsetFileData.ParamsetApplicationData("my-app", Map.of("MY_APP_PARAM", "new-app-value"))));
+        assertThat(deployParamset, equalTo(expectedDeploymentParamset));
 
-        ParamsetFileData runtimeFile = mapper.readValue(
+
+        ParamsetFileData expectedRuntimeParamset = new ParamsetFileData(
+                "core-my-app-runtime-ui-override",
+                Map.of(),
+                List.of(new ParamsetFileData.ParamsetApplicationData("my-app", Map.of("MY_APP_RUNTIME_PARAM", "new-runtime-value"))));
+        ParamsetFileData runtimeParamset = mapper.readValue(
                 inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml").toFile(),
                 ParamsetFileData.class);
-        assertNotNull(runtimeFile.applications());
-        assertEquals(1, runtimeFile.applications().size());
-        assertEquals("my-app", runtimeFile.applications().get(0).appName());
-        assertEquals(Map.of("MY_APP_RUNTIME_PARAM", "new-runtime-value"), runtimeFile.applications().get(0).parameters());
+        assertThat(runtimeParamset, equalTo(expectedRuntimeParamset));
 
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), commitInfo.commitMessage(), null, commitInfo.username(), commitInfo.email());
     }

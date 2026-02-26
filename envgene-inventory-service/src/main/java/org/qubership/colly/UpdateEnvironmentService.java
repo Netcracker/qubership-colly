@@ -14,7 +14,6 @@ import org.qubership.colly.db.data.ParamsetContext;
 import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.dto.CommitInfoDto;
 import org.qubership.colly.dto.ParameterDto;
-import org.qubership.colly.dto.UiParametersDto;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,7 +33,8 @@ public class UpdateEnvironmentService {
 
     public void updateParamset(Cluster cluster, Environment environment, ParamsetLevel level,
                                String deployPostfix, String applicationName,
-                               UiParametersDto parameters, CommitInfoDto commitInfo) {
+                               Map<ParamsetContext, List<ParameterDto>> parameters,
+                               CommitInfoDto commitInfo) {
         GitInfo gitInfo = cluster.getGitInfo();
         Path gitRepoPath = Paths.get(gitInfo.folderName());
         if (!Files.exists(gitRepoPath)) {
@@ -44,7 +44,7 @@ public class UpdateEnvironmentService {
         Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
 
         for (ParamsetContext context : ParamsetContext.values()) {
-            List<ParameterDto> parameterDtos = parameters.parameters().get(context);
+            List<ParameterDto> parameterDtos = parameters.get(context);
             if (parameterDtos == null || parameterDtos.isEmpty()) {
                 continue;
             }
@@ -53,10 +53,10 @@ public class UpdateEnvironmentService {
 
             String fileSuffix = calculateFileSuffix(context);
             String fileName = calculateParamsetFileName(level, deployPostfix, applicationName, fileSuffix);
-            Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(fileName);
+            Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(fileName + ".yaml");
 
             try {
-                writeParamsetFile(paramsetFilePath, level, applicationName, newParams);
+                writeParamsetFile(fileName, paramsetFilePath, level, applicationName, newParams);
                 Log.info("Written paramset file: " + paramsetFilePath);
             } catch (IOException e) {
                 throw new IllegalStateException("Error writing paramset file " + paramsetFilePath, e);
@@ -95,13 +95,13 @@ public class UpdateEnvironmentService {
 
     private String calculateParamsetFileName(ParamsetLevel level, String deployPostfix, String applicationName, String suffix) {
         return switch (level) {
-            case ENVIRONMENT -> suffix + ".yaml";
-            case NAMESPACE -> deployPostfix + "-" + suffix + ".yaml";
-            case APPLICATION -> deployPostfix + "-" + applicationName + "-" + suffix + ".yaml";
+            case ENVIRONMENT -> suffix;
+            case NAMESPACE -> deployPostfix + "-" + suffix;
+            case APPLICATION -> deployPostfix + "-" + applicationName + "-" + suffix;
         };
     }
 
-    private void writeParamsetFile(Path filePath, ParamsetLevel level, String applicationName,
+    private void writeParamsetFile(String fileName, Path filePath, ParamsetLevel level, String applicationName,
                                    Map<String, String> parameters) throws IOException {
         Files.createDirectories(filePath.getParent());
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -119,9 +119,9 @@ public class UpdateEnvironmentService {
                 }
             }
             apps.add(new ParamsetFileData.ParamsetApplicationData(applicationName, parameters));
-            fileData = new ParamsetFileData(filePath.getFileName().toString(), null, apps);
+            fileData = new ParamsetFileData(fileName, Map.of(), apps);
         } else {
-            fileData = new ParamsetFileData(filePath.getFileName().toString(), parameters, null);
+            fileData = new ParamsetFileData(fileName, parameters, List.of());
         }
 
         mapper.writeValue(filePath.toFile(), fileData);

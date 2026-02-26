@@ -1,5 +1,10 @@
 package org.qubership.colly.dto;
 
-public record SetUiParametersDto(CommitInfoDto commitInfo, UiParametersDto parameters) {
+import org.qubership.colly.db.data.ParamsetContext;
+
+import java.util.List;
+import java.util.Map;
+
+public record SetUiParametersDto(CommitInfoDto commitInfo, Map<ParamsetContext, List<ParameterDto>> parameters) {
 
 }

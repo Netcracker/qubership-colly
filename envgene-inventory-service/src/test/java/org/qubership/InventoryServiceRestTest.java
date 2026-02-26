@@ -790,11 +790,11 @@ class InventoryServiceRestTest {
         given()
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
-                        "\"parameters\": {\"parameters\":{" +
+                        "\"parameters\": {" +
                         "\"DEPLOYMENT\":[{\"name\":\"NEW_ENV_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
                         "\"RUNTIME\":[{\"name\":\"NEW_ENV_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
                         "\"PIPELINE\":[{\"name\":\"NEW_ENV_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
-                        "}}}")
+                        "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200);

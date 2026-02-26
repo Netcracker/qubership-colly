@@ -13,9 +13,9 @@ import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
 import org.qubership.colly.db.data.*;
-import org.qubership.colly.dto.CommitInfoDto;
 import org.qubership.colly.dto.ParameterDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
+import org.qubership.colly.dto.SetUiParametersDto;
 import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
@@ -230,7 +230,7 @@ public class CollyStorage {
 
     private ParamsetTarget resolveParamsetTarget(Environment environment, String namespaceName, String applicationName) {
         ParamsetLevel requestedLevel;
-        String deployPostfix = null;
+        String deployPostfix = "cloud"; //todo move logic regarding 'cloud'v postfix to the one place
 
         if (applicationName != null && !applicationName.isEmpty()) {
             requestedLevel = ParamsetLevel.APPLICATION;
@@ -290,7 +290,7 @@ public class CollyStorage {
         return new UiParametersDto(result);
     }
 
-    public void setUiParameters(String environmentId, String namespaceName, String applicationName, CommitInfoDto commitInfoDto, UiParametersDto parameters) {
+    public void setUiParameters(String environmentId, String namespaceName, String applicationName, SetUiParametersDto setUiParametersDto) {
         Environment environment = environmentRepository.findById(environmentId);
         if (environment == null) {
             throw new NotFoundException("Environment with id=" + environmentId + " not found");
@@ -299,7 +299,7 @@ public class CollyStorage {
         ParamsetTarget target = resolveParamsetTarget(environment, namespaceName, applicationName);
         Cluster cluster = clusterRepository.findById(environment.getClusterId());
 
-        updateEnvironmentService.updateParamset(cluster, environment, target.level(), target.deployPostfix(), applicationName, parameters, commitInfoDto);
+        updateEnvironmentService.updateParamset(cluster, environment, target.level(), target.deployPostfix(), applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
 
         //todo simplify logic for update parameters in memory
         List<Paramset> paramsets = environment.getParamsets();
@@ -308,7 +308,7 @@ public class CollyStorage {
             environment.setParamsets(paramsets);
         }
         for (ParamsetContext ctx : ParamsetContext.values()) {
-            List<ParameterDto> parameterDtos = parameters.parameters().get(ctx);
+            List<ParameterDto> parameterDtos = setUiParametersDto.parameters().get(ctx);
             if (parameterDtos == null || parameterDtos.isEmpty()) {
                 continue;
             }
