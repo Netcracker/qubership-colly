@@ -1,19 +1,27 @@
 package org.qubership.colly;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.GitInfo;
+import org.qubership.colly.cloudpassport.envgen.ParamsetFileData;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.db.data.ParamsetContext;
+import org.qubership.colly.db.data.ParamsetLevel;
+import org.qubership.colly.dto.CommitInfoDto;
+import org.qubership.colly.dto.ParameterDto;
+import org.qubership.colly.dto.UiParametersDto;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,6 +31,101 @@ public class UpdateEnvironmentService {
     @Inject
     GitService gitService;
 
+
+    public void updateParamset(Cluster cluster, Environment environment, ParamsetLevel level,
+                               String deployPostfix, String applicationName,
+                               UiParametersDto parameters, CommitInfoDto commitInfo) {
+        GitInfo gitInfo = cluster.getGitInfo();
+        Path gitRepoPath = Paths.get(gitInfo.folderName());
+        if (!Files.exists(gitRepoPath)) {
+            throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
+        }
+
+        Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
+
+        for (ParamsetContext context : ParamsetContext.values()) {
+            List<ParameterDto> parameterDtos = parameters.parameters().get(context);
+            if (parameterDtos == null || parameterDtos.isEmpty()) {
+                continue;
+            }
+            Map<String, String> newParams = new LinkedHashMap<>();
+            parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
+
+            String fileSuffix = calculateFileSuffix(context);
+            String fileName = calculateParamsetFileName(level, deployPostfix, applicationName, fileSuffix);
+            Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(fileName);
+
+            try {
+                writeParamsetFile(paramsetFilePath, level, applicationName, newParams);
+                Log.info("Written paramset file: " + paramsetFilePath);
+            } catch (IOException e) {
+                throw new IllegalStateException("Error writing paramset file " + paramsetFilePath, e);
+            }
+        }
+        //todo update env_definition file
+
+        String commitMessage = commitInfo.commitMessage() != null
+                ? commitInfo.commitMessage()
+                : "Update UI parameters for " + environment.getName();
+        gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, null, commitInfo.username(), commitInfo.email());
+    }
+
+    private Path findInventoryDir(Path gitRepoPath, String environmentName) {
+        try (Stream<Path> paths = Files.walk(gitRepoPath)) {
+            return paths.filter(Files::isDirectory)
+                    .map(path -> path.resolve(environmentName))
+                    .filter(Files::isDirectory)
+                    .map(path -> path.resolve("Inventory"))
+                    .filter(Files::isDirectory)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Could not find Inventory directory for environment " + environmentName));
+        } catch (IOException e) {
+            throw new IllegalStateException("Error searching for Inventory directory for environment " + environmentName, e);
+        }
+    }
+
+    private String calculateFileSuffix(ParamsetContext context) {
+        return switch (context) {
+            case DEPLOYMENT -> "deploy-ui-override";
+            case RUNTIME -> "runtime-ui-override";
+            case PIPELINE -> "pipeline-ui-override";
+        };
+    }
+
+    private String calculateParamsetFileName(ParamsetLevel level, String deployPostfix, String applicationName, String suffix) {
+        return switch (level) {
+            case ENVIRONMENT -> suffix + ".yaml";
+            case NAMESPACE -> deployPostfix + "-" + suffix + ".yaml";
+            case APPLICATION -> deployPostfix + "-" + applicationName + "-" + suffix + ".yaml";
+        };
+    }
+
+    private void writeParamsetFile(Path filePath, ParamsetLevel level, String applicationName,
+                                   Map<String, String> parameters) throws IOException {
+        Files.createDirectories(filePath.getParent());
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        ParamsetFileData fileData;
+        if (level == ParamsetLevel.APPLICATION) {
+            List<ParamsetFileData.ParamsetApplicationData> apps = new ArrayList<>();
+            if (Files.isRegularFile(filePath)) {
+                ParamsetFileData existing = mapper.readValue(filePath.toFile(), ParamsetFileData.class);
+                if (existing.applications() != null) {
+                    existing.applications().stream()
+                            .filter(a -> !applicationName.equals(a.appName()))
+                            .forEach(apps::add);
+                }
+            }
+            apps.add(new ParamsetFileData.ParamsetApplicationData(applicationName, parameters));
+            fileData = new ParamsetFileData(filePath.getFileName().toString(), null, apps);
+        } else {
+            fileData = new ParamsetFileData(filePath.getFileName().toString(), parameters, null);
+        }
+
+        mapper.writeValue(filePath.toFile(), fileData);
+    }
 
     public Environment updateEnvironment(Cluster cluster, Environment environmentUpdate) {
         GitInfo gitInfo = cluster.getGitInfo();

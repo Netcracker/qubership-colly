@@ -13,6 +13,7 @@ import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
 import org.qubership.colly.db.data.*;
+import org.qubership.colly.dto.CommitInfoDto;
 import org.qubership.colly.dto.ParameterDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
 import org.qubership.colly.dto.UiParametersDto;
@@ -224,17 +225,10 @@ public class CollyStorage {
         return clusterRepository.findById(id);
     }
 
-    public UiParametersDto getUiParameters(String environmentId, String namespaceName, String applicationName) {
-        Environment environment = environmentRepository.findById(environmentId);
-        if (environment == null) {
-            throw new NotFoundException("Environment with id=" + environmentId + " not found");
-        }
+    private record ParamsetTarget(ParamsetLevel level, String deployPostfix) {
+    }
 
-        List<Paramset> paramsets = environment.getParamsets();
-        if (paramsets == null || paramsets.isEmpty()) {
-            return emptyUiParameters();
-        }
-
+    private ParamsetTarget resolveParamsetTarget(Environment environment, String namespaceName, String applicationName) {
         ParamsetLevel requestedLevel;
         String deployPostfix = null;
 
@@ -250,11 +244,27 @@ public class CollyStorage {
             Namespace namespace = environment.getNamespaces().stream()
                     .filter(ns -> ns.getName().equals(namespaceName))
                     .findFirst()
-                    .orElseThrow(() -> new NotFoundException("Namespace with name=" + namespaceName + " not found in environment " + environmentId));
+                    .orElseThrow(() -> new NotFoundException("Namespace with name=" + namespaceName + " not found in environment " + environment.getId()));
             deployPostfix = namespace.getDeployPostfix();
         }
 
-        final String dp = deployPostfix;
+        return new ParamsetTarget(requestedLevel, deployPostfix);
+    }
+
+    public UiParametersDto getUiParameters(String environmentId, String namespaceName, String applicationName) {
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        List<Paramset> paramsets = environment.getParamsets();
+        if (paramsets == null || paramsets.isEmpty()) {
+            return emptyUiParameters();
+        }
+
+        ParamsetTarget target = resolveParamsetTarget(environment, namespaceName, applicationName);
+        ParamsetLevel requestedLevel = target.level();
+        final String dp = target.deployPostfix();
         var filtered = paramsets.stream()
                 .filter(p -> p.level() == requestedLevel)
                 .filter(p -> requestedLevel == ParamsetLevel.ENVIRONMENT || dp.equals(p.deployPostfix()))
@@ -278,5 +288,45 @@ public class CollyStorage {
             result.put(ctx, List.of());
         }
         return new UiParametersDto(result);
+    }
+
+    public void setUiParameters(String environmentId, String namespaceName, String applicationName, CommitInfoDto commitInfoDto, UiParametersDto parameters) {
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        ParamsetTarget target = resolveParamsetTarget(environment, namespaceName, applicationName);
+        Cluster cluster = clusterRepository.findById(environment.getClusterId());
+
+        updateEnvironmentService.updateParamset(cluster, environment, target.level(), target.deployPostfix(), applicationName, parameters, commitInfoDto);
+
+        //todo simplify logic for update parameters in memory
+        List<Paramset> paramsets = environment.getParamsets();
+        if (paramsets == null) {
+            paramsets = new ArrayList<>();
+            environment.setParamsets(paramsets);
+        }
+        for (ParamsetContext ctx : ParamsetContext.values()) {
+            List<ParameterDto> parameterDtos = parameters.parameters().get(ctx);
+            if (parameterDtos == null || parameterDtos.isEmpty()) {
+                continue;
+            }
+            Map<String, String> newParams = new LinkedHashMap<>();
+            parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
+
+            final List<Paramset> finalParamsets = paramsets;
+            Paramset existing = finalParamsets.stream()
+                    .filter(p -> p.paramsetContext() == ctx
+                            && p.level() == target.level()
+                            && Objects.equals(p.deployPostfix(), target.deployPostfix())
+                            && Objects.equals(p.applicationName(), applicationName))
+                    .findFirst().orElse(null);
+            if (existing != null) {
+                finalParamsets.remove(existing);
+            }
+            finalParamsets.add(new Paramset(ctx, target.level(), target.deployPostfix(), applicationName, newParams));
+        }
+        environmentRepository.persist(environment);
     }
 }
