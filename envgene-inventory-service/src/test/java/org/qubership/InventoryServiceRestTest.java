@@ -365,6 +365,28 @@ class InventoryServiceRestTest {
     }
 
     @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_empty_payload() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+        given()
+                .contentType("application/json")
+                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(500);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_not_found_env() {
+        given()
+                .contentType("application/json")
+                .body("{\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
+                .when().patch("/colly/v2/inventory-service/environments/non_existend_env")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
     void update_environment_without_auth() {
         // Setup: sync to get some environments
         given()
