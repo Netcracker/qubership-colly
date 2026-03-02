@@ -55,6 +55,10 @@ public class Environment {
         this.namespaces.add(namespace);
     }
 
+    public List<Paramset> getParamsets() {
+        return paramsets != null ? Collections.unmodifiableList(paramsets) : Collections.emptyList();
+    }
+
     public List<String> getLabels() {
         return labels != null ? Collections.unmodifiableList(labels) : Collections.emptyList();
     }

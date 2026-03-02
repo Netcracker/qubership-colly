@@ -832,6 +832,52 @@ class InventoryServiceRestTest {
                 .statusCode(404);
     }
 
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_empty_input() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+        given()
+                .contentType("application/json")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(500);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_env_without_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-1");
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_ENV_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_ENV_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
+                        "\"PIPELINE\":[{\"name\":\"NEW_ENV_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "NEW_ENV_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value1"))))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "NEW_ENV_RUNTIME_PARAMETER"),
+                        hasEntry("value", "some value2"))))
+                .body("parameters.PIPELINE", contains(allOf(
+                        hasEntry("name", "NEW_ENV_PIPELINE_PARAMETER"),
+                        hasEntry("value", "some value3"))));
+
+
+    }
+
+
     @Test
     @TestSecurity(user = "test")
     void set_ui_parameters_namespace_level() {

@@ -225,9 +225,6 @@ public class CollyStorage {
         return clusterRepository.findById(id);
     }
 
-    private record ParamsetTarget(ParamsetLevel level, String deployPostfix) {
-    }
-
     private ParamsetTarget resolveParamsetTarget(Environment environment, String namespaceName, String applicationName) {
         ParamsetLevel requestedLevel;
         String deployPostfix = "cloud"; //todo move logic regarding 'cloud'v postfix to the one place
@@ -258,7 +255,7 @@ public class CollyStorage {
         }
 
         List<Paramset> paramsets = environment.getParamsets();
-        if (paramsets == null || paramsets.isEmpty()) {
+        if (paramsets.isEmpty()) {
             return emptyUiParameters();
         }
 
@@ -302,11 +299,8 @@ public class CollyStorage {
         updateEnvironmentService.updateParamset(cluster, environment, target.level(), target.deployPostfix(), applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
 
         //todo simplify logic for update parameters in memory
-        List<Paramset> paramsets = environment.getParamsets();
-        if (paramsets == null) {
-            paramsets = new ArrayList<>();
-            environment.setParamsets(paramsets);
-        }
+        final List<Paramset> finalParamsets = new ArrayList<>(environment.getParamsets());
+
         for (ParamsetContext ctx : ParamsetContext.values()) {
             List<ParameterDto> parameterDtos = setUiParametersDto.parameters().get(ctx);
             if (parameterDtos == null || parameterDtos.isEmpty()) {
@@ -315,7 +309,6 @@ public class CollyStorage {
             Map<String, String> newParams = new LinkedHashMap<>();
             parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
 
-            final List<Paramset> finalParamsets = paramsets;
             Paramset existing = finalParamsets.stream()
                     .filter(p -> p.paramsetContext() == ctx
                             && p.level() == target.level()
@@ -327,6 +320,10 @@ public class CollyStorage {
             }
             finalParamsets.add(new Paramset(ctx, target.level(), target.deployPostfix(), applicationName, newParams));
         }
+        environment.setParamsets(finalParamsets);
         environmentRepository.persist(environment);
+    }
+
+    private record ParamsetTarget(ParamsetLevel level, String deployPostfix) {
     }
 }
