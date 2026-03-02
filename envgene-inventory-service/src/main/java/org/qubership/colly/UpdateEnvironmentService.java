@@ -59,7 +59,7 @@ public class UpdateEnvironmentService {
                 writeParamsetFile(fileName, paramsetFilePath, level, applicationName, newParams);
                 Log.info("Written paramset file: " + paramsetFilePath);
                 addParamsetReferenceToEnvDefinition(inventoryDir, context, deployPostfix, fileName);
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 throw new IllegalStateException("Error updating paramset " + fileName, e);
             }
         }
@@ -103,7 +103,7 @@ public class UpdateEnvironmentService {
 
     private void addParamsetReferenceToEnvDefinition(Path inventoryDir, ParamsetContext context,
                                                      String deployPostfix, String paramsetName)
-            throws IOException, InterruptedException {
+            throws IOException {
         if (!isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
@@ -174,7 +174,7 @@ public class UpdateEnvironmentService {
                 try {
                     updateYamlFileWithYq(path, environmentUpdate);
                     Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
                 }
             });
@@ -187,7 +187,7 @@ public class UpdateEnvironmentService {
         return environmentUpdate;
     }
 
-    private void updateYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException, InterruptedException {
+    private void updateYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException {
         if (!isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
@@ -218,13 +218,17 @@ public class UpdateEnvironmentService {
             Process process = pb.start();
             boolean finished = process.waitFor(5, TimeUnit.SECONDS);
             return finished && process.exitValue() == 0;
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
+            Log.error("Error checking yq availability:", e);
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             Log.error("Error checking yq availability:", e);
             return false;
         }
     }
 
-    private void deleteYamlField(Path yamlPath, String yamlFieldPath) throws IOException, InterruptedException {
+    private void deleteYamlField(Path yamlPath, String yamlFieldPath) throws IOException {
         ProcessBuilder pb = new ProcessBuilder(
                 "yq",
                 "eval",
@@ -235,7 +239,7 @@ public class UpdateEnvironmentService {
         executeYqCommand(pb);
     }
 
-    private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
+    private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException {
         if (value == null || value.isEmpty()) {
             deleteYamlField(yamlPath, yamlFieldPath);
             return;
@@ -250,7 +254,7 @@ public class UpdateEnvironmentService {
         executeYqCommand(pb);
     }
 
-    private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException, InterruptedException {
+    private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException {
         if (values == null || values.isEmpty()) {
             deleteYamlField(yamlPath, yamlFieldPath);
             return;
@@ -268,9 +272,16 @@ public class UpdateEnvironmentService {
         executeYqCommand(pb);
     }
 
-    private void executeYqCommand(ProcessBuilder processBuilder) throws IOException, InterruptedException {
+    private void executeYqCommand(ProcessBuilder processBuilder) throws IOException {
         Process process = processBuilder.start();
-        boolean finished = process.waitFor(30, TimeUnit.SECONDS);
+        boolean finished;
+        try {
+            finished = process.waitFor(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            process.destroyForcibly();
+            Thread.currentThread().interrupt();
+            throw new IOException("yq command interrupted", e);
+        }
 
         if (!finished) {
             process.destroyForcibly();
