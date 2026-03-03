@@ -296,7 +296,7 @@ public class CollyStorage {
         ParamsetTarget target = resolveParamsetTarget(environment, namespaceName, applicationName);
         List<ParameterDto> pipelineParameters = setUiParametersDto.parameters().get(ParamsetContext.PIPELINE);
         if (target.level == ParamsetLevel.APPLICATION && pipelineParameters != null && !pipelineParameters.isEmpty()) {
-            throw new IllegalArgumentException("Pipeline parameters cannot be set via REST API");
+            throw new IllegalArgumentException("Pipeline parameters cannot be set via REST API for Application level. Environment id=" + environmentId + ", namespace=" + namespaceName + ", application=" + applicationName);
         }
         Cluster cluster = clusterRepository.findById(environment.getClusterId());
 
