@@ -45,20 +45,26 @@ public class UpdateEnvironmentService {
 
         for (ParamsetContext context : ParamsetContext.values()) {
             List<ParameterDto> parameterDtos = parameters.get(context);
-            if (parameterDtos == null || parameterDtos.isEmpty()) {
+            if (parameterDtos == null) {
                 continue;
             }
-            Map<String, String> newParams = new LinkedHashMap<>();
-            parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
 
             String fileSuffix = calculateFileSuffix(context);
             String fileName = calculateParamsetFileName(level, deployPostfix, applicationName, fileSuffix);
             Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(fileName + ".yaml");
 
             try {
-                writeParamsetFile(fileName, paramsetFilePath, level, applicationName, newParams);
-                Log.info("Written paramset file: " + paramsetFilePath);
-                addParamsetReferenceToEnvDefinition(inventoryDir, context, deployPostfix, fileName);
+                if (parameterDtos.isEmpty()) {
+                    deleteParamsetFile(paramsetFilePath);
+                    Log.info("Deleted paramset file: " + paramsetFilePath);
+                    removeParamsetReferenceFromEnvDefinition(inventoryDir, context, deployPostfix, fileName);
+                } else {
+                    Map<String, String> newParams = new LinkedHashMap<>();
+                    parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
+                    writeParamsetFile(fileName, paramsetFilePath, level, applicationName, newParams);
+                    Log.info("Written paramset file: " + paramsetFilePath);
+                    addParamsetReferenceToEnvDefinition(inventoryDir, context, deployPostfix, fileName);
+                }
             } catch (IOException e) {
                 throw new IllegalStateException("Error updating paramset " + fileName, e);
             }
@@ -118,6 +124,28 @@ public class UpdateEnvironmentService {
         ProcessBuilder pb = new ProcessBuilder("yq", "eval", expression, envDefPath.toString(), "--inplace");
         executeYqCommand(pb);
         Log.info("Added paramset reference '" + paramsetName + "' to " + sectionName + "[" + deployPostfix + "]");
+    }
+
+    private void deleteParamsetFile(Path filePath) throws IOException {
+        if (!Files.isRegularFile(filePath)) {
+            return;
+        }
+        Files.delete(filePath);
+    }
+
+    private void removeParamsetReferenceFromEnvDefinition(Path inventoryDir, ParamsetContext context,
+                                                          String deployPostfix, String paramsetName)
+            throws IOException {
+        Path envDefPath = inventoryDir.resolve("env_definition.yml");
+        if (!Files.isRegularFile(envDefPath)) {
+            Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference removal");
+            return;
+        }
+        String sectionName = getEnvTemplateSectionName(context);
+        String yqPath = ".envTemplate." + sectionName + "[\"" + deployPostfix + "\"][] | select(. == \""
+                + escapeForYq(paramsetName) + "\")";
+        deleteYamlField(envDefPath, yqPath);
+        Log.info("Removed paramset reference '" + paramsetName + "' from " + sectionName + "[" + deployPostfix + "]");
     }
 
     private String getEnvTemplateSectionName(ParamsetContext context) {

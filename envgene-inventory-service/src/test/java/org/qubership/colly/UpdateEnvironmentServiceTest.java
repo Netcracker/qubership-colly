@@ -277,8 +277,8 @@ class UpdateEnvironmentServiceTest {
                 """);
 
         Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
-        params.put(ParamsetContext.DEPLOYMENT, List.of());
-        params.put(ParamsetContext.RUNTIME, List.of());
+        params.put(ParamsetContext.DEPLOYMENT, null);
+        params.put(ParamsetContext.RUNTIME, null);
         params.put(ParamsetContext.PIPELINE, List.of(new ParameterDto("PIPELINE_PARAM", "value")));
 
         // When

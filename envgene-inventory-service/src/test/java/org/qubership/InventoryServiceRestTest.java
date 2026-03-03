@@ -999,6 +999,30 @@ class InventoryServiceRestTest {
                 .statusCode(400);
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_application_level_empty_values() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[]," +
+                        "\"RUNTIME\":[]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty());
+    }
+
 
     private @NotNull Environment prepareEnvironmentForTests(String envName) {
         given()

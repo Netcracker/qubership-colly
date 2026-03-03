@@ -307,19 +307,18 @@ public class CollyStorage {
 
         for (ParamsetContext ctx : ParamsetContext.values()) {
             List<ParameterDto> parameterDtos = setUiParametersDto.parameters().get(ctx);
-            if (parameterDtos == null || parameterDtos.isEmpty()) {
+            if (parameterDtos == null) {
                 continue;
             }
-            Map<String, String> newParams = new LinkedHashMap<>();
-            parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
-
-            finalParamsets.stream()
-                    .filter(p -> p.paramsetContext() == ctx
-                            && p.level() == target.level()
-                            && Objects.equals(p.deployPostfix(), target.deployPostfix())
-                            && Objects.equals(p.applicationName(), applicationName))
-                    .findFirst().ifPresent(finalParamsets::remove);
-            finalParamsets.add(new Paramset(ctx, target.level(), target.deployPostfix(), applicationName, newParams));
+            finalParamsets.removeIf(p -> p.paramsetContext() == ctx
+                    && p.level() == target.level()
+                    && Objects.equals(p.deployPostfix(), target.deployPostfix())
+                    && Objects.equals(p.applicationName(), applicationName));
+            if (!parameterDtos.isEmpty()) {
+                Map<String, String> newParams = new LinkedHashMap<>();
+                parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
+                finalParamsets.add(new Paramset(ctx, target.level(), target.deployPostfix(), applicationName, newParams));
+            }
         }
         environment.setParamsets(finalParamsets);
         environmentRepository.persist(environment);
