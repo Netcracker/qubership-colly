@@ -619,18 +619,8 @@ public class InventoryServiceRest {
                     )
             )
             PatchEnvironmentDto updateDto) {
-        try {
-            EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, updateDto));
-            return Response.ok(updatedEnvironment).build();
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", e.getMessage()))
-                    .build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Failed to update environment: " + e.getMessage()))
-                    .build();
-        }
+        EnvironmentDto updatedEnvironment = dtoMapper.toDto(collyStorage.updateEnvironment(id, updateDto));
+        return Response.ok(updatedEnvironment).build();
     }
 
 
@@ -685,7 +675,7 @@ public class InventoryServiceRest {
             summary = "Get UI parameters for environment",
             description = "Retrieves UI parameters for a specific environment, which can be used to customize the user interface based on environment attributes. Requires authentication."
     )
-    public Response getUiParameters(
+    public UiParametersDto getUiParameters(
             @Parameter(
                     description = "ID of the environment to retrieve UI parameters for",
                     required = true,
@@ -694,18 +684,7 @@ public class InventoryServiceRest {
             @PathParam("environmentId") String environmentId,
             @QueryParam("namespaceName") String namespaceName,
             @QueryParam("applicationName") String applicationName) {
-        try {
-            UiParametersDto uiParameters = collyStorage.getUiParameters(environmentId, namespaceName, applicationName);
-            return Response.ok(uiParameters).build();
-        } catch (NotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", e.getMessage()))
-                    .build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Failed to retrieve UI parameters: " + e.getMessage()))
-                    .build();
-        }
+        return collyStorage.getUiParameters(environmentId, namespaceName, applicationName);
     }
 
     @POST
@@ -715,7 +694,7 @@ public class InventoryServiceRest {
             summary = "Set UI parameters for environment",
             description = "Set UI parameters for a specific environment, which can be used to customize the user interface based on environment attributes. Requires authentication."
     )
-    public Response setUiParameters(
+    public void setUiParameters(
             @Parameter(
                     description = "ID of the environment to retrieve UI parameters for",
                     required = true,
@@ -726,18 +705,7 @@ public class InventoryServiceRest {
             @QueryParam("applicationName") String applicationName,
             SetUiParametersDto uiParametersDto
     ) {
-        try {
-            collyStorage.setUiParameters(environmentId, namespaceName, applicationName, uiParametersDto);
-            return Response.ok().build();
-        } catch (NotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", e.getMessage()))
-                    .build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("error", "Failed to retrieve UI parameters: " + e.getMessage()))
-                    .build();
-        }
+        collyStorage.setUiParameters(environmentId, namespaceName, applicationName, uiParametersDto);
     }
 
     @GET

@@ -156,7 +156,7 @@ public class CollyStorage {
         Log.info("Updating environment with id= " + environmentId);
         Environment existingEnv = environmentRepository.findById(environmentId);
         if (existingEnv == null) {
-            throw new IllegalArgumentException("Environment with id= " + environmentId + " not found ");
+            throw new NotFoundException("Environment with id= " + environmentId + " not found ");
         }
 
         // Apply partial updates to existing environment (only update provided fields)
@@ -294,6 +294,10 @@ public class CollyStorage {
         }
 
         ParamsetTarget target = resolveParamsetTarget(environment, namespaceName, applicationName);
+        List<ParameterDto> pipelineParameters = setUiParametersDto.parameters().get(ParamsetContext.PIPELINE);
+        if (target.level == ParamsetLevel.APPLICATION && pipelineParameters != null && !pipelineParameters.isEmpty()) {
+            throw new IllegalArgumentException("Pipeline parameters cannot be set via REST API");
+        }
         Cluster cluster = clusterRepository.findById(environment.getClusterId());
 
         updateEnvironmentService.updateParamset(cluster, environment, target.level(), target.deployPostfix(), applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
@@ -309,15 +313,12 @@ public class CollyStorage {
             Map<String, String> newParams = new LinkedHashMap<>();
             parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
 
-            Paramset existing = finalParamsets.stream()
+            finalParamsets.stream()
                     .filter(p -> p.paramsetContext() == ctx
                             && p.level() == target.level()
                             && Objects.equals(p.deployPostfix(), target.deployPostfix())
                             && Objects.equals(p.applicationName(), applicationName))
-                    .findFirst().orElse(null);
-            if (existing != null) {
-                finalParamsets.remove(existing);
-            }
+                    .findFirst().ifPresent(finalParamsets::remove);
             finalParamsets.add(new Paramset(ctx, target.level(), target.deployPostfix(), applicationName, newParams));
         }
         environment.setParamsets(finalParamsets);
