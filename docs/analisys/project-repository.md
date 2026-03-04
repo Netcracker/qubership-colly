@@ -19,6 +19,15 @@ This document describes the structure and contents of the Project repository.
 ## Repository Structure
 
 ```text
+# AS IS
+├── defaults
+|   └── defaults.yaml|yml
+└── projects
+    └── <projectId>
+        └── parameters.yaml|yml
+```
+
+```text
 ├── defaults
 |   ├── parameters.yaml|yml
 |   └── credentials.yaml|yml
@@ -73,22 +82,28 @@ accessGroups:
 clustersPlatform: enum[ ocp, k8s ]
 # Attribute used for Cloud Passport generation
 mavenRepoName: string
-# Mandatory
+  # Optional
+  # Full URL to the git group where project repositories are located
+  gitGroupUrl: string
+# Optional
 repositories:
   - # Mandatory
+    # All repositories with type envgeneInstance must be specified because Colly uses them; url is mandatory for them
+
     # Assumption: repository with type envgeneTemplate is only one per project
-    type: enum[ envgeneInstance, envgeneTemplate, clusterProvision, envProvision, solutionDeploy ]
-    # Mandatory
+    type: enum[ envgeneInstance, envgeneTemplate, clusterProvision, envProvision, solutionDeploy, DCL ]
+    # Optional
     url: string
-    # Mandatory
+    # Optional
+    # Not used now
     # Token for repository access
     # Pointer to Credential in credentials.yaml
-    # In MS1, Colly will get access to the repository using a technical user, parameters for the user will be passed as a deployment parameter
     token: creds.get('<credential-id>').secret
     # Optional
     # If not set, the "default" branch is used (as in GitLab/GitHub)
     branch: string
     # Optional
+    # Not used now
     # Geographical region associated with the Environment. This attribute is user-defined
     # Used in cases where specific `pipeline` repositories need to be used for certain environments
     region: string
@@ -97,10 +112,10 @@ repositories:
     # TODO: discover from repository 
     envgeneArtifact:
       # Mandatory
-      # EnvGene environment template artifact name (application from the application:version notation)
+      # Default EnvGene environment template artifact name (application from the application:version notation)
       # For example platform:20251215.113905-22
       name: string
-      # Optional
+      # Mandatory
       # Template name that is used by default when creating project environments.
       # Should be included in templateDescriptorNames
       defaultTemplateDescriptorName: string

@@ -37,6 +37,7 @@ This is not the full list of attributes for these objects, but only those that w
 | `cluster`                                         | [Cluster](#cluster) object                                          | Associated cluster                                                                                                                                                                                                                                 |
 | `monitoringData.lastIdpLoginDate`                 | string, date-time                                                   | Time of the last successful login to the IDP associated with the Environment                                                                                                                                                                       |
 | `region`                                          | string                                                              | Geographical region associated with the Environment. This attribute is user-defined                                                                                                                                                                |
+| `lastSuccessfulSyncAt`                            | string                                                              | Time of the last successful update information from the cluster                                                                                                                                                                                    |
 
 ## Namespace
 
@@ -46,16 +47,17 @@ This is not the full list of attributes for these objects, but only those that w
 
 ## Cluster
 
-| Colly Attribute                         | Attribute Type   | Description                                                                                           |
-|-----------------------------------------|------------------|-------------------------------------------------------------------------------------------------------|
-| `name`                                  | string           | Cluster name, cannot be changed after creation                                                        |
-| `clusterInfoUpdateStatus.lastSuccessAt` | string           | Time of the last successful update information from the cluster                                       |
+| Colly Attribute                         | Attribute Type   | Description                                                     |
+|-----------------------------------------|------------------|-----------------------------------------------------------------|
+| `name`                                  | string           | Cluster name, cannot be changed after creation                  |
+| `lastSuccessfulSyncAt`                  | string           | Time of the last successful update information from the cluster |
 
 ## Colly instance
 
-| Colly Attribute                         | Attribute Type   | Description                                                   |
-|-----------------------------------------|----------------- |---------------------------------------------------------------|
-| `clusterInfoUpdateInterval`             | string, duration | Period of synchronization with the cluster in ISO 8601 format |
+| Colly Attribute                         | Attribute Type   | Description                                                    |
+|-----------------------------------------|----------------- |----------------------------------------------------------------|
+| `clusterSyncSchedule`                   | string, duration | Period of synchronization with the cluster in ISO 8601 format  |
+| `repositorySyncSchedule`                | string, duration | Period of synchronization with a Repository in ISO 8601 format |
 
 ## To discuss
 
@@ -303,6 +305,25 @@ This is not the full list of attributes for these objects, but only those that w
 
 - [ ] What is revert of UI paramsets? Removal of all overrides for env or env+ns+app?
 
+- [ ] The user must clearly understand why a Colly attribute value is empty - whether it was not discovered, or is simply empty
+
+- [ ] If during sync with instance repo:
+    1. no `/environments/<cluster>/<env>/Inventory/env_definition.yaml|yml` => delete the env
+    2. `/environments/<cluster>/<env>/Inventory/env_definition.yaml|yml` exists + env is in cache + "validations" failed:
+       1. valid yaml
+       2. valid against Colly schema
+       3. ~~ui paramset association exists, but no paramset~~
+         => update `lastSuccessfulSyncAt` status
+    3. `/environments/<cluster>/<env>/Inventory/env_definition.yaml|yml` exists + env is not in cache + "validations" failed:
+       1. valid yaml
+       2. valid against Colly schema
+       3. ~~ui paramset association exists, but no paramset~~
+         => env is created with the fields that can be read
+
+- [ ] if one paramset failed to save, all paramsets will not be saved
+
+- [ ] what is the SSP role model, how does it affect Colly (who changes the owner on env, who changes ui paramsets, ...). Integration via shared idp? How is this related to `effectiveAccessGroups`
+
 ## To implement
 
 - [x] Change environment attributes
@@ -319,8 +340,6 @@ This is not the full list of attributes for these objects, but only those that w
 - [x] Add `lastIdpLoginDate` attribute (via configurable monitoringData)
 - [x] Add deployment parameter for `monitoringData` extension
 - [x] Remove `ticketLinks` attribute
-- [ ] Add `deploymentOperations` ( will do via ACHKA in 26.1 ) **P2**
-  - [ ] Remove `cleanInstallationDate`
 - [x] Add `region` attribute
 - [x] Add `clusterInfoUpdateInterval`, `clusterInfoUpdateStatus.lastSuccessAt` + remove `synced` **2.5.0**
 - [x] Ability to sync per project, not per Colly instance **2.4.0**
@@ -340,7 +359,24 @@ This is not the full list of attributes for these objects, but only those that w
 - [ ] Add `owners` to Cluster. Agree where to store
 - [ ] Support `inventory.cloudPassport` during Cluster "discovery". Priority is unclear, not doing it yet
 - [x] support branch for instance repo **2.5.0**
-- [ ] Add `ACHKA_URL` finding logic
-- [ ] Add `/colly/inventory-service/v2/projectDefaults` API
-- [ ] Add `mavenRepoName` to Project
-- [ ] Remove `envgeneArtifact.templateDescriptorNames` from Project
+- [x] Add `deploymentOperations` ( will do via ACHKA in 26.1 ) **-**
+  - [ ] Remove `cleanInstallationDate`
+  - [x] Add `ACHKA_URL` finding logic
+- [x] Add `mavenRepoName` to Project **2.7.0**
+- [x] Add `clusterDefaults` to Project **2.7.0**
+- [x] Remove `envgeneArtifact.templateDescriptorNames` from Project
+- [ ] add `lastSuccessfulSyncAt` **-**
+  - [ ] to Repository
+  - [x] to inventory service metadata
+- [x] Remove `deploymentVersion` and its generation logic
+- [ ] Cloud Release **P2**
+- [ ] CMDB UI
+  - [ ] paramset **P1**
+    - [x] get
+    - [ ] set
+      - [ ] delete paramset and association if POST with empty content is received (add to docs)
+  - [ ] ES **P1**
+- [ ] Add DCL to `repositories[].type` enum
+- [ ] Deletion removed envs from Colly cash
+- [ ] Add `gitGroupUrl`
+- [ ] Make `repositories.url` `repositories.token` optional
