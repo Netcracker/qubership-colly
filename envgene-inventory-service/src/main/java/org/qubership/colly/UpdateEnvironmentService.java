@@ -1,13 +1,9 @@
 package org.qubership.colly;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.GitInfo;
-import org.qubership.colly.cloudpassport.envgen.ParamsetFileData;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.ParamsetContext;
@@ -15,21 +11,26 @@ import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.dto.CommitInfoDto;
 import org.qubership.colly.dto.ParameterDto;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @ApplicationScoped
 public class UpdateEnvironmentService {
+
     @Inject
     GitService gitService;
 
+    @Inject
+    ParamsetService paramsetService;
+
+    @Inject
+    YqService yqService;
 
     public void updateParamset(Cluster cluster, Environment environment, ParamsetLevel level,
                                String deployPostfix, String applicationName,
@@ -49,24 +50,16 @@ public class UpdateEnvironmentService {
                 continue;
             }
 
-            String fileSuffix = calculateFileSuffix(context);
-            String fileName = calculateParamsetFileName(level, deployPostfix, applicationName, fileSuffix);
-            Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(fileName + ".yaml");
-
             try {
                 if (parameterDtos.isEmpty()) {
-                    deleteParamsetFile(paramsetFilePath);
-                    Log.info("Deleted paramset file: " + paramsetFilePath);
-                    removeParamsetReferenceFromEnvDefinition(inventoryDir, context, deployPostfix, fileName);
+                    paramsetService.deleteParamsetFile(inventoryDir, level, deployPostfix, applicationName, context);
+                    paramsetService.removeParamsetReferenceFromEnvDefinition(inventoryDir, context, deployPostfix, level, applicationName);
                 } else {
-                    Map<String, String> newParams = new LinkedHashMap<>();
-                    parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
-                    writeParamsetFile(fileName, paramsetFilePath, level, applicationName, newParams);
-                    Log.info("Written paramset file: " + paramsetFilePath);
-                    addParamsetReferenceToEnvDefinition(inventoryDir, context, deployPostfix, fileName);
+                    paramsetService.writeParamsetFile(inventoryDir, level, deployPostfix, applicationName, context, parameterDtos);
+                    paramsetService.addParamsetReferenceToEnvDefinition(inventoryDir, context, deployPostfix, level, applicationName);
                 }
             } catch (IOException e) {
-                throw new IllegalStateException("Error updating paramset " + fileName, e);
+                throw new IllegalStateException("Error updating paramset " + context + "/" + level + " for " + deployPostfix, e);
             }
         }
 
@@ -91,97 +84,6 @@ public class UpdateEnvironmentService {
         }
     }
 
-    private String calculateFileSuffix(ParamsetContext context) {
-        return switch (context) {
-            case DEPLOYMENT -> "deploy-ui-override";
-            case RUNTIME -> "runtime-ui-override";
-            case PIPELINE -> "pipeline-ui-override";
-        };
-    }
-
-    private String calculateParamsetFileName(ParamsetLevel level, String deployPostfix, String applicationName, String suffix) {
-        return switch (level) {
-            case ENVIRONMENT -> suffix;
-            case NAMESPACE -> deployPostfix + "-" + suffix;
-            case APPLICATION -> deployPostfix + "-" + applicationName + "-" + suffix;
-        };
-    }
-
-    private void addParamsetReferenceToEnvDefinition(Path inventoryDir, ParamsetContext context,
-                                                     String deployPostfix, String paramsetName)
-            throws IOException {
-        if (!isYqAvailable()) {
-            throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
-        }
-        Path envDefPath = inventoryDir.resolve("env_definition.yml");
-        if (!Files.isRegularFile(envDefPath)) {
-            Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference update");
-            return;
-        }
-        String sectionName = getEnvTemplateSectionName(context);
-        String yqPath = ".envTemplate." + sectionName + "[\"" + deployPostfix + "\"]";
-        String expression = yqPath + " |= ((. // []) + [\"" + escapeForYq(paramsetName) + "\"] | unique)";
-        ProcessBuilder pb = new ProcessBuilder("yq", "eval", expression, envDefPath.toString(), "--inplace");
-        executeYqCommand(pb);
-        Log.info("Added paramset reference '" + paramsetName + "' to " + sectionName + "[" + deployPostfix + "]");
-    }
-
-    private void deleteParamsetFile(Path filePath) throws IOException {
-        if (!Files.isRegularFile(filePath)) {
-            return;
-        }
-        Files.delete(filePath);
-    }
-
-    private void removeParamsetReferenceFromEnvDefinition(Path inventoryDir, ParamsetContext context,
-                                                          String deployPostfix, String paramsetName)
-            throws IOException {
-        Path envDefPath = inventoryDir.resolve("env_definition.yml");
-        if (!Files.isRegularFile(envDefPath)) {
-            Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference removal");
-            return;
-        }
-        String sectionName = getEnvTemplateSectionName(context);
-        String yqPath = ".envTemplate." + sectionName + "[\"" + deployPostfix + "\"][] | select(. == \""
-                + escapeForYq(paramsetName) + "\")";
-        deleteYamlField(envDefPath, yqPath);
-        Log.info("Removed paramset reference '" + paramsetName + "' from " + sectionName + "[" + deployPostfix + "]");
-    }
-
-    private String getEnvTemplateSectionName(ParamsetContext context) {
-        return switch (context) {
-            case DEPLOYMENT -> "envSpecificParamsets";
-            case RUNTIME -> "envSpecificTechnicalParamsets";
-            case PIPELINE -> "envSpecificE2EParamsets";
-        };
-    }
-
-    private void writeParamsetFile(String fileName, Path filePath, ParamsetLevel level, String applicationName,
-                                   Map<String, String> parameters) throws IOException {
-        Files.createDirectories(filePath.getParent());
-        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-        ParamsetFileData fileData;
-        if (level == ParamsetLevel.APPLICATION) {
-            List<ParamsetFileData.ParamsetApplicationData> apps = new ArrayList<>();
-            if (Files.isRegularFile(filePath)) {
-                ParamsetFileData existing = mapper.readValue(filePath.toFile(), ParamsetFileData.class);
-                if (existing.applications() != null) {
-                    existing.applications().stream()
-                            .filter(a -> !applicationName.equals(a.appName()))
-                            .forEach(apps::add);
-                }
-            }
-            apps.add(new ParamsetFileData.ParamsetApplicationData(applicationName, parameters));
-            fileData = new ParamsetFileData(fileName, Map.of(), apps);
-        } else {
-            fileData = new ParamsetFileData(fileName, parameters, List.of());
-        }
-
-        mapper.writeValue(filePath.toFile(), fileData);
-    }
-
     public Environment updateEnvironment(Cluster cluster, Environment environmentUpdate) {
         GitInfo gitInfo = cluster.getGitInfo();
         Path gitRepoPathWithClusters = Paths.get(gitInfo.folderName());
@@ -200,7 +102,7 @@ public class UpdateEnvironmentService {
             }
             envDefinitionPath.ifPresent(path -> {
                 try {
-                    updateYamlFileWithYq(path, environmentUpdate);
+                    updateEnvDefinitionYamlFileWithYq(path, environmentUpdate);
                     Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
                 } catch (IOException e) {
                     throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
@@ -215,123 +117,29 @@ public class UpdateEnvironmentService {
         return environmentUpdate;
     }
 
-    private void updateYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException {
-        if (!isYqAvailable()) {
+    private void updateEnvDefinitionYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException {
+        if (!yqService.isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
         Log.info("Updating yaml file " + yamlPath);
-        deleteYamlField(yamlPath, ".inventory.description");
-        updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
+        yqService.deleteYamlField(yamlPath, ".inventory.description");
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
         Log.info("Updated metadata description to " + environmentUpdate.getDescription());
-        deleteYamlField(yamlPath, ".inventory.owners");
-        updateYamlArrayField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwners());
+        yqService.deleteYamlField(yamlPath, ".inventory.owners");
+        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwners());
         Log.info("Updated metadata owners to " + environmentUpdate.getOwners());
-        updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
+        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
         Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
-        updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
+        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
         Log.info("Updated metadata teams to " + environmentUpdate.getTeams());
-        updateYamlField(yamlPath, ".inventory.metadata.status", environmentUpdate.getStatus().name());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.status", environmentUpdate.getStatus().name());
         Log.info("Updated status to " + environmentUpdate.getStatus().name());
-        updateYamlField(yamlPath, ".inventory.metadata.expirationDate", environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.expirationDate",
+                environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
         Log.info("Updated expirationDate to " + environmentUpdate.getExpirationDate());
-        updateYamlField(yamlPath, ".inventory.metadata.type", environmentUpdate.getType().name());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.type", environmentUpdate.getType().name());
         Log.info("Updated type to " + environmentUpdate.getType().name());
-        updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
         Log.info("Updated role to " + environmentUpdate.getRole());
-    }
-
-    private boolean isYqAvailable() {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("yq", "--version");
-            Process process = pb.start();
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-            return finished && process.exitValue() == 0;
-        } catch (IOException e) {
-            Log.error("Error checking yq availability:", e);
-            return false;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            Log.error("Error checking yq availability:", e);
-            return false;
-        }
-    }
-
-    private void deleteYamlField(Path yamlPath, String yamlFieldPath) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(
-                "yq",
-                "eval",
-                "del(" + yamlFieldPath + ")",
-                yamlPath.toString(),
-                "--inplace"
-        );
-        executeYqCommand(pb);
-    }
-
-    private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException {
-        if (value == null || value.isEmpty()) {
-            deleteYamlField(yamlPath, yamlFieldPath);
-            return;
-        }
-        ProcessBuilder pb = new ProcessBuilder(
-                "yq",
-                "eval",
-                yamlFieldPath + " = " + "\"" + escapeForYq(value) + "\"",
-                yamlPath.toString(),
-                "--inplace"
-        );
-        executeYqCommand(pb);
-    }
-
-    private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException {
-        if (values == null || values.isEmpty()) {
-            deleteYamlField(yamlPath, yamlFieldPath);
-            return;
-        }
-        String arrayValue = values.stream()
-                .map(value -> "\"" + escapeForYq(value) + "\"")
-                .collect(Collectors.joining(", ", "[", "]"));
-        ProcessBuilder pb = new ProcessBuilder(
-                "yq",
-                "eval",
-                yamlFieldPath + " = " + arrayValue,
-                yamlPath.toString(),
-                "--inplace"
-        );
-        executeYqCommand(pb);
-    }
-
-    private void executeYqCommand(ProcessBuilder processBuilder) throws IOException {
-        Process process = processBuilder.start();
-        boolean finished;
-        try {
-            finished = process.waitFor(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            process.destroyForcibly();
-            Thread.currentThread().interrupt();
-            throw new IOException("yq command interrupted", e);
-        }
-
-        if (!finished) {
-            process.destroyForcibly();
-            throw new IOException("yq command timed out");
-        }
-
-        if (process.exitValue() != 0) {
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader bufferedReader = process.errorReader()) {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-                throw new IOException("yq command failed with exit code " + process.exitValue() + ": " + output.toString().trim());
-            }
-        }
-    }
-
-    private String escapeForYq(String value) {
-        return value.replace("\"", "\\\"")
-                .replace("\\", "\\\\")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
     }
 }

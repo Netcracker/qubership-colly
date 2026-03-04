@@ -38,6 +38,12 @@ class UpdateEnvironmentServiceTest {
     @Inject
     UpdateEnvironmentService updateEnvironmentService;
 
+    @Inject
+    ParamsetService paramsetService;
+
+    @Inject
+    YqService yqService;
+
     @TempDir
     Path tempDir;
 
