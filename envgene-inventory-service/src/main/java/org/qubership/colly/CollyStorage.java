@@ -92,9 +92,6 @@ public class CollyStorage {
         // Now save environments with cluster ID
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToCache(env, finalCluster));
-
-        // Persist cluster again after environments are added
-        clusterRepository.persist(finalCluster);
     }
 
     private void saveEnvironmentToCache(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
@@ -109,13 +106,8 @@ public class CollyStorage {
             Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }
 
-        // Always add/update environment in cluster for backward compatibility
-        // First remove if it exists, then add the updated one
-        final Environment finalEnvironment = environment;
-        cluster.getEnvironments().removeIf(env -> env.getName().equals(finalEnvironment.getName()));
-        cluster.getEnvironments().add(finalEnvironment);
-
         // Set cluster information
+        final Environment finalEnvironment = environment;
         if (cluster.getId() != null) {
             finalEnvironment.setClusterId(cluster.getId());
         }
@@ -185,12 +177,7 @@ public class CollyStorage {
         Cluster cluster = clusterRepository.findById(existingEnv.getClusterId());
         updateEnvironmentService.updateEnvironment(cluster, existingEnv);
 
-        // Update environment in cluster for backward compatibility
-        cluster.getEnvironments().removeIf(env -> env.getName().equals(existingEnv.getName()));
-        cluster.getEnvironments().add(existingEnv);
-
         // Persist changes
-        clusterRepository.persist(cluster);
         environmentRepository.persist(existingEnv);
 
         return existingEnv;

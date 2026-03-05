@@ -1,6 +1,8 @@
 package org.qubership.colly;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
@@ -11,6 +13,9 @@ import java.util.List;
 
 @ApplicationScoped
 public class DtoMapper {
+
+    @Inject
+    EnvironmentRepository environmentRepository;
 
     public EnvironmentDto toDto(Environment environment) {
         return new EnvironmentDto(environment.getId(),
@@ -41,7 +46,7 @@ public class DtoMapper {
                 cluster.getToken(),
                 cluster.getCloudApiHost(),
                 cluster.getCloudPublicHost(),
-                toLightDtos(cluster.getEnvironments()),
+                toLightDtos(environmentRepository.findByClusterId(cluster.getId())),
                 cluster.getMonitoringUrl(),
                 cluster.getAchkaUrl()
         );
@@ -50,7 +55,7 @@ public class DtoMapper {
     public ClusterDto toClusterDto(Cluster cluster) {
         return new ClusterDto(cluster.getId(),
                 cluster.getName(),
-                toLightDtos(cluster.getEnvironments()),
+                toLightDtos(environmentRepository.findByClusterId(cluster.getId())),
                 cluster.getDashboardUrl(),
                 cluster.getDbaasUrl(),
                 cluster.getDeployerUrl(),
