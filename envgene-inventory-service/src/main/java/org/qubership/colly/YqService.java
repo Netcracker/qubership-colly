@@ -73,6 +73,12 @@ public class YqService {
         executeYqCommand(pb);
     }
 
+    public void addToYamlArrayUnique(Path yamlPath, String yamlArrayPath, String value) throws IOException {
+        String expression = yamlArrayPath + " |= ((. // []) + [\"" + escapeForYq(value) + "\"] | unique)";
+        ProcessBuilder pb = new ProcessBuilder("yq", "eval", expression, yamlPath.toString(), "--inplace");
+        executeYqCommand(pb);
+    }
+
     public String escapeForYq(String value) {
         return value.replace("\"", "\\\"")
                 .replace("\\", "\\\\")

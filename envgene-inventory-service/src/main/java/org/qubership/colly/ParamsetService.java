@@ -175,10 +175,8 @@ public class ParamsetService {
         }
         String paramsetName = calculateParamsetFileName(target.level(), target.deployPostfix(), applicationName, context);
         String sectionName = getEnvTemplateSectionName(context);
-        String yqPath = ".envTemplate." + sectionName + "[\"" + target.deployPostfix() + "\"]";
-        String expression = yqPath + " |= ((. // []) + [\"" + yqService.escapeForYq(paramsetName) + "\"] | unique)";
-        ProcessBuilder pb = new ProcessBuilder("yq", "eval", expression, envDefPath.toString(), "--inplace");
-        yqService.executeYqCommand(pb);
+        String yqArrayPath = ".envTemplate." + sectionName + "[\"" + target.deployPostfix() + "\"]";
+        yqService.addToYamlArrayUnique(envDefPath, yqArrayPath, paramsetName);
         Log.info("Added paramset reference '" + paramsetName + "' to " + sectionName + "[" + target.deployPostfix() + "]");
     }
 

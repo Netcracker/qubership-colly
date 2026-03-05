@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 @ApplicationScoped
@@ -77,6 +76,25 @@ public class UpdateEnvironmentService {
         gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, null, commitInfo.username(), commitInfo.email());
     }
 
+    public Environment updateEnvironment(Cluster cluster, Environment environmentUpdate) {
+        GitInfo gitInfo = cluster.getGitInfo();
+        Path gitRepoPath = Paths.get(gitInfo.folderName());
+        if (!Files.exists(gitRepoPath)) {
+            throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
+        }
+        Path inventoryDir = findInventoryDir(gitRepoPath, environmentUpdate.getName());
+        Path envDefinitionPath = inventoryDir.resolve("env_definition.yml");
+        try {
+            updateEnvDefinitionYamlFileWithYq(envDefinitionPath, environmentUpdate);
+            Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
+        }
+        gitService.commitAndPush(gitRepoPath.toFile(), "Update environment " + environmentUpdate.getName());
+
+        return environmentUpdate;
+    }
+
     private Path findInventoryDir(Path gitRepoPath, String environmentName) {
         try (Stream<Path> paths = Files.walk(gitRepoPath)) {
             return paths.filter(Files::isDirectory)
@@ -90,39 +108,6 @@ public class UpdateEnvironmentService {
         } catch (IOException e) {
             throw new IllegalStateException("Error searching for Inventory directory for environment " + environmentName, e);
         }
-    }
-
-    public Environment updateEnvironment(Cluster cluster, Environment environmentUpdate) {
-        GitInfo gitInfo = cluster.getGitInfo();
-        Path gitRepoPathWithClusters = Paths.get(gitInfo.folderName());
-        if (!Files.exists(gitRepoPathWithClusters)) {
-            throw new IllegalArgumentException("Could not find git repo at " + gitRepoPathWithClusters);
-        }
-        try (Stream<Path> paths = Files.walk(gitRepoPathWithClusters)) {
-            Optional<Path> envDefinitionPath = paths.filter(Files::isDirectory)
-                    .map(path -> path.resolve(environmentUpdate.getName()))
-                    .filter(Files::isDirectory)
-                    .map(path -> path.resolve("Inventory"))
-                    .map(path -> path.resolve("env_definition.yml"))
-                    .findFirst();
-            if (envDefinitionPath.isEmpty()) {
-                throw new IllegalArgumentException("Could not find env_definition.yml for " + environmentUpdate.getName() + " in cluster " + cluster.getName());
-            }
-            envDefinitionPath.ifPresent(path -> {
-                try {
-                    updateEnvDefinitionYamlFileWithYq(path, environmentUpdate);
-                    Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
-                } catch (IOException e) {
-                    throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
-                }
-            });
-
-        } catch (IOException e) {
-            Log.error("Error loading CloudPassports from " + gitRepoPathWithClusters, e);
-        }
-        gitService.commitAndPush(Paths.get(gitInfo.folderName()).toFile(), "Update environment " + environmentUpdate.getName());
-
-        return environmentUpdate;
     }
 
     private void updateEnvDefinitionYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException {
