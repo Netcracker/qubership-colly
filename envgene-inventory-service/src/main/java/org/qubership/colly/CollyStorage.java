@@ -264,26 +264,8 @@ public class CollyStorage {
         ParamsetService.ParamsetTarget target = paramsetService.resolveParamsetTarget(environment, namespaceName, applicationName);
         Cluster cluster = clusterRepository.findById(environment.getClusterId());
 
-        updateEnvironmentService.updateParamset(cluster, environment, target, applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
-
-        final List<Paramset> finalParamsets = new ArrayList<>(environment.getParamsets());
-
-        for (ParamsetContext ctx : ParamsetContext.values()) {
-            List<ParameterDto> parameterDtos = setUiParametersDto.parameters().get(ctx);
-            if (parameterDtos == null) { //if parameters for some context are not provided, we should not update parameters for this context (keep old values)
-                continue;
-            }
-            finalParamsets.removeIf(p -> p.paramsetContext() == ctx
-                    && p.level() == target.level()
-                    && Objects.equals(p.deployPostfix(), target.deployPostfix())
-                    && Objects.equals(p.applicationName(), applicationName));
-            if (!parameterDtos.isEmpty()) {
-                Map<String, String> newParams = new LinkedHashMap<>();
-                parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
-                finalParamsets.add(new Paramset(ctx, target.level(), target.deployPostfix(), applicationName, newParams));
-            }
-        }
-        environment.setParamsets(finalParamsets);
+        List<Paramset> updatedParamsets = updateEnvironmentService.updateParamset(cluster, environment, target, applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
+        environment.setParamsets(updatedParamsets);
         environmentRepository.persist(environment);
     }
 

@@ -4,6 +4,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.GitInfo;
+import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.ParamsetContext;
@@ -15,8 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 @ApplicationScoped
@@ -31,10 +31,10 @@ public class UpdateEnvironmentService {
     @Inject
     YqService yqService;
 
-    public void updateParamset(Cluster cluster, Environment environment, ParamsetService.ParamsetTarget target,
-                               String applicationName,
-                               Map<ParamsetContext, List<ParameterDto>> parameters,
-                               CommitInfoDto commitInfo) {
+    public List<Paramset> updateParamset(Cluster cluster, Environment environment, ParamsetService.ParamsetTarget target,
+                                         String applicationName,
+                                         Map<ParamsetContext, List<ParameterDto>> parameters,
+                                         CommitInfoDto commitInfo) {
 
         List<ParameterDto> pipelineParameters = parameters.get(ParamsetContext.PIPELINE);
         if (target.level() == ParamsetLevel.APPLICATION
@@ -53,6 +53,9 @@ public class UpdateEnvironmentService {
         if (!yqService.isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
+
+        List<Paramset> updatedParamsets = new ArrayList<>(environment.getParamsets());
+
         for (ParamsetContext context : ParamsetContext.values()) {
             List<ParameterDto> parameterDtos = parameters.get(context);
             if (parameterDtos == null) {
@@ -70,12 +73,23 @@ public class UpdateEnvironmentService {
             } catch (IOException e) {
                 throw new IllegalStateException("Error updating paramset " + context + "/" + target.level() + " for " + target.deployPostfix(), e);
             }
+            updatedParamsets.removeIf(p -> p.paramsetContext() == context
+                    && p.level() == target.level()
+                    && Objects.equals(p.deployPostfix(), target.deployPostfix())
+                    && Objects.equals(p.applicationName(), applicationName));
+            if (!parameterDtos.isEmpty()) {
+                Map<String, String> newParams = new LinkedHashMap<>();
+                parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
+                updatedParamsets.add(new Paramset(context, target.level(), target.deployPostfix(), applicationName, newParams));
+            }
         }
 
         String commitMessage = commitInfo.commitMessage() != null
                 ? commitInfo.commitMessage()
                 : "Update UI parameters for " + environment.getName();
         gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, null, commitInfo.username(), commitInfo.email());
+
+        return updatedParamsets;
     }
 
     public Environment updateEnvironment(Cluster cluster, Environment environmentUpdate) {
