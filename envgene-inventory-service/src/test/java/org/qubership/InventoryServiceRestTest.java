@@ -868,6 +868,19 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void set_ui_parameters_null_parameters_field() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": null}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void set_ui_parameters_env_without_paramsets() {
         Environment environment = prepareEnvironmentForTests("env-1");
         given()
