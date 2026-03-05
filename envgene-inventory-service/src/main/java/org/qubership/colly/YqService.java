@@ -86,7 +86,7 @@ public class YqService {
                 .replace("\r", "\\r");
     }
 
-    public void executeYqCommand(ProcessBuilder processBuilder) throws IOException {
+    private void executeYqCommand(ProcessBuilder processBuilder) throws IOException {
         Process process = processBuilder.start();
         boolean finished;
         try {

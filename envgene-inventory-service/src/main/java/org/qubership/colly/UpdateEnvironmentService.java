@@ -50,7 +50,9 @@ public class UpdateEnvironmentService {
             throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
         }
         Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
-
+        if (!yqService.isYqAvailable()) {
+            throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
+        }
         for (ParamsetContext context : ParamsetContext.values()) {
             List<ParameterDto> parameterDtos = parameters.get(context);
             if (parameterDtos == null) {
