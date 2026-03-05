@@ -80,8 +80,8 @@ public class YqService {
     }
 
     public String escapeForYq(String value) {
-        return value.replace("\"", "\\\"")
-                .replace("\\", "\\\\")
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
                 .replace("\n", "\\n")
                 .replace("\r", "\\r");
     }

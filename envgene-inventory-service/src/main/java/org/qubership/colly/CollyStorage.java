@@ -279,12 +279,11 @@ public class CollyStorage {
 
         updateEnvironmentService.updateParamset(cluster, environment, target, applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
 
-        //todo simplify logic for update parameters in memory
         final List<Paramset> finalParamsets = new ArrayList<>(environment.getParamsets());
 
         for (ParamsetContext ctx : ParamsetContext.values()) {
             List<ParameterDto> parameterDtos = setUiParametersDto.parameters().get(ctx);
-            if (parameterDtos == null) {
+            if (parameterDtos == null) { //if parameters for some context are not provided, we should not update parameters for this context (keep old values)
                 continue;
             }
             finalParamsets.removeIf(p -> p.paramsetContext() == ctx

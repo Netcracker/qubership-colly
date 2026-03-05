@@ -28,6 +28,8 @@ import java.util.Map;
 @ApplicationScoped
 public class ParamsetService {
 
+    private static final String ENV_SPECIFIC_DEPLOY_POSTFIX = "cloud"; //cloud is the reserved word for environment level paramsets
+
     @Inject
     YqService yqService;
 
@@ -81,7 +83,7 @@ public class ParamsetService {
             String applicationName = null;
             Map<String, String> parameters;
 
-            if (paramsetName.equals(suffix) && deployPostfix.equals("cloud")) { //cloud is the reserved word for environment level paramsets
+            if (paramsetName.equals(suffix) && deployPostfix.equals(ENV_SPECIFIC_DEPLOY_POSTFIX)) {
                 level = ParamsetLevel.ENVIRONMENT;
                 parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
             } else if (paramsetName.equals(deployPostfix + "-" + suffix)) {
@@ -229,7 +231,7 @@ public class ParamsetService {
 
     public ParamsetTarget resolveParamsetTarget(Environment environment, String namespaceName, String applicationName) {
         ParamsetLevel requestedLevel;
-        String deployPostfix = "cloud";
+        String deployPostfix = ENV_SPECIFIC_DEPLOY_POSTFIX;
 
         if (applicationName != null && !applicationName.isEmpty()) {
             requestedLevel = ParamsetLevel.APPLICATION;
