@@ -127,7 +127,7 @@ class UpdateEnvironmentServiceTest {
 
         // When
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
-                ParamsetLevel.NAMESPACE, "core", null, params, commitInfo);
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, commitInfo);
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -158,7 +158,7 @@ class UpdateEnvironmentServiceTest {
 
         // When — commitInfo is null, so default message should be used
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
-                ParamsetLevel.ENVIRONMENT, "cloud", null, params, COMMIT_INFO);
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null, params, COMMIT_INFO);
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -185,7 +185,7 @@ class UpdateEnvironmentServiceTest {
 
         // When
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
-                ParamsetLevel.APPLICATION, "core", "my-app", params, commitInfo);
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, commitInfo);
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -223,7 +223,7 @@ class UpdateEnvironmentServiceTest {
 
         // When
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
-                ParamsetLevel.NAMESPACE, "core", null, params, COMMIT_INFO);
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, COMMIT_INFO);
 
         // Then
         Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
@@ -251,9 +251,9 @@ class UpdateEnvironmentServiceTest {
 
         // When — call twice with same params
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
-                ParamsetLevel.NAMESPACE, "core", null, params, COMMIT_INFO);
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, COMMIT_INFO);
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
-                ParamsetLevel.NAMESPACE, "core", null, params, COMMIT_INFO);
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, COMMIT_INFO);
 
         // Then — reference appears exactly once
         Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
@@ -289,7 +289,7 @@ class UpdateEnvironmentServiceTest {
 
         // When
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
-                ParamsetLevel.ENVIRONMENT, "cloud", null, params, COMMIT_INFO);
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null, params, COMMIT_INFO);
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);

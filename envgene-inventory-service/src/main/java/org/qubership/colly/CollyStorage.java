@@ -31,18 +31,21 @@ public class CollyStorage {
     private final CloudPassportLoader cloudPassportLoader;
     private final UpdateEnvironmentService updateEnvironmentService;
     private final ProjectRepoLoader projectRepoLoader;
+    private final ParamsetService paramsetService;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
             EnvironmentRepository environmentRepository, ProjectRepository projectRepository,
-            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService, ProjectRepoLoader projectRepoLoader) {
+            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService,
+            ProjectRepoLoader projectRepoLoader, ParamsetService paramsetService) {
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.projectRepository = projectRepository;
         this.cloudPassportLoader = cloudPassportLoader;
         this.updateEnvironmentService = updateEnvironmentService;
         this.projectRepoLoader = projectRepoLoader;
+        this.paramsetService = paramsetService;
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
@@ -225,28 +228,6 @@ public class CollyStorage {
         return clusterRepository.findById(id);
     }
 
-    private ParamsetTarget resolveParamsetTarget(Environment environment, String namespaceName, String applicationName) {
-        ParamsetLevel requestedLevel;
-        String deployPostfix = "cloud"; //todo move logic regarding 'cloud'v postfix to the one place
-
-        if (applicationName != null && !applicationName.isEmpty()) {
-            requestedLevel = ParamsetLevel.APPLICATION;
-        } else if (namespaceName != null && !namespaceName.isEmpty()) {
-            requestedLevel = ParamsetLevel.NAMESPACE;
-        } else {
-            requestedLevel = ParamsetLevel.ENVIRONMENT;
-        }
-
-        if (requestedLevel != ParamsetLevel.ENVIRONMENT) {
-            Namespace namespace = environment.getNamespaces().stream()
-                    .filter(ns -> ns.getName().equals(namespaceName))
-                    .findFirst()
-                    .orElseThrow(() -> new NotFoundException("Namespace with name=" + namespaceName + " not found in environment " + environment.getId()));
-            deployPostfix = namespace.getDeployPostfix();
-        }
-
-        return new ParamsetTarget(requestedLevel, deployPostfix);
-    }
 
     public UiParametersDto getUiParameters(String environmentId, String namespaceName, String applicationName) {
         Environment environment = environmentRepository.findById(environmentId);
@@ -259,7 +240,7 @@ public class CollyStorage {
             return emptyUiParameters();
         }
 
-        ParamsetTarget target = resolveParamsetTarget(environment, namespaceName, applicationName);
+        ParamsetService.ParamsetTarget target = paramsetService.resolveParamsetTarget(environment, namespaceName, applicationName);
         ParamsetLevel requestedLevel = target.level();
         final String dp = target.deployPostfix();
         var filtered = paramsets.stream()
@@ -293,14 +274,10 @@ public class CollyStorage {
             throw new NotFoundException("Environment with id=" + environmentId + " not found");
         }
 
-        ParamsetTarget target = resolveParamsetTarget(environment, namespaceName, applicationName);
-        List<ParameterDto> pipelineParameters = setUiParametersDto.parameters().get(ParamsetContext.PIPELINE);
-        if (target.level == ParamsetLevel.APPLICATION && pipelineParameters != null && !pipelineParameters.isEmpty()) {
-            throw new IllegalArgumentException("Pipeline parameters cannot be set via REST API for Application level. Environment id=" + environmentId + ", namespace=" + namespaceName + ", application=" + applicationName);
-        }
+        ParamsetService.ParamsetTarget target = paramsetService.resolveParamsetTarget(environment, namespaceName, applicationName);
         Cluster cluster = clusterRepository.findById(environment.getClusterId());
 
-        updateEnvironmentService.updateParamset(cluster, environment, target.level(), target.deployPostfix(), applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
+        updateEnvironmentService.updateParamset(cluster, environment, target, applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
 
         //todo simplify logic for update parameters in memory
         final List<Paramset> finalParamsets = new ArrayList<>(environment.getParamsets());
@@ -324,6 +301,4 @@ public class CollyStorage {
         environmentRepository.persist(environment);
     }
 
-    private record ParamsetTarget(ParamsetLevel level, String deployPostfix) {
-    }
 }

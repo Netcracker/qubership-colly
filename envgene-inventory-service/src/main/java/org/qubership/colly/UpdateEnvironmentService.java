@@ -32,16 +32,24 @@ public class UpdateEnvironmentService {
     @Inject
     YqService yqService;
 
-    public void updateParamset(Cluster cluster, Environment environment, ParamsetLevel level,
-                               String deployPostfix, String applicationName,
+    public void updateParamset(Cluster cluster, Environment environment, ParamsetService.ParamsetTarget target,
+                               String applicationName,
                                Map<ParamsetContext, List<ParameterDto>> parameters,
                                CommitInfoDto commitInfo) {
+
+        List<ParameterDto> pipelineParameters = parameters.get(ParamsetContext.PIPELINE);
+        if (target.level() == ParamsetLevel.APPLICATION
+                && pipelineParameters != null && !pipelineParameters.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Pipeline parameters cannot be set for Application level. Environment=" + environment.getName()
+                            + ", application=" + applicationName);
+        }
+
         GitInfo gitInfo = cluster.getGitInfo();
         Path gitRepoPath = Paths.get(gitInfo.folderName());
         if (!Files.exists(gitRepoPath)) {
             throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
         }
-
         Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
 
         for (ParamsetContext context : ParamsetContext.values()) {
@@ -52,14 +60,14 @@ public class UpdateEnvironmentService {
 
             try {
                 if (parameterDtos.isEmpty()) {
-                    paramsetService.deleteParamsetFile(inventoryDir, level, deployPostfix, applicationName, context);
-                    paramsetService.removeParamsetReferenceFromEnvDefinition(inventoryDir, context, deployPostfix, level, applicationName);
+                    paramsetService.deleteParamsetFile(inventoryDir, target, applicationName, context);
+                    paramsetService.removeParamsetReferenceFromEnvDefinition(inventoryDir, context, target, applicationName);
                 } else {
-                    paramsetService.writeParamsetFile(inventoryDir, level, deployPostfix, applicationName, context, parameterDtos);
-                    paramsetService.addParamsetReferenceToEnvDefinition(inventoryDir, context, deployPostfix, level, applicationName);
+                    paramsetService.writeParamsetFile(inventoryDir, target, applicationName, context, parameterDtos);
+                    paramsetService.addParamsetReferenceToEnvDefinition(inventoryDir, context, target, applicationName);
                 }
             } catch (IOException e) {
-                throw new IllegalStateException("Error updating paramset " + context + "/" + level + " for " + deployPostfix, e);
+                throw new IllegalStateException("Error updating paramset " + context + "/" + target.level() + " for " + target.deployPostfix(), e);
             }
         }
 
