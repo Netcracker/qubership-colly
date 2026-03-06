@@ -3,7 +3,7 @@
 echo "Starting services with Docker Compose..."
 
 # Build and start services
-docker-compose up --build -d
+docker-compose --profile infra --profile apps up --build -d
 
 echo ""
 echo "Services starting in background..."
