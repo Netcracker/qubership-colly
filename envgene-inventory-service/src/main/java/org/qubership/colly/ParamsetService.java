@@ -167,6 +167,9 @@ public class ParamsetService {
 
     public void addParamsetReferenceToEnvDefinition(Path inventoryDir, ParamsetContext context,
                                                     ParamsetTarget target, String applicationName) throws IOException {
+        if (!yqService.isYqAvailable()) {
+            throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
+        }
         Path envDefPath = inventoryDir.resolve("env_definition.yml");
         if (!Files.isRegularFile(envDefPath)) {
             Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference update");
@@ -181,6 +184,9 @@ public class ParamsetService {
 
     public void removeParamsetReferenceFromEnvDefinition(Path inventoryDir, ParamsetContext context,
                                                          ParamsetTarget target, String applicationName) throws IOException {
+        if (!yqService.isYqAvailable()) {
+            throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
+        }
         Path envDefPath = inventoryDir.resolve("env_definition.yml");
         if (!Files.isRegularFile(envDefPath)) {
             Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference removal");
