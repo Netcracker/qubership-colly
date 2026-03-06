@@ -61,7 +61,7 @@ public class GitService {
             }
             commitCommand.call();
 
-            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider("", tokenToUse);
+            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider("oauth2", tokenToUse);
             git.push()
                     .setCredentialsProvider(credentialsProvider)
                     .call();
