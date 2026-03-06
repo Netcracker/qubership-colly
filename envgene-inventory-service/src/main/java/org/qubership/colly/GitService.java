@@ -2,6 +2,7 @@ package org.qubership.colly;
 
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -48,16 +49,19 @@ public class GitService {
         Log.info("Repository cloned.");
     }
 
-    public void commitAndPush(File repositoryPath, String commitMessage) {
+    public void commitAndPush(File repositoryPath, String commitMessage, String token, String gitUser, String gitEmail) {
         Log.info("Committing and pushing changes in repository: " + repositoryPath);
+        String tokenToUse = token != null && !token.isBlank() ? token : gitToken;
         try (Git git = Git.open(repositoryPath)) {
             git.add().addFilepattern(".").call();
 
-            git.commit()
-                    .setMessage(commitMessage)
-                    .call();
+            CommitCommand commitCommand = git.commit().setMessage(commitMessage);
+            if (gitUser != null && !gitUser.isBlank() && gitEmail != null && !gitEmail.isBlank()) {
+                commitCommand.setAuthor(gitUser, gitEmail);
+            }
+            commitCommand.call();
 
-            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider("", gitToken);
+            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider("oauth2", tokenToUse);
             git.push()
                     .setCredentialsProvider(credentialsProvider)
                     .call();
@@ -66,5 +70,9 @@ public class GitService {
         } catch (Exception e) {
             throw new IllegalStateException("Error during commit and push: " + e.getMessage(), e);
         }
+    }
+
+    public void commitAndPush(File repositoryPath, String commitMessage) {
+        commitAndPush(repositoryPath, commitMessage, gitToken, null, null);
     }
 }

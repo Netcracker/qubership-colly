@@ -4,165 +4,148 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.colly.cloudpassport.GitInfo;
+import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.db.data.ParamsetContext;
+import org.qubership.colly.db.data.ParamsetLevel;
+import org.qubership.colly.dto.CommitInfoDto;
+import org.qubership.colly.dto.ParameterDto;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 
 @ApplicationScoped
 public class UpdateEnvironmentService {
+
     @Inject
     GitService gitService;
 
+    @Inject
+    ParamsetService paramsetService;
+
+    @Inject
+    YqService yqService;
+
+    public List<Paramset> updateParamset(Cluster cluster, Environment environment, ParamsetService.ParamsetTarget target,
+                                         String applicationName,
+                                         Map<ParamsetContext, List<ParameterDto>> parameters,
+                                         CommitInfoDto commitInfo) {
+
+        List<ParameterDto> pipelineParameters = parameters.get(ParamsetContext.PIPELINE);
+        if (target.level() == ParamsetLevel.APPLICATION
+                && pipelineParameters != null && !pipelineParameters.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Pipeline parameters cannot be set for Application level. Environment=" + environment.getName()
+                            + ", application=" + applicationName);
+        }
+
+        GitInfo gitInfo = cluster.getGitInfo();
+        Path gitRepoPath = Paths.get(gitInfo.folderName());
+        if (!Files.exists(gitRepoPath)) {
+            throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
+        }
+        Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
+
+        List<Paramset> updatedParamsets = new ArrayList<>(environment.getParamsets());
+
+        for (ParamsetContext context : ParamsetContext.values()) {
+            List<ParameterDto> parameterDtos = parameters.get(context);
+            if (parameterDtos == null) {
+                continue;
+            }
+
+            try {
+                if (parameterDtos.isEmpty()) {
+                    paramsetService.deleteParamsetFile(inventoryDir, target, applicationName, context);
+                    paramsetService.removeParamsetReferenceFromEnvDefinition(inventoryDir, context, target, applicationName);
+                } else {
+                    paramsetService.writeParamsetFile(inventoryDir, target, applicationName, context, parameterDtos);
+                    paramsetService.addParamsetReferenceToEnvDefinition(inventoryDir, context, target, applicationName);
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException("Error updating paramset " + context + "/" + target.level() + " for " + target.deployPostfix(), e);
+            }
+            updatedParamsets.removeIf(p -> p.paramsetContext() == context
+                    && p.level() == target.level()
+                    && Objects.equals(p.deployPostfix(), target.deployPostfix())
+                    && Objects.equals(p.applicationName(), applicationName));
+            if (!parameterDtos.isEmpty()) {
+                Map<String, String> newParams = new LinkedHashMap<>();
+                parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
+                updatedParamsets.add(new Paramset(context, target.level(), target.deployPostfix(), applicationName, newParams));
+            }
+        }
+
+        String commitMessage = commitInfo.commitMessage() != null
+                ? commitInfo.commitMessage()
+                : "Update UI parameters for " + environment.getName();
+        gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, null, commitInfo.username(), commitInfo.email());
+
+        return updatedParamsets;
+    }
 
     public Environment updateEnvironment(Cluster cluster, Environment environmentUpdate) {
         GitInfo gitInfo = cluster.getGitInfo();
-        Path gitRepoPathWithClusters = Paths.get(gitInfo.folderName());
-        if (!Files.exists(gitRepoPathWithClusters)) {
-            throw new IllegalArgumentException("Could not find git repo at " + gitRepoPathWithClusters);
+        Path gitRepoPath = Paths.get(gitInfo.folderName());
+        if (!Files.exists(gitRepoPath)) {
+            throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
         }
-        try (Stream<Path> paths = Files.walk(gitRepoPathWithClusters)) {
-            Optional<Path> envDefinitionPath = paths.filter(Files::isDirectory)
-                    .map(path -> path.resolve(environmentUpdate.getName()))
-                    .filter(Files::isDirectory)
-                    .map(path -> path.resolve("Inventory"))
-                    .map(path -> path.resolve("env_definition.yml"))
-                    .findFirst();
-            if (envDefinitionPath.isEmpty()) {
-                throw new IllegalArgumentException("Could not find env_definition.yml for " + environmentUpdate.getName() + " in cluster " + cluster.getName());
-            }
-            envDefinitionPath.ifPresent(path -> {
-                try {
-                    updateYamlFileWithYq(path, environmentUpdate);
-                    Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
-                } catch (IOException | InterruptedException e) {
-                    throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
-                }
-            });
-
+        Path inventoryDir = findInventoryDir(gitRepoPath, environmentUpdate.getName());
+        Path envDefinitionPath = inventoryDir.resolve("env_definition.yml");
+        try {
+            updateEnvDefinitionYamlFileWithYq(envDefinitionPath, environmentUpdate);
+            Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
         } catch (IOException e) {
-            Log.error("Error loading CloudPassports from " + gitRepoPathWithClusters, e);
+            throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
         }
-        gitService.commitAndPush(Paths.get(gitInfo.folderName()).toFile(), "Update environment " + environmentUpdate.getName());
+        gitService.commitAndPush(gitRepoPath.toFile(), "Update environment " + environmentUpdate.getName());
 
         return environmentUpdate;
     }
 
-    private void updateYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException, InterruptedException {
-        if (!isYqAvailable()) {
+    private Path findInventoryDir(Path gitRepoPath, String environmentName) {
+        try (Stream<Path> paths = Files.walk(gitRepoPath)) {
+            return paths.filter(Files::isDirectory)
+                    .map(path -> path.resolve(environmentName))
+                    .filter(Files::isDirectory)
+                    .map(path -> path.resolve("Inventory"))
+                    .filter(Files::isDirectory)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Could not find Inventory directory for environment " + environmentName));
+        } catch (IOException e) {
+            throw new IllegalStateException("Error searching for Inventory directory for environment " + environmentName, e);
+        }
+    }
+
+    private void updateEnvDefinitionYamlFileWithYq(Path yamlPath, Environment environmentUpdate) throws IOException {
+        if (!yqService.isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
         Log.info("Updating yaml file " + yamlPath);
-        deleteYamlField(yamlPath, ".inventory.description");
-        updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
+        yqService.deleteYamlField(yamlPath, ".inventory.description");
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
         Log.info("Updated metadata description to " + environmentUpdate.getDescription());
-        deleteYamlField(yamlPath, ".inventory.owners");
-        updateYamlArrayField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwners());
+        yqService.deleteYamlField(yamlPath, ".inventory.owners");
+        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwners());
         Log.info("Updated metadata owners to " + environmentUpdate.getOwners());
-        updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
+        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
         Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
-        updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
+        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
         Log.info("Updated metadata teams to " + environmentUpdate.getTeams());
-        updateYamlField(yamlPath, ".inventory.metadata.status", environmentUpdate.getStatus().name());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.status", environmentUpdate.getStatus().name());
         Log.info("Updated status to " + environmentUpdate.getStatus().name());
-        updateYamlField(yamlPath, ".inventory.metadata.expirationDate", environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.expirationDate",
+                environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
         Log.info("Updated expirationDate to " + environmentUpdate.getExpirationDate());
-        updateYamlField(yamlPath, ".inventory.metadata.type", environmentUpdate.getType().name());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.type", environmentUpdate.getType().name());
         Log.info("Updated type to " + environmentUpdate.getType().name());
-        updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
+        yqService.updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
         Log.info("Updated role to " + environmentUpdate.getRole());
-    }
-
-    private boolean isYqAvailable() {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("yq", "--version");
-            Process process = pb.start();
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-            return finished && process.exitValue() == 0;
-        } catch (IOException | InterruptedException e) {
-            Log.error("Error checking yq availability:", e);
-            return false;
-        }
-    }
-
-    private void deleteYamlField(Path yamlPath, String yamlFieldPath) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(
-                "yq",
-                "eval",
-                "del(" + yamlFieldPath + ")",
-                yamlPath.toString(),
-                "--inplace"
-        );
-        executeYqCommand(pb);
-    }
-
-    private void updateYamlField(Path yamlPath, String yamlFieldPath, String value) throws IOException, InterruptedException {
-        if (value == null || value.isEmpty()) {
-            deleteYamlField(yamlPath, yamlFieldPath);
-            return;
-        }
-        ProcessBuilder pb = new ProcessBuilder(
-                "yq",
-                "eval",
-                yamlFieldPath + " = " + "\"" + escapeForYq(value) + "\"",
-                yamlPath.toString(),
-                "--inplace"
-        );
-        executeYqCommand(pb);
-    }
-
-    private void updateYamlArrayField(Path yamlPath, String yamlFieldPath, List<String> values) throws IOException, InterruptedException {
-        if (values == null || values.isEmpty()) {
-            deleteYamlField(yamlPath, yamlFieldPath);
-            return;
-        }
-        String arrayValue = values.stream()
-                .map(value -> "\"" + escapeForYq(value) + "\"")
-                .collect(Collectors.joining(", ", "[", "]"));
-        ProcessBuilder pb = new ProcessBuilder(
-                "yq",
-                "eval",
-                yamlFieldPath + " = " + arrayValue,
-                yamlPath.toString(),
-                "--inplace"
-        );
-        executeYqCommand(pb);
-    }
-
-    private void executeYqCommand(ProcessBuilder processBuilder) throws IOException, InterruptedException {
-        Process process = processBuilder.start();
-        boolean finished = process.waitFor(30, TimeUnit.SECONDS);
-
-        if (!finished) {
-            process.destroyForcibly();
-            throw new IOException("yq command timed out");
-        }
-
-        if (process.exitValue() != 0) {
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader bufferedReader = process.errorReader()) {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-                throw new IOException("yq command failed with exit code " + process.exitValue() + ": " + output.toString().trim());
-            }
-        }
-    }
-
-    private String escapeForYq(String value) {
-        return value.replace("\"", "\\\"")
-                .replace("\\", "\\\\")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
     }
 }

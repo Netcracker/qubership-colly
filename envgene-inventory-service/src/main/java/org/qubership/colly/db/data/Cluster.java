@@ -5,9 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.qubership.colly.cloudpassport.GitInfo;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Getter
 @Setter
 @Builder
@@ -18,8 +15,6 @@ public class Cluster {
     private String cloudApiHost;
     private String cloudPublicHost;
     private String monitoringUrl;
-    @Builder.Default
-    private List<Environment> environments = new ArrayList<>();
     private String description;
     private GitInfo gitInfo;
     private String dashboardUrl;
@@ -27,8 +22,4 @@ public class Cluster {
     private String deployerUrl;
     private String argoUrl;
     private String achkaUrl;
-    public List<Environment> getEnvironments() {
-        return environments != null ? environments : new ArrayList<>();
-    }
-
 }

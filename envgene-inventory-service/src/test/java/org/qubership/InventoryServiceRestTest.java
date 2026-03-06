@@ -365,6 +365,28 @@ class InventoryServiceRestTest {
     }
 
     @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_empty_payload() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+        given()
+                .contentType("application/json")
+                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
+                .then()
+                .statusCode(500);
+    }
+
+    @Test
+    @TestSecurity(user = "admin", roles = "admin")
+    void update_environment_not_found_env() {
+        given()
+                .contentType("application/json")
+                .body("{\"owners\":[\"new-owner\"],\"description\":\"Updated description\",\"labels\":[\"test\",\"test2\"]}")
+                .when().patch("/colly/v2/inventory-service/environments/non_existend_env")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
     void update_environment_without_auth() {
         // Setup: sync to get some environments
         given()
@@ -782,6 +804,239 @@ class InventoryServiceRestTest {
                 .body("parameters.PIPELINE", empty());
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_environment_level() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_ENV_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_ENV_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
+                        "\"PIPELINE\":[{\"name\":\"NEW_ENV_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(204);
+
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "NEW_ENV_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value1"))))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "NEW_ENV_RUNTIME_PARAMETER"),
+                        hasEntry("value", "some value2"))))
+                .body("parameters.PIPELINE", contains(allOf(
+                        hasEntry("name", "NEW_ENV_PIPELINE_PARAMETER"),
+                        hasEntry("value", "some value3"))));
+
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_env_not_found() {
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_ENV_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_ENV_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
+                        "\"PIPELINE\":[{\"name\":\"NEW_ENV_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/non-existent-env/ui-parameters")
+                .then()
+                .statusCode(404);
+    }
+
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_empty_input() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+        given()
+                .contentType("application/json")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(500);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_null_parameters_field() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": null}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_env_without_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-1");
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_ENV_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_ENV_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
+                        "\"PIPELINE\":[{\"name\":\"NEW_ENV_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "NEW_ENV_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value1"))))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "NEW_ENV_RUNTIME_PARAMETER"),
+                        hasEntry("value", "some value2"))))
+                .body("parameters.PIPELINE", contains(allOf(
+                        hasEntry("name", "NEW_ENV_PIPELINE_PARAMETER"),
+                        hasEntry("value", "some value3"))));
+
+
+    }
+
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_namespace_level() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_NS_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_NS_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
+                        "\"PIPELINE\":[{\"name\":\"NEW_NS_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
+                .then()
+                .statusCode(204);
+
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "NEW_NS_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value1"))))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "NEW_NS_RUNTIME_PARAMETER"),
+                        hasEntry("value", "some value2"))))
+                .body("parameters.PIPELINE", contains(allOf(
+                        hasEntry("name", "NEW_NS_PIPELINE_PARAMETER"),
+                        hasEntry("value", "some value3"))));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_namespace_level_non_existent_namespace() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_NS_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_NS_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
+                        "\"PIPELINE\":[{\"name\":\"NEW_NS_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=non-existent-ns")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_application_level() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_NS_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_NS_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(204);
+
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", contains(allOf(
+                        hasEntry("name", "NEW_NS_DEPLOY_PARAMETER"),
+                        hasEntry("value", "some value1"))))
+                .body("parameters.RUNTIME", contains(allOf(
+                        hasEntry("name", "NEW_NS_RUNTIME_PARAMETER"),
+                        hasEntry("value", "some value2"))))
+                .body("parameters.PIPELINE", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_application_level_pipeline_context_is_not_allowed() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[{\"name\":\"NEW_NS_DEPLOY_PARAMETER\",\"value\":\"some value1\"}]," +
+                        "\"RUNTIME\":[{\"name\":\"NEW_NS_RUNTIME_PARAMETER\",\"value\":\"some value2\"}]," +
+                        "\"PIPELINE\":[{\"name\":\"NEW_NS_PIPELINE_PARAMETER\",\"value\":\"some value3\"}]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_application_level_empty_values() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":[]," +
+                        "\"RUNTIME\":[]" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT", empty())
+                .body("parameters.RUNTIME", empty());
+    }
+
+
     private @NotNull Environment prepareEnvironmentForTests(String envName) {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
@@ -794,3 +1049,4 @@ class InventoryServiceRestTest {
                 .orElseThrow();
     }
 }
+

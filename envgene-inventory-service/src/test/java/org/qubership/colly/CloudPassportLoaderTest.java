@@ -121,6 +121,9 @@ class CloudPassportLoaderTest {
     @Inject
     CloudPassportLoader loader;
 
+    @Inject
+    ParamsetService paramsetService;
+
     @BeforeEach
     void setUp() {
         doAnswer(invocation -> {

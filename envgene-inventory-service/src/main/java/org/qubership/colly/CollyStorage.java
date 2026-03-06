@@ -15,6 +15,7 @@ import org.qubership.colly.db.ProjectRepository;
 import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.ParameterDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
+import org.qubership.colly.dto.SetUiParametersDto;
 import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
@@ -30,18 +31,21 @@ public class CollyStorage {
     private final CloudPassportLoader cloudPassportLoader;
     private final UpdateEnvironmentService updateEnvironmentService;
     private final ProjectRepoLoader projectRepoLoader;
+    private final ParamsetService paramsetService;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
             EnvironmentRepository environmentRepository, ProjectRepository projectRepository,
-            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService, ProjectRepoLoader projectRepoLoader) {
+            CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService,
+            ProjectRepoLoader projectRepoLoader, ParamsetService paramsetService) {
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.projectRepository = projectRepository;
         this.cloudPassportLoader = cloudPassportLoader;
         this.updateEnvironmentService = updateEnvironmentService;
         this.projectRepoLoader = projectRepoLoader;
+        this.paramsetService = paramsetService;
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
@@ -80,7 +84,7 @@ public class CollyStorage {
         cluster.setDbaasUrl(cloudPassport.dbaasUrl());
         cluster.setDeployerUrl(cloudPassport.deployerUrl());
         cluster.setArgoUrl(cloudPassport.argoUrl());
-        cluster.setAchkaUrl(cluster.getAchkaUrl());
+        cluster.setAchkaUrl(cloudPassport.achkaUrl());
 
         // Persist cluster first to ensure it has an ID
         clusterRepository.persist(cluster);
@@ -88,9 +92,6 @@ public class CollyStorage {
         // Now save environments with cluster ID
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToCache(env, finalCluster));
-
-        // Persist cluster again after environments are added
-        clusterRepository.persist(finalCluster);
     }
 
     private void saveEnvironmentToCache(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
@@ -105,13 +106,8 @@ public class CollyStorage {
             Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
         }
 
-        // Always add/update environment in cluster for backward compatibility
-        // First remove if it exists, then add the updated one
-        final Environment finalEnvironment = environment;
-        cluster.getEnvironments().removeIf(env -> env.getName().equals(finalEnvironment.getName()));
-        cluster.getEnvironments().add(finalEnvironment);
-
         // Set cluster information
+        final Environment finalEnvironment = environment;
         if (cluster.getId() != null) {
             finalEnvironment.setClusterId(cluster.getId());
         }
@@ -155,7 +151,7 @@ public class CollyStorage {
         Log.info("Updating environment with id= " + environmentId);
         Environment existingEnv = environmentRepository.findById(environmentId);
         if (existingEnv == null) {
-            throw new IllegalArgumentException("Environment with id= " + environmentId + " not found ");
+            throw new NotFoundException("Environment with id= " + environmentId + " not found ");
         }
 
         // Apply partial updates to existing environment (only update provided fields)
@@ -181,12 +177,7 @@ public class CollyStorage {
         Cluster cluster = clusterRepository.findById(existingEnv.getClusterId());
         updateEnvironmentService.updateEnvironment(cluster, existingEnv);
 
-        // Update environment in cluster for backward compatibility
-        cluster.getEnvironments().removeIf(env -> env.getName().equals(existingEnv.getName()));
-        cluster.getEnvironments().add(existingEnv);
-
         // Persist changes
-        clusterRepository.persist(cluster);
         environmentRepository.persist(existingEnv);
 
         return existingEnv;
@@ -224,6 +215,7 @@ public class CollyStorage {
         return clusterRepository.findById(id);
     }
 
+
     public UiParametersDto getUiParameters(String environmentId, String namespaceName, String applicationName) {
         Environment environment = environmentRepository.findById(environmentId);
         if (environment == null) {
@@ -231,30 +223,13 @@ public class CollyStorage {
         }
 
         List<Paramset> paramsets = environment.getParamsets();
-        if (paramsets == null || paramsets.isEmpty()) {
+        if (paramsets.isEmpty()) {
             return emptyUiParameters();
         }
 
-        ParamsetLevel requestedLevel;
-        String deployPostfix = null;
-
-        if (applicationName != null && !applicationName.isEmpty()) {
-            requestedLevel = ParamsetLevel.APPLICATION;
-        } else if (namespaceName != null && !namespaceName.isEmpty()) {
-            requestedLevel = ParamsetLevel.NAMESPACE;
-        } else {
-            requestedLevel = ParamsetLevel.ENVIRONMENT;
-        }
-
-        if (requestedLevel != ParamsetLevel.ENVIRONMENT) {
-            Namespace namespace = environment.getNamespaces().stream()
-                    .filter(ns -> ns.getName().equals(namespaceName))
-                    .findFirst()
-                    .orElseThrow(() -> new NotFoundException("Namespace with name=" + namespaceName + " not found in environment " + environmentId));
-            deployPostfix = namespace.getDeployPostfix();
-        }
-
-        final String dp = deployPostfix;
+        ParamsetService.ParamsetTarget target = paramsetService.resolveParamsetTarget(environment, namespaceName, applicationName);
+        ParamsetLevel requestedLevel = target.level();
+        final String dp = target.deployPostfix();
         var filtered = paramsets.stream()
                 .filter(p -> p.level() == requestedLevel)
                 .filter(p -> requestedLevel == ParamsetLevel.ENVIRONMENT || dp.equals(p.deployPostfix()))
@@ -279,4 +254,19 @@ public class CollyStorage {
         }
         return new UiParametersDto(result);
     }
+
+    public void setUiParameters(String environmentId, String namespaceName, String applicationName, SetUiParametersDto setUiParametersDto) {
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        ParamsetService.ParamsetTarget target = paramsetService.resolveParamsetTarget(environment, namespaceName, applicationName);
+        Cluster cluster = clusterRepository.findById(environment.getClusterId());
+
+        List<Paramset> updatedParamsets = updateEnvironmentService.updateParamset(cluster, environment, target, applicationName, setUiParametersDto.parameters(), setUiParametersDto.commitInfo());
+        environment.setParamsets(updatedParamsets);
+        environmentRepository.persist(environment);
+    }
+
 }
