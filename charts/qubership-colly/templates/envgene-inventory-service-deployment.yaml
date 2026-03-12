@@ -53,13 +53,13 @@ spec:
             - name: QUARKUS_OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  key: idpClientId
-                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
+                  key: name
+                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-client-credentials
             - name: QUARKUS_OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  key: idpClientSecret
-                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
+                  key: password
+                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-client-credentials
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
           image: {{ .Values.colly.envgeneInventoryService.image }}
