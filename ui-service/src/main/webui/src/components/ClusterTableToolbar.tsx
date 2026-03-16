@@ -51,7 +51,7 @@ export default function ClusterTableToolbar({userInfo, isEditEnabled, onEditClic
                     />
                 </QuickFilter>
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
-                    {userInfo.authenticated && userInfo.isAdmin && (
+                    {userInfo.authenticated && (
                         <Tooltip title="Edit">
                             <ToolbarButton
                                 size="medium"

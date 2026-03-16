@@ -76,7 +76,7 @@ export default function EnvTableToolbar({
                 </QuickFilter>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {userInfo.authenticated && userInfo.isAdmin && (
+                    {userInfo.authenticated && (
                         <Tooltip title="Edit">
                             <ToolbarButton
                                 size="medium"
@@ -86,7 +86,7 @@ export default function EnvTableToolbar({
                             </ToolbarButton>
                         </Tooltip>
                     )}
-                    {userInfo.authenticated && userInfo.isAdmin && (
+                    {userInfo.authenticated && (
                         <Tooltip title="Delete">
                             <ToolbarButton
                                 size="medium"

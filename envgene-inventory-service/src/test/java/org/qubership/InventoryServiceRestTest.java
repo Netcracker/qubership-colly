@@ -336,7 +336,7 @@ class InventoryServiceRestTest {
 
 
     @Test
-    @TestSecurity(user = "admin", roles = "admin")
+    @TestSecurity(user = "test")
     void update_environment_with_auth() {
         Environment environment = prepareEnvironmentForTests("env-test");
         given()
@@ -365,7 +365,7 @@ class InventoryServiceRestTest {
     }
 
     @Test
-    @TestSecurity(user = "admin", roles = "admin")
+    @TestSecurity(user = "test")
     void update_environment_empty_payload() {
         Environment environment = prepareEnvironmentForTests("env-test");
         given()
@@ -376,7 +376,7 @@ class InventoryServiceRestTest {
     }
 
     @Test
-    @TestSecurity(user = "admin", roles = "admin")
+    @TestSecurity(user = "test")
     void update_environment_not_found_env() {
         given()
                 .contentType("application/json")
@@ -401,19 +401,6 @@ class InventoryServiceRestTest {
                 .when().patch("/colly/v2/inventory-service/environments/some-id")
                 .then()
                 .statusCode(401);
-    }
-
-    @Test
-    @TestSecurity(user = "test")
-    void update_environment_without_admin_role() {
-        Environment environment = prepareEnvironmentForTests("env-test");
-
-        given()
-                .contentType("application/json")
-                .body("{\"description\":\"Should not work\"}")
-                .when().patch("/colly/v2/inventory-service/environments/" + environment.getId())
-                .then()
-                .statusCode(403);
     }
 
     @Test
@@ -562,7 +549,7 @@ class InventoryServiceRestTest {
 
 
     @Test
-    @TestSecurity(user = "admin", roles = "admin")
+    @TestSecurity(user = "test")
     void update_environment_with_empty_fields() {
         // Setup: sync to get env-metadata-test which has expirationDate = "2025-12-31"
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
