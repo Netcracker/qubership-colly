@@ -2,7 +2,6 @@ package org.qubership.colly;
 
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.PermitAll;
-import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -480,7 +479,6 @@ public class InventoryServiceRest {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments/{environmentId}")
-    @RolesAllowed("admin")
     @Operation(
             summary = "Partially update an environment",
             description = "Updates specific fields of an existing environment. Only provided fields will be updated. Requires admin role."
@@ -529,16 +527,6 @@ public class InventoryServiceRest {
                     mediaType = MediaType.APPLICATION_JSON,
                     examples = @ExampleObject(
                             value = "{\"error\": \"Authentication required\"}"
-                    )
-            )
-    )
-    @APIResponse(
-            responseCode = "403",
-            description = "Forbidden - admin role required",
-            content = @Content(
-                    mediaType = MediaType.APPLICATION_JSON,
-                    examples = @ExampleObject(
-                            value = "{\"error\": \"Access denied. Admin role required.\"}"
                     )
             )
     )

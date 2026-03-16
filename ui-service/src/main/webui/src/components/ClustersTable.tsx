@@ -167,7 +167,7 @@ export default function ClustersTable({userInfo}: ClusterTableProps) {
                     }}
                 />
             </Box>
-            {selectedCluster && userInfo.authenticated && userInfo.isAdmin && (
+            {selectedCluster && userInfo.authenticated && (
                 <EditClusterDialog
                     cluster={selectedCluster}
                     show={showEditDialog}

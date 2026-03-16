@@ -1,12 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Box, Chip} from "@mui/material";
 import {DataGrid, GridColDef, useGridApiRef} from '@mui/x-data-grid';
-import {
-    Environment,
-    ENVIRONMENT_TYPES_MAPPING,
-    EnvironmentStatus,
-    STATUS_MAPPING
-} from "../entities/environments";
+import {Environment, ENVIRONMENT_TYPES_MAPPING, EnvironmentStatus, STATUS_MAPPING} from "../entities/environments";
 import {UserInfo} from "../entities/users";
 import dayjs from "dayjs";
 import ConfirmationDialog from "./ConfirmDialog";
@@ -325,7 +320,7 @@ export default function EnvTable({userInfo, monitoringColumns}: EnvTableProps) {
                 />
             </Box>
 
-            {selectedEnvironment && userInfo.authenticated && userInfo.isAdmin && (<EditEnvironmentDialog
+            {selectedEnvironment && userInfo.authenticated && (<EditEnvironmentDialog
                 show={showEditDialog}
                 environment={selectedEnvironment}
                 allLabels={allLabels}

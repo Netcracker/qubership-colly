@@ -109,22 +109,8 @@ class UIApiResourceTest {
                 .then()
                 .statusCode(200)
                 .body("authenticated", equalTo(true))
-                .body("username", equalTo("testuser"))
-                .body("isAdmin", equalTo(false));
+                .body("username", equalTo("testuser"));
     }
-
-    @Test
-    @TestSecurity(user = "admin", roles = "admin")
-    void getAuthStatus_with_admin() {
-        given()
-                .when().get("/colly/v2/ui-service/auth-status")
-                .then()
-                .statusCode(200)
-                .body("authenticated", equalTo(true))
-                .body("username", equalTo("admin"))
-                .body("isAdmin", equalTo(true));
-    }
-
 
     @Test
     @TestSecurity(user = "testuser")

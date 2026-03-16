@@ -54,7 +54,7 @@ public class UIApiResource {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("authenticated", true);
         userInfo.put("username", securityIdentity.getPrincipal().getName());
-        userInfo.put("isAdmin", securityIdentity.hasRole("admin"));
+
         return Response.ok(userInfo).build();
     }
 
