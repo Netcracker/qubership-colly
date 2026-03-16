@@ -9,6 +9,7 @@ colly:
     projectRepoUrl:
     gitToken: fff
     cronSchedule: 0 0/1 * * * ?
+    cloudCoreSupport: false
     idp:
       url:
       clientId: envgene-inventory-service

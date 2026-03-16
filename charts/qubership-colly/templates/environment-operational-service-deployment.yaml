@@ -48,13 +48,13 @@ spec:
             - name: QUARKUS_OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  key: idpClientId
-                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
+                  key: name
+                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-client-credentials
             - name: QUARKUS_OIDC_CREDENTIALS_SECRET
               valueFrom:
                 secretKeyRef:
-                  key: idpClientSecret
-                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-secret
+                  key: password
+                  name: {{ .Values.colly.environmentOperationalService.serviceName }}-client-credentials
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
             {{- range $key, $value := .Values.colly.environmentOperationalService.sdPatterns }}
