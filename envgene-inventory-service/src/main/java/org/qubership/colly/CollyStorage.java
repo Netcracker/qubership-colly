@@ -13,7 +13,6 @@ import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
 import org.qubership.colly.db.data.*;
-import org.qubership.colly.dto.ParameterDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
 import org.qubership.colly.dto.SetUiParametersDto;
 import org.qubership.colly.dto.UiParametersDto;
@@ -236,21 +235,20 @@ public class CollyStorage {
                 .filter(p -> requestedLevel != ParamsetLevel.APPLICATION || applicationName.equals(p.applicationName()))
                 .toList();
 
-        Map<ParamsetContext, List<ParameterDto>> grouped = new EnumMap<>(ParamsetContext.class);
+        Map<ParamsetContext, Map<String, Object>> grouped = new EnumMap<>(ParamsetContext.class);
         for (ParamsetContext ctx : ParamsetContext.values()) {
-            grouped.put(ctx, new ArrayList<>());
+            grouped.put(ctx, new LinkedHashMap<>());
         }
         for (Paramset filteredParamset : filtered) {
-            List<ParameterDto> list = grouped.get(filteredParamset.paramsetContext());
-            filteredParamset.parameters().forEach((name, value) -> list.add(new ParameterDto(name, value)));
+            grouped.get(filteredParamset.paramsetContext()).putAll(filteredParamset.parameters());
         }
         return new UiParametersDto(grouped);
     }
 
     private UiParametersDto emptyUiParameters() {
-        Map<ParamsetContext, List<ParameterDto>> result = new EnumMap<>(ParamsetContext.class);
+        Map<ParamsetContext, Map<String, Object>> result = new EnumMap<>(ParamsetContext.class);
         for (ParamsetContext ctx : ParamsetContext.values()) {
-            result.put(ctx, List.of());
+            result.put(ctx, Map.of());
         }
         return new UiParametersDto(result);
     }

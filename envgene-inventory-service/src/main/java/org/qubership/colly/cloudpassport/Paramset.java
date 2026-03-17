@@ -10,6 +10,6 @@ public record Paramset(
         ParamsetLevel level,
         String deployPostfix,
         String applicationName,
-        Map<String, String> parameters
+        Map<String, Object> parameters
 ) {
 }

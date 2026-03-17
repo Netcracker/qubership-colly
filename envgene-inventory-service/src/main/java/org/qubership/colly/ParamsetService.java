@@ -14,7 +14,6 @@ import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.data.ParamsetContext;
 import org.qubership.colly.db.data.ParamsetLevel;
-import org.qubership.colly.dto.ParameterDto;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -81,7 +80,7 @@ public class ParamsetService {
 
             ParamsetLevel level;
             String applicationName = null;
-            Map<String, String> parameters;
+            Map<String, Object> parameters;
 
             if (paramsetName.equals(suffix) && deployPostfix.equals(ENV_SPECIFIC_DEPLOY_POSTFIX)) {
                 level = ParamsetLevel.ENVIRONMENT;
@@ -107,28 +106,27 @@ public class ParamsetService {
         }
     }
 
-    private Map<String, String> extractApplicationParameters(ParamsetFileData fileData, String applicationName) {
+    private Map<String, Object> extractApplicationParameters(ParamsetFileData fileData, String applicationName) {
         if (fileData.applications() == null) {
             return Map.of();
         }
         return fileData.applications().stream()
                 .filter(app -> applicationName.equals(app.appName()))
                 .findFirst()
-                .map(app -> app.parameters() != null ? app.parameters() : Map.<String, String>of())
+                .map(app -> app.parameters() != null ? app.parameters() : Map.<String, Object>of())
                 .orElse(Map.of());
     }
 
     public void writeParamsetFile(Path inventoryDir, ParamsetTarget target,
                                   String applicationName, ParamsetContext context,
-                                  List<ParameterDto> parameters) throws IOException {
+                                  Map<String, Object> parameters) throws IOException {
         String fileName = calculateParamsetFileName(target.level(), target.deployPostfix(), applicationName, context);
         Path filePath = calculateParamsetFilePath(inventoryDir, target.level(), target.deployPostfix(), applicationName, context);
         Files.createDirectories(filePath.getParent());
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-        Map<String, String> newParams = new LinkedHashMap<>();
-        parameters.forEach(p -> newParams.put(p.name(), p.value()));
+        Map<String, Object> newParams = new LinkedHashMap<>(parameters);
 
         ParamsetFileData fileData;
         if (target.level() == ParamsetLevel.APPLICATION) {

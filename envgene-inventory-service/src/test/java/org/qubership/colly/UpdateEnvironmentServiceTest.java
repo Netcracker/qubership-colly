@@ -13,7 +13,6 @@ import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
 import org.qubership.colly.cloudpassport.envgen.ParamsetFileData;
 import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.CommitInfoDto;
-import org.qubership.colly.dto.ParameterDto;
 import org.qubership.colly.projectrepo.InstanceRepository;
 
 import java.io.IOException;
@@ -119,10 +118,10 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateParamset_shouldWriteNamespaceLevelParameters() throws IOException {
         // Given
-        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
-        params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("NEW_DEPLOY_PARAM", "new-deploy-value")));
-        params.put(ParamsetContext.RUNTIME, List.of(new ParameterDto("NEW_RUNTIME_PARAM", "new-runtime-value")));
-        params.put(ParamsetContext.PIPELINE, List.of());
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, Map.of("NEW_DEPLOY_PARAM", "new-deploy-value"));
+        params.put(ParamsetContext.RUNTIME, Map.of("NEW_RUNTIME_PARAM", "new-runtime-value"));
+        params.put(ParamsetContext.PIPELINE, Map.of());
         CommitInfoDto commitInfo = new CommitInfoDto("my commit message", "user", "user@test.com");
 
         // When
@@ -151,10 +150,10 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateParamset_shouldWriteEnvironmentLevelParameters() throws IOException {
         // Given
-        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
-        params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("ENV_DEPLOY_PARAM", "updated-env-value")));
-        params.put(ParamsetContext.RUNTIME, List.of());
-        params.put(ParamsetContext.PIPELINE, List.of());
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, Map.of("ENV_DEPLOY_PARAM", "updated-env-value"));
+        params.put(ParamsetContext.RUNTIME, Map.of());
+        params.put(ParamsetContext.PIPELINE, Map.of());
 
         // When — commitInfo is null, so default message should be used
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
@@ -177,10 +176,10 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateParamset_shouldWriteApplicationLevelParameters() throws IOException {
         // Given
-        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
-        params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("MY_APP_PARAM", "new-app-value")));
-        params.put(ParamsetContext.RUNTIME, List.of(new ParameterDto("MY_APP_RUNTIME_PARAM", "new-runtime-value")));
-        params.put(ParamsetContext.PIPELINE, List.of());
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, Map.of("MY_APP_PARAM", "new-app-value"));
+        params.put(ParamsetContext.RUNTIME, Map.of("MY_APP_RUNTIME_PARAM", "new-runtime-value"));
+        params.put(ParamsetContext.PIPELINE, Map.of());
         CommitInfoDto commitInfo = new CommitInfoDto("update my-app params", "user", "user@test.com");
 
         // When
@@ -214,12 +213,41 @@ class UpdateEnvironmentServiceTest {
     }
 
     @Test
+    void updateParamset_shouldWriteNestedParameters() throws IOException {
+        // Given
+        Map<String, Object> nestedValue = Map.of("SECOND_LEVEL_KEY", "nested-value");
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, Map.of(
+                "FLAT_PARAM", "flat-value",
+                "NESTED_PARAM", nestedValue));
+        params.put(ParamsetContext.RUNTIME, Map.of());
+        params.put(ParamsetContext.PIPELINE, Map.of());
+
+        // When
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, COMMIT_INFO);
+
+        // Then — read back and verify nested structure preserved
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
+        ParamsetFileData deployFile = mapper.readValue(
+                inventoryDir.resolve("parameters/core-deploy-ui-override.yaml").toFile(),
+                ParamsetFileData.class);
+
+        assertThat(deployFile.parameters().get("FLAT_PARAM"), equalTo("flat-value"));
+        assertThat(deployFile.parameters().get("NESTED_PARAM"), instanceOf(Map.class));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> readBack = (Map<String, Object>) deployFile.parameters().get("NESTED_PARAM");
+        assertThat(readBack.get("SECOND_LEVEL_KEY"), equalTo("nested-value"));
+    }
+
+    @Test
     void updateParamset_shouldAddReferencesToEnvDefinition() throws IOException {
         // Given — env-test has no 'core' deployPostfix in envTemplate
-        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
-        params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("CORE_DEPLOY_PARAM", "value")));
-        params.put(ParamsetContext.RUNTIME, List.of(new ParameterDto("CORE_RUNTIME_PARAM", "value")));
-        params.put(ParamsetContext.PIPELINE, List.of());
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, Map.of("CORE_DEPLOY_PARAM", "value"));
+        params.put(ParamsetContext.RUNTIME, Map.of("CORE_RUNTIME_PARAM", "value"));
+        params.put(ParamsetContext.PIPELINE, Map.of());
 
         // When
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
@@ -244,10 +272,10 @@ class UpdateEnvironmentServiceTest {
     @Test
     void updateParamset_shouldNotDuplicateReferenceOnRepeatCall() throws IOException {
         // Given
-        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
-        params.put(ParamsetContext.DEPLOYMENT, List.of(new ParameterDto("CORE_DEPLOY_PARAM", "value")));
-        params.put(ParamsetContext.RUNTIME, List.of());
-        params.put(ParamsetContext.PIPELINE, List.of());
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, Map.of("CORE_DEPLOY_PARAM", "value"));
+        params.put(ParamsetContext.RUNTIME, Map.of());
+        params.put(ParamsetContext.PIPELINE, Map.of());
 
         // When — call twice with same params
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
@@ -282,10 +310,10 @@ class UpdateEnvironmentServiceTest {
                       - runtime-ui-override
                 """);
 
-        Map<ParamsetContext, List<ParameterDto>> params = new EnumMap<>(ParamsetContext.class);
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
         params.put(ParamsetContext.DEPLOYMENT, null);
         params.put(ParamsetContext.RUNTIME, null);
-        params.put(ParamsetContext.PIPELINE, List.of(new ParameterDto("PIPELINE_PARAM", "value")));
+        params.put(ParamsetContext.PIPELINE, Map.of("PIPELINE_PARAM", "value"));
 
         // When
         updateEnvironmentService.updateParamset(testCluster, testEnvironment,
