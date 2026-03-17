@@ -96,7 +96,8 @@ public class DtoMapper {
                 toDto(project.envgeneTemplateRepository()),
                 project.accessGroups(),
                 toDto(project.clusterDefaults()),
-                project.mavenRepoName());
+                project.mavenRepoName(),
+                project.gitGroupUrl());
     }
 
     private ClusterDefaultsDto toDto(ClusterDefaults clusterDefaults) {

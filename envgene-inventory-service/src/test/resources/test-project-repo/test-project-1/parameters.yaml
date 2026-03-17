@@ -4,6 +4,7 @@ type: product
 clusterPlatform: ocp
 accessGroups: [ "group1", "group2" ]
 mavenRepoName: test.repo
+gitGroupUrl: https://gitlab.com/test-group
 repositories:
   - type: envgeneInstance
     url: https://gitlab.com/test/repo1.git

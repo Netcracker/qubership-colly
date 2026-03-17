@@ -77,5 +77,11 @@ public record ProjectDto(
                 examples = "dev.global.mvn.group",
                 nullable = true
         )
-        String mavenRepoName) {
+        String mavenRepoName,
+        @Schema(
+                description = "URL of the git group for the project",
+                examples = "https://gitlab.com/my-project-git-group",
+                nullable = true
+        )
+        String gitGroupUrl) {
 }
