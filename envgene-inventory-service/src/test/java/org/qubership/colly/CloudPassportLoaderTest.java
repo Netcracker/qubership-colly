@@ -70,7 +70,7 @@ class CloudPassportLoaderTest {
                             List.of("group1", "group2"),
                             List.of("group1", "group2", "group3"),
                             List.of(
-                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_DEPLOY_PARAMETER", "some value")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.<String, Object>of("CORE_DEPLOY_PARAMETER", "some value", "CORE_DEPLOY_PARAMETER_2", Map.of("SECOND_LEVEL_KEY", "some value"))),
                                     new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("MY_APP_DEPLOY_PARAMETER", "foo")),
                                     new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_DEPLOY_PARAMETER", "some value")),
                                     new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_RUNTIME_PARAMETER", "some value3")),

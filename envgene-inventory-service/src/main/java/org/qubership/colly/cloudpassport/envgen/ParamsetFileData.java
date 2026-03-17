@@ -8,13 +8,13 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ParamsetFileData(
         String name,
-        Map<String, String> parameters,
+        Map<String, Object> parameters,
         List<ParamsetApplicationData> applications
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ParamsetApplicationData(
             String appName,
-            Map<String, String> parameters
+            Map<String, Object> parameters
     ) {
     }
 }

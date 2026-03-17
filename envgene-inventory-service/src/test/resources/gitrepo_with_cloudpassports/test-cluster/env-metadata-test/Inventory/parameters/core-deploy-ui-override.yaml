@@ -1,4 +1,6 @@
 name: core-deploy-ui-override
 parameters:
   CORE_DEPLOY_PARAMETER: "some value"
+  CORE_DEPLOY_PARAMETER_2:
+    SECOND_LEVEL_KEY: "some value"
 applications: [ ]

@@ -10,7 +10,6 @@ import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.ParamsetContext;
 import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.dto.CommitInfoDto;
-import org.qubership.colly.dto.ParameterDto;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,10 +32,10 @@ public class UpdateEnvironmentService {
 
     public List<Paramset> updateParamset(Cluster cluster, Environment environment, ParamsetService.ParamsetTarget target,
                                          String applicationName,
-                                         Map<ParamsetContext, List<ParameterDto>> parameters,
+                                         Map<ParamsetContext, Map<String, Object>> parameters,
                                          CommitInfoDto commitInfo) {
 
-        List<ParameterDto> pipelineParameters = parameters.get(ParamsetContext.PIPELINE);
+        Map<String, Object> pipelineParameters = parameters.get(ParamsetContext.PIPELINE);
         if (target.level() == ParamsetLevel.APPLICATION
                 && pipelineParameters != null && !pipelineParameters.isEmpty()) {
             throw new IllegalArgumentException(
@@ -54,17 +53,17 @@ public class UpdateEnvironmentService {
         List<Paramset> updatedParamsets = new ArrayList<>(environment.getParamsets());
 
         for (ParamsetContext context : ParamsetContext.values()) {
-            List<ParameterDto> parameterDtos = parameters.get(context);
-            if (parameterDtos == null) {
+            Map<String, Object> contextParams = parameters.get(context);
+            if (contextParams == null) {
                 continue;
             }
 
             try {
-                if (parameterDtos.isEmpty()) {
+                if (contextParams.isEmpty()) {
                     paramsetService.deleteParamsetFile(inventoryDir, target, applicationName, context);
                     paramsetService.removeParamsetReferenceFromEnvDefinition(inventoryDir, context, target, applicationName);
                 } else {
-                    paramsetService.writeParamsetFile(inventoryDir, target, applicationName, context, parameterDtos);
+                    paramsetService.writeParamsetFile(inventoryDir, target, applicationName, context, contextParams);
                     paramsetService.addParamsetReferenceToEnvDefinition(inventoryDir, context, target, applicationName);
                 }
             } catch (IOException e) {
@@ -74,10 +73,8 @@ public class UpdateEnvironmentService {
                     && p.level() == target.level()
                     && Objects.equals(p.deployPostfix(), target.deployPostfix())
                     && Objects.equals(p.applicationName(), applicationName));
-            if (!parameterDtos.isEmpty()) {
-                Map<String, String> newParams = new LinkedHashMap<>();
-                parameterDtos.forEach(p -> newParams.put(p.name(), p.value()));
-                updatedParamsets.add(new Paramset(context, target.level(), target.deployPostfix(), applicationName, newParams));
+            if (!contextParams.isEmpty()) {
+                updatedParamsets.add(new Paramset(context, target.level(), target.deployPostfix(), applicationName, new LinkedHashMap<>(contextParams)));
             }
         }
 
