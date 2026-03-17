@@ -135,7 +135,7 @@ class UpdateEnvironmentServiceTest {
         ParamsetFileData deployFile = mapper.readValue(
                 inventoryDir.resolve("parameters/core-deploy-ui-override.yaml").toFile(),
                 ParamsetFileData.class);
-        ParamsetFileData expectedDeploymentParamset = new ParamsetFileData("core-deploy-ui-override", Map.<String, Object>of("NEW_DEPLOY_PARAM", "new-deploy-value"), List.of());
+        ParamsetFileData expectedDeploymentParamset = new ParamsetFileData("core-deploy-ui-override", Map.of("NEW_DEPLOY_PARAM", "new-deploy-value"), List.of());
         assertThat(deployFile, equalTo(expectedDeploymentParamset));
 
         ParamsetFileData runtimeFile = mapper.readValue(
