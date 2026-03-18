@@ -16,12 +16,6 @@ public record InstanceRepositoryDto(
                 nullable = true
         )
         String branch,
-        @Schema(
-                description = "Access token for repository authentication",
-                examples = "ghp_1234567890abcdef",
-                nullable = true
-        )
-        String token,
 
         @Schema(
                 description = "Geographic region or datacenter location",

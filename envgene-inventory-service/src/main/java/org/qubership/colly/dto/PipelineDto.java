@@ -7,7 +7,7 @@ import org.qubership.colly.projectrepo.PipelineType;
 public record PipelineDto(
         @Schema(
                 description = "Type of the pipeline",
-                enumeration = {"CLUSTER_PROVISION", "ENV_PROVISION", "SOLUTION_DEPLOY"},
+                enumeration = {"CLUSTER_PROVISION", "ENV_PROVISION", "SOLUTION_DEPLOY", "DCL"},
                 required = true
         )
         PipelineType type,
@@ -24,13 +24,6 @@ public record PipelineDto(
                 nullable = true
         )
         String branch,
-
-        @Schema(
-                description = "Access token for pipeline authentication",
-                examples = "glpat-1234567890abcdef",
-                nullable = true
-        )
-        String token,
 
         @Schema(
                 description = "Geographic region or datacenter location",
