@@ -354,4 +354,32 @@ class ProjectRepoLoaderTest {
         assertThat(projects.getFirst().clusterDefaults(), nullValue());
     }
 
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void test_parse_yaml_with_dcl_pipeline_type(@TempDir Path tempDir) throws IOException {
+        String yamlContent = """
+                name: Test Project
+                customerName: Test Customer
+                type: product
+                clusterPlatform: ocp
+                repositories:
+                  - type: dcl
+                    url: https://gitlab.com/test/dcl-pipeline.git
+                    branch: main
+                    token: dcl-token
+                """;
+
+        Path projectDir = tempDir.resolve("test-project");
+        Files.createDirectories(projectDir);
+        Path parametersFile = projectDir.resolve("parameters.yaml");
+        Files.writeString(parametersFile, yamlContent);
+
+        Project project = loader.processProject(parametersFile, projectDir, null);
+
+        assertNotNull(project);
+        assertThat(project.pipelines(),
+                contains(new Pipeline(PipelineType.DCL, "https://gitlab.com/test/dcl-pipeline.git", "main", "dcl-token", null)));
+    }
+
 }
