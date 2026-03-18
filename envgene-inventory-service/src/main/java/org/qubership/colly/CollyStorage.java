@@ -88,9 +88,19 @@ public class CollyStorage {
         // Persist cluster first to ensure it has an ID
         clusterRepository.persist(cluster);
 
-        // Now save environments with cluster ID
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToCache(env, finalCluster));
+
+        // Delete environments that were removed from Git
+        Set<String> currentEnvNames = cloudPassport.environments().stream()
+                .map(CloudPassportEnvironment::name)
+                .collect(java.util.stream.Collectors.toSet());
+        environmentRepository.findByClusterId(finalCluster.getId()).stream()
+                .filter(env -> !currentEnvNames.contains(env.getName()))
+                .forEach(env -> {
+                    Log.infof("Environment %s no longer exists in cluster %s - removing from cache", env.getName(), finalCluster.getName());
+                    environmentRepository.deleteById(env.getId());
+                });
     }
 
     private void saveEnvironmentToCache(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
@@ -102,7 +112,7 @@ public class CollyStorage {
 
         if (environment == null) {
             environment = new Environment(UUID.randomUUID().toString(), cloudPassportEnvironment.name());
-            Log.info("Environment " + environment.getName() + " has been created in cache for cluster " + cluster.getName());
+            Log.infof("Environment %s has been created in cache for cluster %s", environment.getName(), cluster.getName());
         }
 
         // Set cluster information
@@ -126,7 +136,7 @@ public class CollyStorage {
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
 
-        Log.info("Environment " + finalEnvironment.getName() + " has been loaded from CloudPassport");
+        Log.infof("Environment %s has been loaded from CloudPassport", finalEnvironment.getName());
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));
 
         // Persist environment separately for fast access
@@ -141,7 +151,7 @@ public class CollyStorage {
             namespaceInCache.setUid(UUID.randomUUID().toString());
             namespaceInCache.setDeployPostfix(cloudPassportNamespace.deployPostfix());
             environment.addNamespace(namespaceInCache);
-            Log.info("Namespace " + namespaceInCache.getName() + " has been created in cache for environment " + environment.getName());
+            Log.infof("Namespace %s has been created in cache for environment %s", namespaceInCache.getName(), environment.getName());
         }
     }
 

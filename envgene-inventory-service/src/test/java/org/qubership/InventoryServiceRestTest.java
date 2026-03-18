@@ -973,6 +973,43 @@ class InventoryServiceRestTest {
     }
 
 
+    @Test
+    @TestSecurity(user = "test")
+    void sync_removes_deleted_environments_from_cache() {
+        // First sync: test-cluster has env-test and env-metadata-test
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", hasItems("env-test", "env-metadata-test"));
+
+        // mock: clone as usual, but remove env-metadata-test from the destination
+        doAnswer(invocation -> {
+            File dest = invocation.getArgument(3);
+            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+            FileUtils.deleteDirectory(new File(dest, "test-cluster/env-metadata-test"));
+            return null;
+        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+
+        // Second sync: env-metadata-test should be removed from cache
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("env-test"))
+                .body("name", not(hasItem("env-metadata-test")));
+    }
+
     private @NotNull Environment prepareEnvironmentForTests(String envName) {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
