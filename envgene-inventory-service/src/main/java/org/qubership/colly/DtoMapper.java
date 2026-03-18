@@ -111,7 +111,6 @@ public class DtoMapper {
         return new InstanceRepositoryDto(
                 instanceRepository.url(),
                 instanceRepository.branch(),
-                instanceRepository.token(),
                 instanceRepository.region()
         );
     }
@@ -122,7 +121,6 @@ public class DtoMapper {
         }
         return new TemplateRepositoryDto(
                 envgeneTemplateRepository.url(),
-                envgeneTemplateRepository.token(),
                 envgeneTemplateRepository.branch(),
                 envgeneTemplateRepository.envgeneArtifact()
         );
@@ -133,7 +131,6 @@ public class DtoMapper {
                 pipeline.type(),
                 pipeline.url(),
                 pipeline.branch(),
-                pipeline.token(),
                 pipeline.region()
         );
     }

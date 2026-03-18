@@ -13,13 +13,6 @@ public record TemplateRepositoryDto(
         String url,
 
         @Schema(
-                description = "Access token for repository authentication",
-                examples = "ghp_1234567890abcdef",
-                nullable = true
-        )
-        String token,
-
-        @Schema(
                 description = "Git branch to use",
                 examples = "main",
                 nullable = true

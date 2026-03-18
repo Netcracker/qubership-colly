@@ -158,7 +158,6 @@ public class ProjectRepoLoader {
                 .findFirst()
                 .map(repoEntity -> new EnvgeneTemplateRepository(
                         repoEntity.url(),
-                        repoEntity.token(),
                         repoEntity.branch(),
                         repoEntity.envgeneArtifact()))
                 .orElse(null);
@@ -170,7 +169,6 @@ public class ProjectRepoLoader {
                         PipelineType.fromString(repoEntity.type()),
                         repoEntity.url(),
                         repoEntity.branch(),
-                        repoEntity.token(),
                         repoEntity.region()))
                 .filter(pipeline -> pipeline.type() != null) // фильтруем невалидные типы
                 .toList();

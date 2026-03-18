@@ -504,12 +504,10 @@ class InventoryServiceRestTest {
                 .body("instanceRepositories", hasItem(
                         allOf(
                                 hasEntry("url", "gitrepo_with_cloudpassports"),
-                                hasEntry("branch", "main"),
-                                hasEntry("token", "earth-envgene-token-789")
+                                hasEntry("branch", "main")
                         )
                 ))
                 .body("templateRepository.url", equalTo("https://gitlab.com/test/templateRepo.git"))
-                .body("templateRepository.token", equalTo("test-token"))
                 .body("templateRepository.branch", equalTo("main"))
                 .body("templateRepository.envgeneArtifact.name", equalTo("my-app:feature-new-ui-123456"))
                 .body("templateRepository.envgeneArtifact.defaultTemplateDescriptorName", equalTo("dev"))
@@ -521,16 +519,13 @@ class InventoryServiceRestTest {
                                 hasEntry("type", "CLUSTER_PROVISION"),
                                 hasEntry("url", "https://github.com/example/cluster-provision-earth"),
                                 hasEntry("region", "eu-west-1"),
-                                hasEntry("branch", "test"),
-                                hasEntry("token", "earth-cluster-token-123")
-
+                                hasEntry("branch", "test")
                         ),
                         allOf(
                                 hasEntry("type", "ENV_PROVISION"),
                                 hasEntry("url", "https://github.com/example/env-provision-earth"),
                                 hasEntry("region", "us-east-1"),
-                                hasEntry("branch", null),
-                                hasEntry("token", "earth-env-token-456")
+                                hasEntry("branch", null)
                         )
                 ));
     }

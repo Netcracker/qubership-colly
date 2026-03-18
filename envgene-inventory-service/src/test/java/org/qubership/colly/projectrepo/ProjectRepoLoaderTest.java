@@ -43,10 +43,10 @@ class ProjectRepoLoaderTest {
                     new InstanceRepository("https://gitlab.com/test/repo2.git", null, "test-token-2", "mb")
             ),
             List.of(
-                    new Pipeline(PipelineType.CLUSTER_PROVISION, "https://gitlab.com/test/pipeline-repo3.git", "test", "test-token-3", null)
+                    new Pipeline(PipelineType.CLUSTER_PROVISION, "https://gitlab.com/test/pipeline-repo3.git", "test", null)
             ),
             ClusterPlatform.OCP,
-            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "test-token", "main",
+            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
             List.of("group1", "group2"), CLUSTER_DEFAULTS, "test.repo", "https://gitlab.com/test-group");
     public static final Project TEST_PROJECT_2 = new Project(
@@ -59,7 +59,7 @@ class ProjectRepoLoaderTest {
             ),
             List.of(),
             ClusterPlatform.K8S,
-            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "test-token", "main",
+            new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-0987654", "ci")),
             List.of(), CLUSTER_DEFAULTS, null, null);
     @InjectMock
@@ -379,7 +379,7 @@ class ProjectRepoLoaderTest {
 
         assertNotNull(project);
         assertThat(project.pipelines(),
-                contains(new Pipeline(PipelineType.DCL, "https://gitlab.com/test/dcl-pipeline.git", "main", "dcl-token", null)));
+                contains(new Pipeline(PipelineType.DCL, "https://gitlab.com/test/dcl-pipeline.git", "main", null)));
     }
 
 }
