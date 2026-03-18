@@ -88,9 +88,19 @@ public class CollyStorage {
         // Persist cluster first to ensure it has an ID
         clusterRepository.persist(cluster);
 
-        // Now save environments with cluster ID
         Cluster finalCluster = cluster;
         cloudPassport.environments().forEach(env -> saveEnvironmentToCache(env, finalCluster));
+
+        // Delete environments that were removed from Git
+        Set<String> currentEnvNames = cloudPassport.environments().stream()
+                .map(CloudPassportEnvironment::name)
+                .collect(java.util.stream.Collectors.toSet());
+        environmentRepository.findByClusterId(finalCluster.getId()).stream()
+                .filter(env -> !currentEnvNames.contains(env.getName()))
+                .forEach(env -> {
+                    Log.info("Environment " + env.getName() + " no longer exists in cluster " + finalCluster.getName() + " - removing from cache");
+                    environmentRepository.deleteById(env.getId());
+                });
     }
 
     private void saveEnvironmentToCache(CloudPassportEnvironment cloudPassportEnvironment, Cluster cluster) {
