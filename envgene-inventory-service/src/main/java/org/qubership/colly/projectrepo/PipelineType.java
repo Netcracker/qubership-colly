@@ -1,20 +1,20 @@
 package org.qubership.colly.projectrepo;
 
+import lombok.Getter;
+
 import java.util.Arrays;
 
+@Getter
 public enum PipelineType {
     CLUSTER_PROVISION("clusterProvision"),
     ENV_PROVISION("envProvision"),
-    SOLUTION_DEPLOY("solutionDeploy");
+    SOLUTION_DEPLOY("solutionDeploy"),
+    DCL("dcl");
 
     private final String value;
 
     PipelineType(String value) {
         this.value = value;
-    }
-
-    public String getValue() {
-        return value;
     }
 
     public static PipelineType fromString(String value) {

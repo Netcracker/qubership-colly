@@ -113,7 +113,8 @@ public class ProjectRepoLoader {
                         String type = repositoryEntity.type();
                         return "clusterProvision".equals(type)
                                 || "envProvision".equals(type)
-                                || "solutionDeploy".equals(type);
+                                || "solutionDeploy".equals(type)
+                                || "dcl".equals(type);
                     })
                     .toList();
 
