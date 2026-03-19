@@ -8,71 +8,81 @@ The Qubership Colly Helm chart provides a complete deployment solution for Kuber
 
 ### Global Configuration
 
-| Parameter | Description | Default        | Required |
-|-----------|-------------|----------------|----------|
-| `NAMESPACE` | Kubernetes namespace for deployment | `my-namespace` | Yes |
-| `CLOUD_PUBLIC_HOST` | Public host for ingress configuration | `my.host.com`  | No |
+| Parameter           | Description                           | Default           |
+|---------------------|---------------------------------------|-------------------|
+| `NAMESPACE`         | Kubernetes namespace for deployment   | `qubership-colly` |
+| `CLOUD_PUBLIC_HOST` | Public host for ingress configuration | -                 |
 
-### Application Configuration (`colly`)
+### Envgene Inventory Service (`colly.envgeneInventoryService`)
 
-| Parameter | Description | Default | Required |
-|-----------|-------------|---------|----------|
-| `colly.image` | Container image | `ghcr.io/netcracker/qubership-colly:latest` | Yes |
-| `colly.serviceName` | Service name | `qubership-colly` | Yes |
-| `colly.instancesRepo` | Git repository for Cloud Passports | `https://github.com/my-org/cloud-passport-samples.git` | Yes |
-| `colly.cronSchedule` | Synchronization schedule | `0 0/1 * * * ?` | Yes |
+| Parameter                  | Description                                     | Default                                               |
+|----------------------------|-------------------------------------------------|-------------------------------------------------------|
+| `image`                    | Container image                                 | `ghcr.io/netcracker/envgene-inventory-service:latest` |
+| `serviceName`              | Service name                                    | `envgene-inventory-service`                           |
+| `projectRepoUrl`           | Git URL of the project configuration repository | -                                                     |
+| `gitToken`                 | Git token for accessing the project repository  | -                                                     |
+| `cronSchedule`             | Synchronization schedule (cron)                 | `0 0/2 * * * ?`                                       |
+| `cloudCoreSupport`         | Enable Cloud Core integration                   | `false`                                               |
+| `idp.url`                  | OIDC auth server URL                            | -                                                     |
+| `idp.clientId`             | OIDC client ID                                  | `envgene-inventory-service`                           |
+| `idp.clientSecret`         | OIDC client secret                              | -                                                     |
+| `redis.hosts`              | Redis connection URL                            | `redis://redis-master.redis:6379`                     |
+| `redis.username`           | Redis username                                  | -                                                     |
+| `redis.password`           | Redis password                                  | -                                                     |
+| `ports.http`               | HTTP port                                       | `8080`                                                |
+| `ingress.className`        | Ingress class name                              | `alb`                                                 |
+| `ingress.http.annotations` | Ingress annotations map                         | ALB internet-facing annotations                       |
 
-### Identity Provider Configuration (`colly.idp`)
+### Environment Operational Service (`colly.environmentOperationalService`)
 
-| Parameter | Description | Default | Required |
-|-----------|-------------|---------|----------|
-| `colly.idp.url` | OIDC auth server URL | `http://keycloak.../realms/colly-realm` | Yes |
-| `colly.idp.clientId` | OIDC client ID | `colly` | Yes |
-| `colly.idp.clientSecret` | OIDC client secret | `""` | Yes |
+| Parameter          | Description                             | Default                                                     |
+|--------------------|-----------------------------------------|-------------------------------------------------------------|
+| `image`            | Container image                         | `ghcr.io/netcracker/environment-operational-service:latest` |
+| `serviceName`      | Service name                            | `environment-operational-service`                           |
+| `cronSchedule`     | Cluster synchronization schedule (cron) | `0 0/1 * * * ?`                                             |
+| `cloudCoreSupport` | Enable Cloud Core integration           | `false`                                                     |
+| `idp.url`          | OIDC auth server URL                    | -                                                           |
+| `idp.clientId`     | OIDC client ID                          | `environment-operational-service`                           |
+| `idp.clientSecret` | OIDC client secret                      | -                                                           |
+| `redis.hosts`      | Redis connection URL                    | `redis://redis-master.redis:6379`                           |
+| `redis.username`   | Redis username                          | -                                                           |
+| `redis.password`   | Redis password                          | -                                                           |
+| `sdPatterns`       | Map of SD classification regex patterns | `product: (?i)product`, `project: (?i)project`              |
+| `monitoring`       | List of monitoring metric definitions   | Running Pods, Failed Deployments                            |
+| `ports.http`       | HTTP port                               | `8080`                                                      |
 
-### Database Configuration (`colly.db`)
+### UI Service (`colly.uiService`)
 
-| Parameter | Description | Default | Required |
-|-----------|-------------|------|----------|
-| `colly.db.host` | PostgreSQL JDBC URL | `jdbc:postgresql://postgres.../postgres` | Yes |
-| `colly.db.username` | Database username | `no` | Yes |
-| `colly.db.password` | Database password | `no` | Yes |
-
-
-### Ingress Configuration (`colly.ingress`)
-
-| Parameter | Description | Default | Required |
-|-----------|-------------|---------|----------|
-| `colly.ports.http` | HTTP port | `8080` | Yes |
-| `colly.ingress.className` | Ingress class | `alb` | No |
-| `colly.ingress.http.annotations` | Ingress annotations | See below | No |
-
-#### Default Ingress Annotations
-```yaml
-colly.ingress.http.annotations:
-  alb.ingress.kubernetes.io/scheme: internet-facing
-  alb.ingress.kubernetes.io/target-type: ip
-```
+| Parameter                  | Description             | Default                                |
+|----------------------------|-------------------------|----------------------------------------|
+| `image`                    | Container image         | `ghcr.io/netcracker/ui-service:latest` |
+| `serviceName`              | Service name            | `ui-service`                           |
+| `uiEnabled`                | Enable UI               | `true`                                 |
+| `idp.url`                  | OIDC auth server URL    | -                                      |
+| `idp.clientId`             | OIDC client ID          | `colly`                                |
+| `ports.http`               | HTTP port               | `3000`                                 |
+| `ingress.className`        | Ingress class name      | `alb`                                  |
+| `ingress.http.annotations` | Ingress annotations map | ALB internet-facing annotations        |
 
 ## Installation Examples
 
 ### Basic Installation
 ```bash
-helm install qubership-colly netcracker/qubership-colly -n my-namespace
+helm install qubership-colly ./charts/qubership-colly -n my-namespace
 ```
 
 ### Production Installation
 ```bash
-helm install qubership-colly netcracker/qubership-colly \
-  --set colly.image=ghcr.io/netcracker/qubership-colly:v1.0.0 \
-  --set colly.db.host=jdbc:postgresql://prod-postgres:5432/colly \
-  --set colly.db.username=colly_user \
-  --set colly.db.password=secure_password \
-  --set colly.idp.url=https://auth.company.com/realms/colly \
-  --set colly.idp.clientSecret=prod_client_secret \
-  --set colly.instancesRepo=https://token@github.com/company/cloud-passports.git \
-  --set colly.cronSchedule="0 0/5 * * * ?" \
-  --set CLOUD_PUBLIC_HOST=apps.company.com
+helm install qubership-colly ./charts/qubership-colly \
+  --set NAMESPACE=colly-prod \
+  --set CLOUD_PUBLIC_HOST=apps.company.com \
+  --set colly.envgeneInventoryService.projectRepoUrl=https://github.com/company/project-configs.git \
+  --set colly.envgeneInventoryService.gitToken=ghp_yourtoken \
+  --set colly.envgeneInventoryService.idp.url=https://auth.company.com/realms/colly \
+  --set colly.envgeneInventoryService.idp.clientSecret=secret \
+  --set colly.environmentOperationalService.idp.url=https://auth.company.com/realms/colly \
+  --set colly.environmentOperationalService.idp.clientSecret=secret \
+  --set colly.uiService.idp.url=https://auth.company.com/realms/colly
 ```
 
 ### Custom Values File
@@ -82,31 +92,51 @@ NAMESPACE: colly-prod
 CLOUD_PUBLIC_HOST: apps.company.com
 
 colly:
-  image: ghcr.io/netcracker/qubership-colly:v1.0.0
-  serviceName: qubership-colly
-  instancesRepo: https://token@github.com/company/cloud-passports.git
-  cronSchedule: "0 0/5 * * * ?"
-  
-  idp:
-    url: https://auth.company.com/realms/colly
-    clientId: colly
-    clientSecret: prod_client_secret
-  
-  db:
-    host: jdbc:postgresql://prod-postgres:5432/colly
-    username: colly_user
-    password: secure_password
-  
-  ingress:
-    className: nginx
-    http:
-      annotations:
-        nginx.ingress.kubernetes.io/ssl-redirect: "true"
-        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  envgeneInventoryService:
+    image: ghcr.io/netcracker/envgene-inventory-service:v1.0.0
+    projectRepoUrl: https://github.com/company/project-configs.git
+    gitToken: ghp_yourtoken
+    cronSchedule: "0 0/5 * * * ?"
+    idp:
+      url: https://auth.company.com/realms/colly
+      clientId: envgene-inventory-service
+      clientSecret: secret
+    redis:
+      hosts: redis://redis-master.redis:6379
+      username: admin
+      password: secure_password
+    ingress:
+      className: nginx
+      http:
+        annotations:
+          nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+  environmentOperationalService:
+    image: ghcr.io/netcracker/environment-operational-service:v1.0.0
+    cronSchedule: "0 0/5 * * * ?"
+    idp:
+      url: https://auth.company.com/realms/colly
+      clientId: environment-operational-service
+      clientSecret: secret
+    redis:
+      hosts: redis://redis-master.redis:6379
+      username: admin
+      password: secure_password
+
+  uiService:
+    image: ghcr.io/netcracker/ui-service:v1.0.0
+    idp:
+      url: https://auth.company.com/realms/colly
+      clientId: colly
+    ingress:
+      className: nginx
+      http:
+        annotations:
+          nginx.ingress.kubernetes.io/ssl-redirect: "true"
 ```
 
 ```bash
-helm install qubership-colly netcracker/qubership-colly -f values-prod.yaml
+helm install qubership-colly ./charts/qubership-colly -f values-prod.yaml
 ```
 
 ## Generated Resources
@@ -270,43 +300,6 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 | `QUARKUS_OIDC_CLIENT_ID`                        | OIDC client ID                           | `ui-service`                   |
 | `QUARKUS_OIDC_CREDENTIALS_SECRET`               | OIDC client secret                       | -                              |
 
-
-## ENV_INSTANCES_REPO
-Configure clusters using Git repositories containing Cloud Passport files:
-
-```bash
-# Single repository
-ENV_INSTANCES_REPO=https://github.com/your-org/cloud-passports.git
-
-# Multiple repositories
-ENV_INSTANCES_REPO=https://github.com/repo1.git,https://github.com/repo2.git
-
-# With authentication
-ENV_INSTANCES_REPO=https://username:token@github.com/private/repo.git
-```
-
-### Cloud Passport Structure
-```yaml
-# cluster-config.yaml
-apiVersion: v1
-kind: CloudPassport
-metadata:
-  name: production-cluster
-spec:
-  cloudApiHost: https://k8s-api.example.com
-  token: <k8s-token>
-  environments:
-    - name: production-env
-      description: "Production environment"
-      namespaces:
-        - name: prod-api
-        - name: prod-web
-    - name: staging-env
-      description: "Staging environment"
-      namespaces:
-        - name: staging-api
-        - name: staging-web
-```
 
 ## Docker Compose Configuration
 
