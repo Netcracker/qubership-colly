@@ -135,12 +135,18 @@ helm repo add netcracker https://netcracker.github.io/helm-charts
 helm repo update
 
 # Install with basic configuration
-helm install qubership-colly netcracker/qubership-colly \
-  --set colly.db.password=<DB_PASSWORD> \
-  --set colly.db.username=<DB_USERNAME> \
-  --set colly.db.host=<DB_HOST> \
-  --set colly.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm
+helm install qubership-colly ./charts/qubership-colly \
+  --set colly.envgeneInventoryService.projectRepoUrl=https://github.com/your-org/project-configs.git \
+  --set colly.envgeneInventoryService.gitToken=<GIT_TOKEN> \
+  --set colly.envgeneInventoryService.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm \
+  --set colly.envgeneInventoryService.idp.clientSecret=<CLIENT_SECRET> \
+  --set colly.environmentOperationalService.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm \
+  --set colly.environmentOperationalService.idp.clientSecret=<CLIENT_SECRET> \
+  --set colly.uiService.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm \
+  --set CLOUD_PUBLIC_HOST=<YOUR_HOST>
 ```
+
+For full Helm configuration reference, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## Authentication and Security
 
@@ -184,7 +190,6 @@ For complete documentation on project structure, field descriptions, and configu
 ### Prerequisites
 - Java 21+
 - Node.js 18+
-- PostgreSQL 12+
 - Docker and Docker Compose
 
 ### Project Structure

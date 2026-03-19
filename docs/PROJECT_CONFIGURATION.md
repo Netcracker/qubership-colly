@@ -10,6 +10,8 @@ The Project Git Repository stores configuration files for projects in YAML forma
 
 ```
 project-git-repo/
+├── defaults/
+│   └── defaults.yaml
 └── projects/
     ├── project-one/
     │   └── parameters.yaml
@@ -18,6 +20,27 @@ project-git-repo/
     └── project-three/
         └── parameters.yaml
 ```
+
+## Cluster Defaults (`defaults/defaults.yaml`)
+
+The optional `defaults/defaults.yaml` file at the root of the project repository defines default values applied to all
+clusters across all projects.
+
+```yaml
+clusters:
+  owners:
+    - team-ops
+  roAdGroups:
+    - group-readonly
+  rwAdGroups:
+    - group-readwrite
+```
+
+| Field        | Type          | Description                                  |
+|--------------|---------------|----------------------------------------------|
+| `owners`     | Array[String] | Default list of owners assigned to clusters  |
+| `roAdGroups` | Array[String] | AD groups with read-only access to clusters  |
+| `rwAdGroups` | Array[String] | AD groups with read-write access to clusters |
 
 ## Configuration File Schema
 
@@ -31,6 +54,8 @@ project-git-repo/
 | `clusterPlatform` | String        | Yes      | Cluster platform: `k8s` or `ocp` (OpenShift Container Platform)              |
 | `repositories`    | Array         | Yes      | List of repository configurations (instance repos, pipelines, template repo) |
 | `accessGroups`    | Array[String] | No       | List of access group names for role-based access control                     |
+| `mavenRepoName`   | String        | No       | Name of the Maven repository associated with the project                     |
+| `gitGroupUrl`     | String        | No       | URL of the Git group containing project repositories                         |
 
 ### Repository Types
 
@@ -48,53 +73,27 @@ Repositories containing Cloud Passport configurations for environments.
 | `token`  | String | No       | Authentication token for private repositories                              |
 | `region` | String | No       | Geographic region identifier (e.g., `us-east-1`, `eu-west-1`, `cn`, `mb`)  |
 
-#### 2. Cluster Provision Pipeline (`clusterProvision`)
+#### 2. Pipeline Repositories
 
-CI/CD pipelines for cluster provisioning.
+CI/CD pipeline repositories. All pipeline types share the same set of fields.
 
-| Field    | Type   | Required | Description                    |
-|----------|--------|----------|--------------------------------|
-| `type`   | String | Yes      | Must be `clusterProvision`     |
-| `url`    | String | Yes      | Pipeline repository URL        |
-| `branch` | String | No       | Git branch to use              |
-| `token`  | String | No       | Authentication token           |
-| `region` | String | No       | Region where pipeline operates |
+| Field    | Type   | Required | Description                                                                |
+|----------|--------|----------|----------------------------------------------------------------------------|
+| `type`   | String | Yes      | Pipeline type: `clusterProvision`, `envProvision`, `solutionDeploy`, `dcl` |
+| `url`    | String | Yes      | Pipeline repository URL                                                    |
+| `branch` | String | No       | Git branch to use                                                          |
+| `region` | String | No       | Region where pipeline operates                                             |
 
-#### 3. Environment Provision Pipeline (`envProvision`)
-
-CI/CD pipelines for environment provisioning.
-
-| Field    | Type   | Required | Description                    |
-|----------|--------|----------|--------------------------------|
-| `type`   | String | Yes      | Must be `envProvision`         |
-| `url`    | String | Yes      | Pipeline repository URL        |
-| `branch` | String | No       | Git branch to use              |
-| `token`  | String | No       | Authentication token           |
-| `region` | String | No       | Region where pipeline operates |
-
-#### 4. Solution Deploy Pipeline (`solutionDeploy`)
-
-CI/CD pipelines for solution deployment.
-
-| Field    | Type   | Required | Description                    |
-|----------|--------|----------|--------------------------------|
-| `type`   | String | Yes      | Must be `solutionDeploy`       |
-| `url`    | String | Yes      | Pipeline repository URL        |
-| `branch` | String | No       | Git branch to use              |
-| `token`  | String | No       | Authentication token           |
-| `region` | String | No       | Region where pipeline operates |
-
-#### 5. EnvGene Template Repository (`envgeneTemplate`)
+#### 3. EnvGene Template Repository (`envgeneTemplate`)
 
 Template repositories for environment generation.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | String | Yes | Must be `envgeneTemplate` |
-| `url` | String | Yes | Template repository URL |
-| `token` | String | No | Authentication token |
-| `branch` | String | Yes | Git branch to use (e.g., `main`, `master`, `develop`) |
-| `envgeneArtifact` | Object | Yes | Artifact configuration (see below) |
+| Field             | Type   | Required | Description                                           |
+|-------------------|--------|----------|-------------------------------------------------------|
+| `type`            | String | Yes      | Must be `envgeneTemplate`                             |
+| `url`             | String | Yes      | Template repository URL                               |
+| `branch`          | String | No       | Git branch to use (e.g., `main`, `master`, `develop`) |
+| `envgeneArtifact` | Object | Yes      | Artifact configuration (see below)                    |
 
 **EnvGene Artifact Fields:**
 
@@ -113,6 +112,8 @@ customerName: Solar System
 name: saturn
 type: product
 clusterPlatform: ocp
+mavenRepoName: saturn-maven-repo
+gitGroupUrl: https://github.com/example/saturn-group
 accessGroups:
   - saturn-admins
   - saturn-developers
@@ -124,13 +125,10 @@ repositories:
     region: mb
   - type: solutionDeploy
     url: https://github.com/example/solution-deploy-saturn
-    token: saturn-solution-token-789
   - type: clusterProvision
     url: https://github.com/example/cluster-provision-saturn
-    token: saturn-cluster-token-abc
   - type: envgeneTemplate
     url: https://gitlab.com/example/template-repo.git
-    token: earth-template-token
     branch: main
     envgeneArtifact:
       name: my-app:feature-new-ui-123456
@@ -145,6 +143,8 @@ customerName: Solar System
 name: earth
 type: project
 clusterPlatform: k8s
+mavenRepoName: earth-maven-repo
+gitGroupUrl: https://github.com/example/earth-group
 accessGroups:
   - earth-team
 repositories:
@@ -155,15 +155,12 @@ repositories:
     region: cn
   - type: clusterProvision
     url: https://github.com/example/cluster-provision-earth
-    token: earth-cluster-token-123
     region: eu-west-1
   - type: envProvision
     url: https://github.com/example/env-provision-earth
-    token: earth-env-token-456
     region: us-east-1
   - type: envgeneTemplate
     url: https://gitlab.com/example/template-repo.git
-    token: earth-template-token
     branch: main
     envgeneArtifact:
       name: my-app:feature-new-ui-123456
@@ -217,10 +214,22 @@ The `region` field is optional and can be used to:
 - Filter and group environments in the UI
 - Identify deployment targets
 
+### Maven Repository Name
+
+The `mavenRepoName` field specifies the name of the Maven repository associated with the project. Used to resolve
+artifacts during deployment.
+
+### Git Group URL
+
+The `gitGroupUrl` field specifies the base URL of the Git group that contains project repositories (e.g.,
+`https://github.com/my-org/my-group`). Used to construct repository URLs for sub-projects within the group.
 
 ### Authentication Tokens
 
-Tokens are used to authenticate with private Git repositories. Tokens should be:
+The `token` field is supported only for `envgeneInstance` repositories, where it is used to authenticate when cloning
+the instance Git repository.
+
+Tokens should be:
 - Personal Access Tokens (PAT) for GitHub/GitLab
 - Deploy tokens for read-only access
 - Stored securely (consider using secrets management in production)
@@ -259,7 +268,7 @@ When loading project configurations, Qubership Colly validates:
 2. **Enum values**: `type` must be `project` or `product`, `clusterPlatform` must be `k8s` or `ocp`
 3. **Repository types**: Each repository must have a valid `type`
 4. **URL format**: Repository URLs should be valid Git URLs
-5. **Template configuration**: If `envgeneTemplate` is used, `branch` and `envgeneArtifact` are required
+5. **Template configuration**: If `envgeneTemplate` is used, `envgeneArtifact` is required
 
 ## Troubleshooting
 
