@@ -1,6 +1,7 @@
 ---
 CLOUD_PUBLIC_HOST: fff
 NAMESPACE: qubership-colly
+MANAGED_BY: Helm
 colly:
   global:
   envgeneInventoryService:
