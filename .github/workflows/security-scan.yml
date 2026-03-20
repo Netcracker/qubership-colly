@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - release/*
+      - bugfix/fix-security-scan
   workflow_dispatch:
     inputs:
       target:
@@ -56,7 +57,7 @@ permissions:
 jobs:
   security-scan:
     name: "Run Security Scan"
-    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@v2.0.6
+    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@v2.1.2
     strategy:
       fail-fast: true
       matrix:
