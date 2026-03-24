@@ -20,8 +20,6 @@
 
 Параметры UI Override создаются и изменяются только через Colly API.
 
-Для понимания концепции UI override и сравнения с другими подходами см. [override-ui.md](./override-ui.md).
-
 ## Non-functional Requirements
 
 1. Время ответа на `GET /api/v1/environments/{environmentId}/ui-parameters` должно быть менее 300 мс

@@ -17,10 +17,6 @@
 
 Данный документ содержит описание Effective Set API для Colly. Этот API используется для получения эффективного набора параметров (Effective Set) с метаданными о состоянии каждого параметра.
 
-Для понимания концепции UI Override см. [ui-override.md](./ui-override.md).
-
-Для работы с параметрами UI Override в Git см. [colly-ui-parameters-api.md](./colly-ui-parameters-api.md).
-
 ## Контекст
 
 ### Effective Set
