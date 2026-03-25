@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       annotations:
-        app.quarkus.io/quarkus-version: 3.18.2
+        app.quarkus.io/quarkus-version: 3.27.2
       labels:
         name: {{ .Values.colly.environmentOperationalService.serviceName }}
         app.kubernetes.io/name: {{ .Values.colly.environmentOperationalService.serviceName }}
