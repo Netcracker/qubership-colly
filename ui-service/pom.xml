@@ -13,11 +13,11 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.18.2</quarkus.platform.version>
+        <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.2</surefire-plugin.version>
         <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
-        <quarkus-quinoa.version>2.5.4</quarkus-quinoa.version>
+        <quarkus-quinoa.version>2.7.2</quarkus-quinoa.version>
     </properties>
 
     <dependencyManagement>

@@ -13,13 +13,13 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.18.2</quarkus.platform.version>
+        <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.2</surefire-plugin.version>
         <kubernetes-client-java.version>22.0.1</kubernetes-client-java.version>
         <org.eclipse.jgit.version>7.0.0.202409031743-r</org.eclipse.jgit.version>
-        <quarkus-wiremock-test.version>1.4.1</quarkus-wiremock-test.version>
+        <quarkus-wiremock-test.version>1.5.3</quarkus-wiremock-test.version>
         <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
         <lombok.version>1.18.42</lombok.version>
     </properties>
