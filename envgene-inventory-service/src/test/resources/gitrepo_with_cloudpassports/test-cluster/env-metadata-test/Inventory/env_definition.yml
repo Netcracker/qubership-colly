@@ -16,6 +16,7 @@ inventory:
   owners: "owner from inventory"
   tenantName: "Applications"
 envTemplate:
+  name: "env-template-test"
   envSpecificParamsets: # deployment paramsetContext
     core:
       - core-deploy-ui-override
