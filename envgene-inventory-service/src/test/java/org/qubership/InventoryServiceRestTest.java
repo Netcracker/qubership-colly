@@ -1010,6 +1010,93 @@ class InventoryServiceRestTest {
                 .body("name", not(hasItem("env-metadata-test")));
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void sync_removes_deleted_project_from_cache() {
+        // First sync: both solar_earth and solar_saturn projects are loaded
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/projects")
+                .then()
+                .statusCode(200)
+                .body("id", hasItems("solar_earth", "solar_saturn"));
+
+        // mock: clone as usual, but remove solar_earth project folder
+        doAnswer(invocation -> {
+            File dest = invocation.getArgument(3);
+            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+            FileUtils.deleteDirectory(new File(dest, "projects/solar_earth"));
+            return null;
+        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+
+        // Second sync: solar_earth should be removed from cache
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/projects")
+                .then()
+                .statusCode(200)
+                .body("id", hasItem("solar_saturn"))
+                .body("id", not(hasItem("solar_earth")));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void sync_removes_clusters_and_environments_when_project_deleted() {
+        // First sync: test-cluster (earth) and unreachable-cluster (saturn) are loaded
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("name", hasItems("test-cluster", "unreachable-cluster"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", hasItems("env-test", "env-metadata-test", "env-1"));
+
+        // mock: clone as usual, but remove solar_earth project folder
+        doAnswer(invocation -> {
+            File dest = invocation.getArgument(3);
+            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+            FileUtils.deleteDirectory(new File(dest, "projects/solar_earth"));
+            return null;
+        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+
+        // Second sync: test-cluster and its environments should be removed, unreachable-cluster and env-1 remain
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("unreachable-cluster"))
+                .body("name", not(hasItem("test-cluster")));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("env-1"))
+                .body("name", not(hasItems("env-test", "env-metadata-test")));
+    }
+
     private @NotNull Environment prepareEnvironmentForTests(String envName) {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")

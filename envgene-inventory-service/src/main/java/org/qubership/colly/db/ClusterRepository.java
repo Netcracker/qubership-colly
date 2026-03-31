@@ -127,4 +127,17 @@ public class ClusterRepository {
             throw new RuntimeException("Failed to find clusters by project id: " + projectId, e);
         }
     }
+
+    public void deleteById(String id) {
+        Cluster cluster = findById(id);
+        if (cluster == null) {
+            return;
+        }
+        keyCommands().del(CLUSTER_KEY_PREFIX + id);
+        keyCommands().del(CLUSTER_NAME_INDEX_PREFIX + cluster.getName());
+        if (cluster.getGitInfo() != null && cluster.getGitInfo().projectId() != null) {
+            String projectIndexKey = CLUSTER_PROJECT_ID_INDEX_PREFIX + cluster.getGitInfo().projectId();
+            setCommands().srem(projectIndexKey, id);
+        }
+    }
 }
