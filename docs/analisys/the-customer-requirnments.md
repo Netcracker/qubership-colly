@@ -364,14 +364,29 @@ This is not the full list of attributes for these objects, but only those that w
   3. эта версия Колли устанавливается на прод
   4. ???
   - **Step 1**
-    - [Done] Проверка перформанса при работе с большим энвген инстансным репозиториев
-    - [Done] `gitGroupUrl`
-    - [Done] Add DCL to `repositories[].type` enum
-    - [Done] Deletion removed envs from Colly cash
-    - [Done] Make `repositories[].token` optional
-    - [Done] Remove `repositories[].token`
+    - [x] Проверка перформанса при работе с большим энвген инстансным репозиториев
+    - [x] `gitGroupUrl`
+    - [x] Add DCL to `repositories[].type` enum
+    - [x] Deletion removed **envs** from Colly cash
+    - [x] Make `repositories[].token` optional
+    - [x] Remove `repositories[].token`
     - move `region` from env to cluster. RO. Get from Cloud Passport
+      - даблчекнуть с Егором - имя и расположение параметра.
+    - Deletion removed **project, cluster** from Colly cash
   - **Step 2**
+    - CMDB UI - **обновить!!**
+      - `/api/v1/environments/{environmentId}/applications`
+      - paramset
+        - reset
+        - complex value support
+        - добавить валидацию - на неймспейс уровне нельзя задать параметры пайплайн контекста
+      - ES
+        - `originalValue`
+        - кейс удаление заоверрайженного ранее параметра !!!
+        - repo encryption
+          - до этого (если crypt: false OR заинкрипченные файлы):
+            - отдавать на `POST /api/v1/environments/{environmentId}/ui-parameters/effective-set` ошибку
+            - не кэшировать ES и UI парамсеты
     - `cmApproach`, `defaultCmApproach`
     - change enum env `status` - `PLANNED`, `PROVISION_FAILED`, `CREATED`
     - OQ: Что делаем с `accessGroups`, `effectiveAccessGroups` on Environment?
@@ -379,19 +394,6 @@ This is not the full list of attributes for these objects, but only those that w
     - Add `lastSuccessfulSyncAt` to environment to inventory service metadata
     - Add `owners` to Cluster
       - To agree where to store
-    - CMDB UI
-      - `GET /api/v1/environments/{environmentId}/applications` **P3**
-      - paramset **P3**
-        - reset **P4**
-        - complex value support **P3**
-        - добавить валидацию - на неймспейс уровне нельзя задать параметры пайплайн контекста
-      - ES **P3.5**
-        - `originalValue`
-        - кейс удаление заоверрайженного ранее параметра !!!
-        - repo encryption
-          - до этого (если crypt: false OR заинкрипченные файлы):
-            - отдавать на `POST /api/v1/environments/{environmentId}/ui-parameters/effective-set` ошибку
-            - не кэшировать ES и UI парамсеты
 
 - [ ] Cloud Release
   - тесты
