@@ -170,7 +170,7 @@ public class ProjectRepoLoader {
                         repoEntity.url(),
                         repoEntity.branch(),
                         repoEntity.region()))
-                .filter(pipeline -> pipeline.type() != null) // фильтруем невалидные типы
+                .filter(pipeline -> pipeline.type() != null)
                 .toList();
     }
 
