@@ -81,4 +81,9 @@ public class ProjectRepository {
             throw new RuntimeException("Failed to find all projects", e);
         }
     }
+
+    public void deleteById(String id) {
+        String key = PROJECT_KEY_PREFIX + id;
+        keyCommands().del(key);
+    }
 }
