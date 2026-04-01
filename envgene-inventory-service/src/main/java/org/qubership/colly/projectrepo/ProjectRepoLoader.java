@@ -1,5 +1,6 @@
 package org.qubership.colly.projectrepo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -129,7 +130,7 @@ public class ProjectRepoLoader {
                     projectEntity.accessGroups() == null ? List.of() : projectEntity.accessGroups(),
                     clusterDefaults,
                     projectEntity.mavenRepoName(),
-                    projectEntity.gitGroupUrl());
+                    projectEntity.gitGroupUrls() == null ? List.of() : projectEntity.gitGroupUrls());
         } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
             return null;
@@ -174,11 +175,13 @@ public class ProjectRepoLoader {
                 .toList();
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record ProjectEntity(String name, String customerName, String type,
                                 List<RepositoryEntity> repositories, String clusterPlatform,
-                                List<String> accessGroups, String mavenRepoName, String gitGroupUrl) {
+                                List<String> accessGroups, String mavenRepoName, List<GitGroupUrl> gitGroupUrls) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record RepositoryEntity(String type, String url, String token, String region, String branch,
                                    EnvgeneArtifact envgeneArtifact) {
     }

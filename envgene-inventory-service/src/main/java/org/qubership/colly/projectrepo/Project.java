@@ -6,5 +6,5 @@ public record Project(String id, String name, ProjectType type, String customerN
                       List<InstanceRepository> instanceRepositories, List<Pipeline> pipelines,
                       ClusterPlatform clusterPlatform, EnvgeneTemplateRepository envgeneTemplateRepository,
                       List<String> accessGroups, ClusterDefaults clusterDefaults, String mavenRepoName,
-                      String gitGroupUrl) {
+                      List<GitGroupUrl> gitGroupUrls) {
 }

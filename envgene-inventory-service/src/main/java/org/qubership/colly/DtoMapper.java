@@ -97,7 +97,7 @@ public class DtoMapper {
                 project.accessGroups(),
                 toDto(project.clusterDefaults()),
                 project.mavenRepoName(),
-                project.gitGroupUrl());
+                project.gitGroupUrls().stream().map(this::toDto).toList());
     }
 
     private ClusterDefaultsDto toDto(ClusterDefaults clusterDefaults) {
@@ -124,6 +124,10 @@ public class DtoMapper {
                 envgeneTemplateRepository.branch(),
                 envgeneTemplateRepository.envgeneArtifact()
         );
+    }
+
+    public GitGroupUrlDto toDto(GitGroupUrl gitGroupUrl) {
+        return new GitGroupUrlDto(gitGroupUrl.region(), gitGroupUrl.url());
     }
 
     public PipelineDto toDto(Pipeline pipeline) {

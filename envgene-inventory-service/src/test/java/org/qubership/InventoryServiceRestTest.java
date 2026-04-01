@@ -500,7 +500,9 @@ class InventoryServiceRestTest {
                 .body("clusterPlatform", equalTo("K8S"))
                 .body("accessGroups", contains("group1", "group2"))
                 .body("mavenRepoName", equalTo("dev.maven.repo"))
-                .body("gitGroupUrl", equalTo("https://gitlab.com/solar-system"))
+                .body("gitGroupUrls", hasSize(2))
+                .body("gitGroupUrls.find { it.region == 'cn' }.url", equalTo("https://gitlab.com/solar-system"))
+                .body("gitGroupUrls.find { it.region == 'mb' }.url", equalTo("https://gitlab.com/solar-system-mb"))
                 .body("instanceRepositories", hasItem(
                         allOf(
                                 hasEntry("url", "gitrepo_with_cloudpassports"),
