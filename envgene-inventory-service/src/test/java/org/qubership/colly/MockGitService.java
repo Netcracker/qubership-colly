@@ -1,5 +1,6 @@
 package org.qubership.colly;
 
+import io.quarkus.logging.Log;
 import io.quarkus.test.Mock;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.commons.io.FileUtils;
@@ -44,11 +45,11 @@ public class MockGitService extends GitService {
 
     @Override
     public void commitAndPush(File repositoryPath, String commitMessage) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Log.info("MockGitService: commitAndPush " + repositoryPath + " " + commitMessage);
     }
 
     @Override
     public void commitAndPush(File repositoryPath, String commitMessage, String token, String gitUser, String gitEmail) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Log.info("MockGitService: commitAndPush " + repositoryPath + " " + commitMessage);
     }
 }
