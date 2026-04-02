@@ -62,7 +62,9 @@ public class CollyStorage {
     }
 
     void onStart(@Observes StartupEvent event) {
+        Log.info("Starting Initial sync");
         syncAll();
+        Log.info("Initial sync has completed.");
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
