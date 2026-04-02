@@ -44,9 +44,11 @@ public class MockGitService extends GitService {
 
     @Override
     public void commitAndPush(File repositoryPath, String commitMessage) {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     public void commitAndPush(File repositoryPath, String commitMessage, String token, String gitUser, String gitEmail) {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
