@@ -1,6 +1,5 @@
 package org.qubership;
 
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -9,7 +8,7 @@ import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.qubership.colly.GitService;
+import org.qubership.colly.MockGitService;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Cluster;
@@ -20,16 +19,13 @@ import java.io.File;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 
 @QuarkusTest
 @TestTransaction
 class InventoryServiceRestTest {
 
-    @InjectMock
-    GitService gitService;
+    @Inject
+    MockGitService mockGitService;
 
     @Inject
     EnvironmentRepository environmentRepository;
@@ -39,11 +35,7 @@ class InventoryServiceRestTest {
 
     @BeforeEach
     void setUp() {
-        doAnswer(invocation -> {
-            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), invocation.getArgument(3));
-                    return null;
-                }
-        ).when(gitService).cloneRepository(anyString(), any(), any(), any());
+        mockGitService.reset();
     }
 
     @Test
@@ -989,12 +981,10 @@ class InventoryServiceRestTest {
                 .body("name", hasItems("env-test", "env-metadata-test"));
 
         // mock: clone as usual, but remove env-metadata-test from the destination
-        doAnswer(invocation -> {
-            File dest = invocation.getArgument(3);
-            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+        mockGitService.setCloneAction((url, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + url), dest);
             FileUtils.deleteDirectory(new File(dest, "test-cluster/env-metadata-test"));
-            return null;
-        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+        });
 
         // Second sync: env-metadata-test should be removed from cache
         given()
@@ -1008,6 +998,24 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("name", hasItem("env-test"))
                 .body("name", not(hasItem("env-metadata-test")));
+    }
+
+    @Test
+    void liveness_probe_returns_up() {
+        given()
+                .when().get("/q/health/live")
+                .then()
+                .statusCode(200)
+                .body("status", equalTo("UP"));
+    }
+
+    @Test
+    void readiness_probe_returns_up() {
+        given()
+                .when().get("/q/health/ready")
+                .then()
+                .statusCode(200)
+                .body("status", equalTo("UP"));
     }
 
     private @NotNull Environment prepareEnvironmentForTests(String envName) {
