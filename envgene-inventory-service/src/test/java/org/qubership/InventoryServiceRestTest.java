@@ -1,6 +1,5 @@
 package org.qubership;
 
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -1014,12 +1013,10 @@ class InventoryServiceRestTest {
                 .body("id", hasItems("solar_earth", "solar_saturn"));
 
         // mock: clone as usual, but remove solar_earth project folder
-        doAnswer(invocation -> {
-            File dest = invocation.getArgument(3);
-            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+        mockGitService.setCloneAction((url, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + url), dest);
             FileUtils.deleteDirectory(new File(dest, "projects/solar_earth"));
-            return null;
-        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+        });
 
         // Second sync: solar_earth should be removed from cache
         given()
@@ -1057,12 +1054,10 @@ class InventoryServiceRestTest {
                 .body("name", hasItems("env-test", "env-metadata-test", "env-1"));
 
         // mock: clone as usual, but remove solar_earth project folder
-        doAnswer(invocation -> {
-            File dest = invocation.getArgument(3);
-            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+        mockGitService.setCloneAction((url, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + url), dest);
             FileUtils.deleteDirectory(new File(dest, "projects/solar_earth"));
-            return null;
-        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+        });
 
         // Second sync: test-cluster and its environments should be removed, unreachable-cluster and env-1 remain
         given()
