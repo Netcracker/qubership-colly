@@ -211,8 +211,7 @@ class InventoryServiceRestTest {
                                 hasEntry("status", "FREE"),
                                 hasEntry("expirationDate", null),
                                 hasEntry("type", "ENVIRONMENT"),
-                                hasEntry("role", null),
-                                hasEntry("region", null)
+                                hasEntry("role", null)
                         ),
                         allOf(
                                 hasEntry("name", "env-metadata-test"),
@@ -220,8 +219,7 @@ class InventoryServiceRestTest {
                                 hasEntry("status", "IN_USE"),
                                 hasEntry("expirationDate", "2025-12-31"),
                                 hasEntry("type", "DESIGN_TIME"),
-                                hasEntry("role", "QA"),
-                                hasEntry("region", "cm")
+                                hasEntry("role", "QA")
                         ),
                         allOf(
                                 hasEntry("name", "env-1"),
@@ -248,7 +246,6 @@ class InventoryServiceRestTest {
                 .body("expirationDate", equalTo("2025-12-31"))
                 .body("type", equalTo("DESIGN_TIME"))
                 .body("role", equalTo("QA"))
-                .body("region", equalTo("cm"))
                 .body("teams", contains("team-from-metadata"))
                 .body("owners", contains("owner from metadata"))
                 .body("labels", contains("label1", "label2"))
@@ -563,7 +560,6 @@ class InventoryServiceRestTest {
                 .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
                 .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
                 .body("find { it.name == 'env-metadata-test' }.role", equalTo("QA"))
-                .body("find { it.name == 'env-metadata-test' }.region", equalTo("cm"))
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", equalTo("2025-12-31"))
                 .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
 
@@ -593,7 +589,6 @@ class InventoryServiceRestTest {
                 .body("find { it.name == 'env-metadata-test' }.status", equalTo("IN_USE"))
                 .body("find { it.name == 'env-metadata-test' }.type", equalTo("DESIGN_TIME"))
                 .body("find { it.name == 'env-metadata-test' }.role", equalTo(""))
-                .body("find { it.name == 'env-metadata-test' }.region", equalTo("cm"))
                 .body("find { it.name == 'env-metadata-test' }.owners", emptyIterable())
                 .body("find { it.name == 'env-metadata-test' }.expirationDate", nullValue());
     }

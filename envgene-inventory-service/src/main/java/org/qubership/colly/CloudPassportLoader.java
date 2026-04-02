@@ -162,7 +162,7 @@ public class CloudPassportLoader {
         if (cloudPassportData.dbaas() != null) dbaasUrl = cloudPassportData.dbaas().apiDBaaSAddress();
         Log.info("Cloud DBaaS URL: " + dbaasUrl);
         return new CloudPassport(clusterName, token, cloudApiHost, cloud.cloudPublicHost(), environments, monitoringUri, gitInfo,
-                cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl, achkaUrl);
+                cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl, achkaUrl, cloud.region());
     }
 
     private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {
@@ -225,9 +225,6 @@ public class CloudPassportLoader {
             String role = inventoryMetadata == null
                     ? null
                     : inventoryMetadata.role();
-            String region = inventoryMetadata == null
-                    ? null
-                    : inventoryMetadata.region();
             List<String> accessGroups = inventoryMetadata == null || inventoryMetadata.accessGroups() == null
                     ? List.of()
                     : inventoryMetadata.accessGroups();
@@ -236,7 +233,7 @@ public class CloudPassportLoader {
                     : inventoryMetadata.effectiveAccessGroups();
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
-                    owners, labels, teams, environmentStatus, expirationDate, type, role, region,
+                    owners, labels, teams, environmentStatus, expirationDate, type, role,
                     accessGroups, effectiveAccessGroups, paramsets);
         } catch (IOException e) {
             Log.error("Error loading environment from " + environmentPath, e);

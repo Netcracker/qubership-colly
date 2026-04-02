@@ -103,6 +103,7 @@ public class CollyStorage {
         cluster.setDeployerUrl(cloudPassport.deployerUrl());
         cluster.setArgoUrl(cloudPassport.argoUrl());
         cluster.setAchkaUrl(cloudPassport.achkaUrl());
+        cluster.setRegion(cloudPassport.region());
 
         // Persist cluster first to ensure it has an ID
         clusterRepository.persist(cluster);
@@ -150,7 +151,6 @@ public class CollyStorage {
         finalEnvironment.setExpirationDate(cloudPassportEnvironment.expirationDate());
         finalEnvironment.setType(cloudPassportEnvironment.type());
         finalEnvironment.setRole(cloudPassportEnvironment.role());
-        finalEnvironment.setRegion(cloudPassportEnvironment.region());
         finalEnvironment.setAccessGroups(cloudPassportEnvironment.accessGroups());
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());

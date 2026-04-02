@@ -30,7 +30,6 @@ public class Environment {
     private EnvironmentStatus status = EnvironmentStatus.FREE;
     private EnvironmentType type = EnvironmentType.ENVIRONMENT;
     private String role;
-    private String region;
     private List<String> labels;
     private List<String> accessGroups;
     private List<String> effectiveAccessGroups;

@@ -51,7 +51,6 @@ class CloudPassportLoaderTest {
                             null,
                             EnvironmentType.ENVIRONMENT,
                             null,
-                            null,
                             List.of(),
                             List.of(),
                             List.of(new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value")))),
@@ -66,7 +65,6 @@ class CloudPassportLoaderTest {
                             LocalDate.of(2025, 12, 31),
                             EnvironmentType.DESIGN_TIME,
                             "QA",
-                            "cm",
                             List.of("group1", "group2"),
                             List.of("group1", "group2", "group3"),
                             List.of(
@@ -86,7 +84,8 @@ class CloudPassportLoaderTest {
             "https://dbaas.example.com",
             "https://deployer.example.com",
             "https://argo.example.com",
-            "https://achka.example.com");
+            "https://achka.example.com",
+            null);
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
@@ -102,7 +101,6 @@ class CloudPassportLoaderTest {
                     null,
                     EnvironmentType.ENVIRONMENT,
                     null,
-                    null,
                     List.of(),
                     List.of(),
                     List.of())),
@@ -112,7 +110,8 @@ class CloudPassportLoaderTest {
             null,
             null,
             null,
-            "https://ach-kubernetes-agent-devops-toolkit.unreachable.url"
+            "https://ach-kubernetes-agent-devops-toolkit.unreachable.url",
+            null
     );
 
     @InjectMock
@@ -161,7 +160,7 @@ class CloudPassportLoaderTest {
                 "some_token_for_cluster_with_invalid_envs",
                 "https://42.gr7.eu-west-1.eks.amazonaws.com:443",
                 "gr7.eu-west-1.eks.amazonaws.com",
-                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, null, List.of(), List.of(), List.of())),
+                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of())),
                 "http://localhost:8428",
                 new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn"),
                         "target/test-cloud-passport-folder/1", "1"),
@@ -169,7 +168,8 @@ class CloudPassportLoaderTest {
                 "https://dbaas.example.com",
                 "https://deployer.example.com",
                 "https://argo.example.com",
-                "https://ach-kubernetes-agent-devops-toolkit.gr7.eu-west-1.eks.amazonaws.com"
+                "https://ach-kubernetes-agent-devops-toolkit.gr7.eu-west-1.eks.amazonaws.com",
+                null
         )));
     }
 
@@ -215,7 +215,7 @@ class CloudPassportLoaderTest {
     @Test
     void testParseTokenFromCredsFile_validYaml(@TempDir Path tempDir) throws IOException {
         CloudData cloud = new CloudData(null, null, "tokenKey", null,
-                null, null, null);
+                null, null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 
@@ -233,7 +233,7 @@ class CloudPassportLoaderTest {
     @Test
     void testParseTokenFromCredsFile_missingSecretThrows(@TempDir Path tempDir) throws IOException {
         CloudData cloud = new CloudData(null, null, "missingKey", null,
-                null, null, null);
+                null, null, null, null);
 
         CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
 

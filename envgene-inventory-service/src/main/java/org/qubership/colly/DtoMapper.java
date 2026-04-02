@@ -30,7 +30,6 @@ public class DtoMapper {
                 environment.getExpirationDate(),
                 environment.getType(),
                 environment.getRole(),
-                environment.getRegion(),
                 environment.getAccessGroups(),
                 environment.getEffectiveAccessGroups()
         );
@@ -59,7 +58,8 @@ public class DtoMapper {
                 cluster.getDashboardUrl(),
                 cluster.getDbaasUrl(),
                 cluster.getDeployerUrl(),
-                cluster.getArgoUrl());
+                cluster.getArgoUrl(),
+                cluster.getRegion());
     }
 
     private List<LightEnvironmentDto> toLightDtos(List<Environment> environments) {
