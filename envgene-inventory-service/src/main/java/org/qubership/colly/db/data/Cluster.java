@@ -22,4 +22,5 @@ public class Cluster {
     private String deployerUrl;
     private String argoUrl;
     private String achkaUrl;
+    private String region;
 }
