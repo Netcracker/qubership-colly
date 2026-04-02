@@ -27,7 +27,7 @@ The main interface displays environments in a comprehensive table with the follo
 - **Name** - Environment name from Cloud Passport configuration
 - **Type** - Environment type (ENVIRONMENT, CSE_TOOLSET, DESIGN_TIME, APP_DEPLOYER, INFRASTRUCTURE, PORTAL, UNDEFINED) - editable by admins
 - **Namespace(s)** - Associated Kubernetes namespaces (color-coded: red if namespace doesn't exist in K8s)
-- **Region** - Geographic region or deployment region for the environment (from project configuration)
+- **Region** - Geographic region or deployment region for the cluster (from the cloud passport)
 - **Cluster** - Source cluster name
 - **Owner(s)** - List of environment owners (editable by admins)
 - **Team(s)** - List of associated teams (editable by admins)
