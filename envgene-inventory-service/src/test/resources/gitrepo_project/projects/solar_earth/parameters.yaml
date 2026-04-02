@@ -4,7 +4,11 @@ type: project
 clusterPlatform: k8s
 accessGroups: [ "group1", "group2" ]
 mavenRepoName: dev.maven.repo
-gitGroupUrl: https://gitlab.com/solar-system
+gitGroupUrls:
+  - region: cn
+    url: https://gitlab.com/solar-system
+  - region: mb
+    url: https://gitlab.com/solar-system-mb
 repositories:
   - type: envgeneInstance
     url: gitrepo_with_cloudpassports

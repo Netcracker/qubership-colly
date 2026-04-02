@@ -52,7 +52,14 @@ public record ClusterDto(
                 examples = "https://argocd.example.com",
                 nullable = true
         )
-        String argoUrl
+        String argoUrl,
+
+        @Schema(
+                description = "Geographic region or datacenter location",
+                examples = "us-east-1",
+                nullable = true
+        )
+        String region
 ) {
 }
 

@@ -91,13 +91,6 @@ public record EnvironmentDto(
         String role,
 
         @Schema(
-                description = "Geographic region or datacenter location",
-                examples = "us-east-1",
-                nullable = true
-        )
-        String region,
-
-        @Schema(
                 description = "List of access groups directly assigned to this environment",
                 examples = "[\"developers\", \"qa-team\"]",
                 nullable = true
