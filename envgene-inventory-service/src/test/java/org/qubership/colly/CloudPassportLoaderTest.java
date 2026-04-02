@@ -85,7 +85,7 @@ class CloudPassportLoaderTest {
             "https://deployer.example.com",
             "https://argo.example.com",
             "https://achka.example.com",
-            null);
+            "cm");
     private static final CloudPassport UNREACHABLE_CLUSTER = new CloudPassport("unreachable-cluster",
             "1234567890",
             "https://some.unreachable.url:8443",
