@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.qubership.colly.cloudpassport.ClusterInfo;
@@ -29,6 +30,11 @@ class CollyStorageTest {
 
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
+
+    @BeforeEach
+    void resetSync() {
+        collyStorage.resetSyncState();
+    }
 
     @Test
     void syncAllClusters_shouldLoadClusterResourcesInParallel() throws InterruptedException {
@@ -140,6 +146,50 @@ class CollyStorageTest {
         verify(envgeneInventoryService, times(1)).getClusterInfos();
         verify(clusterResourcesLoader, times(1)).loadClusterResources(cluster);
 
+    }
+
+    @Test
+    void syncAllClusters_skipsIfAlreadyRunning() throws InterruptedException {
+        CountDownLatch syncStarted = new CountDownLatch(1);
+        CountDownLatch syncRelease = new CountDownLatch(1);
+
+        when(envgeneInventoryService.getClusterInfos()).thenAnswer(inv -> {
+            syncStarted.countDown();
+            syncRelease.await(5, TimeUnit.SECONDS);
+            return List.of();
+        });
+
+        Thread firstSync = new Thread(collyStorage::syncAllClusters);
+        firstSync.start();
+
+        assertTrue(syncStarted.await(5, TimeUnit.SECONDS), "First sync should start");
+
+        // Second call while first is running — should be skipped
+        collyStorage.syncAllClusters();
+
+        verify(envgeneInventoryService, times(1)).getClusterInfos();
+
+        syncRelease.countDown();
+        firstSync.join(5000);
+    }
+
+    @Test
+    void syncAllClusters_flagIsResetAfterCompletion() {
+        when(envgeneInventoryService.getClusterInfos()).thenReturn(List.of());
+
+        collyStorage.syncAllClusters();
+        collyStorage.syncAllClusters();
+
+        verify(envgeneInventoryService, times(2)).getClusterInfos();
+    }
+
+    @Test
+    void onStart_invokesSyncAllClusters() {
+        when(envgeneInventoryService.getClusterInfos()).thenReturn(List.of());
+
+        collyStorage.onStart(null);
+
+        verify(envgeneInventoryService, times(1)).getClusterInfos();
     }
 
     @Test

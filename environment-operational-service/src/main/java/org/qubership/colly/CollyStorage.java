@@ -1,8 +1,10 @@
 package org.qubership.colly;
 
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @ApplicationScoped
 public class CollyStorage {
@@ -33,6 +36,7 @@ public class CollyStorage {
     private final EnvgeneInventoryServiceRest envgeneInventoryServiceRest;
     private final Executor executor;
     private final EnvironmentMapper environmentMapper;
+    private final AtomicBoolean syncRunning = new AtomicBoolean(false);
 
     @Inject
     public CollyStorage(ClusterResourcesLoader clusterResourcesLoader,
@@ -49,34 +53,54 @@ public class CollyStorage {
         this.environmentMapper = environmentMapper;
     }
 
-    @Scheduled(cron = "{colly.environment-operational-service.cron.schedule}")
-    void syncAllClusters() {
-        Log.info("Task for loading resources from clusters has started");
-        Date startTime = new Date();
-        List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
-        List<String> clusterNames = clusterInfos.stream().map(ClusterInfo::name).toList();
-        Log.info("Cloud passports loaded for clusters: " + clusterNames);
-
-        List<CompletableFuture<Void>> futures = clusterInfos.stream()
-                .map(clusterInfo -> CompletableFuture.runAsync(
-                        () -> {
-                            Log.info("Starting to load resources for cluster: " + clusterInfo.name());
-                            clusterResourcesLoader.loadClusterResources(clusterInfo);
-                            Log.info("Completed loading resources for cluster: " + clusterInfo.name());
-                        }, executor))
-                .toList();
-
-        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+    void onStart(@Observes StartupEvent event) {
         try {
-            allFutures.join(); // Wait for all to complete
+            syncAllClusters();
         } catch (Exception e) {
-            Log.error("Error occurred while loading cluster resources in parallel", e);
+            Log.warn("Initial sync failed on startup: " + e.getMessage());
         }
+    }
 
-        Date loadCompleteTime = new Date();
-        long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
-        Log.info("Task for loading resources from clusters has completed.");
-        Log.info("Loading Duration =" + loadingDuration + " ms");
+    @Scheduled(cron = "{colly.environment-operational-service.cron.schedule}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void syncAllClusters() {
+        if (!syncRunning.compareAndSet(false, true)) {
+            Log.info("syncAllClusters is already running, skipping");
+            return;
+        }
+        try {
+            Log.info("Task for loading resources from clusters has started");
+            Date startTime = new Date();
+            List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
+            List<String> clusterNames = clusterInfos.stream().map(ClusterInfo::name).toList();
+            Log.info("Cloud passports loaded for clusters: " + clusterNames);
+
+            List<CompletableFuture<Void>> futures = clusterInfos.stream()
+                    .map(clusterInfo -> CompletableFuture.runAsync(
+                            () -> {
+                                Log.info("Starting to load resources for cluster: " + clusterInfo.name());
+                                clusterResourcesLoader.loadClusterResources(clusterInfo);
+                                Log.info("Completed loading resources for cluster: " + clusterInfo.name());
+                            }, executor))
+                    .toList();
+
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            try {
+                allFutures.join();
+            } catch (Exception e) {
+                Log.error("Error occurred while loading cluster resources in parallel", e);
+            }
+
+            Date loadCompleteTime = new Date();
+            long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
+            Log.info("Task for loading resources from clusters has completed.");
+            Log.info("Loading Duration =" + loadingDuration + " ms");
+        } finally {
+            resetSyncState();
+        }
+    }
+
+    void resetSyncState() {
+        syncRunning.set(false);
     }
 
     void syncCluster(String clusterId) {

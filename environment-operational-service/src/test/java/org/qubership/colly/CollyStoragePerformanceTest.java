@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.cloudpassport.ClusterInfo;
 
@@ -28,6 +29,11 @@ class CollyStoragePerformanceTest {
 
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
+
+    @BeforeEach
+    void resetSync() {
+        collyStorage.resetSyncState();
+    }
 
     @Test
     void syncAllClusters_performanceTest_shouldBeSignificantlyFasterThanSequential() {
