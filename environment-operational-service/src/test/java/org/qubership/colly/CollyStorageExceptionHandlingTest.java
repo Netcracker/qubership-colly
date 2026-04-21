@@ -26,17 +26,20 @@ class CollyStorageExceptionHandlingTest {
     @Inject
     CollyStorage collyStorage;
 
-    @BeforeEach
-    void resetSync() {
-        collyStorage.resetSyncState();
-    }
-
     @InjectMock
     @RestClient
     EnvgeneInventoryServiceRest envgeneInventoryService;
 
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
+
+    @InjectMock
+    ClusterSyncLock clusterSyncLock;
+
+    @BeforeEach
+    void setUp() {
+        when(clusterSyncLock.tryAcquire(any(), any())).thenReturn(true);
+    }
 
     @Test
     void syncAllClusters_shouldContinueExecutionWhenSomeClustersFail() throws InterruptedException {

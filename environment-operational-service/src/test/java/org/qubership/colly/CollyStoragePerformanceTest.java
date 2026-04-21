@@ -30,9 +30,12 @@ class CollyStoragePerformanceTest {
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
 
+    @InjectMock
+    ClusterSyncLock clusterSyncLock;
+
     @BeforeEach
-    void resetSync() {
-        collyStorage.resetSyncState();
+    void setUp() {
+        when(clusterSyncLock.tryAcquire(any(), any())).thenReturn(true);
     }
 
     @Test

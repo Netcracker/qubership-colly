@@ -41,12 +41,8 @@ class ClusterResourcesRestTest {
     @Inject
     RedisDataSource redisDataSource;
 
-    @Inject
-    CollyStorage collyStorage;
-
     @BeforeEach
     void setUp() {
-        collyStorage.resetSyncState();
         redisDataSource.flushall();
 
         Mockito.when(envgeneInventoryServiceRest.getClusterInfos()).thenReturn(List.of(
