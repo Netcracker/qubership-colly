@@ -154,6 +154,7 @@ public class CollyStorage {
         finalEnvironment.setAccessGroups(cloudPassportEnvironment.accessGroups());
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
+        finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
 
         Log.infof("Environment %s has been loaded from CloudPassport", finalEnvironment.getName());
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));

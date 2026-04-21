@@ -231,10 +231,11 @@ public class CloudPassportLoader {
             List<String> effectiveAccessGroups = inventoryMetadata == null || inventoryMetadata.effectiveAccessGroups() == null
                     ? List.of()
                     : inventoryMetadata.effectiveAccessGroups();
+            boolean sspStandalone = inventoryMetadata != null && Boolean.TRUE.equals(inventoryMetadata.sspStandalone());
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
-                    accessGroups, effectiveAccessGroups, paramsets);
+                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone);
         } catch (IOException e) {
             Log.error("Error loading environment from " + environmentPath, e);
             return null;

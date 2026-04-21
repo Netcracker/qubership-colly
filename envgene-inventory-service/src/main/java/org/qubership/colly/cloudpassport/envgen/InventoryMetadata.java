@@ -16,7 +16,8 @@ public record InventoryMetadata(
         String role,
         String region,
         List<String> accessGroups,
-        List<String> effectiveAccessGroups
+        List<String> effectiveAccessGroups,
+        Boolean sspStandalone
 ) {
     public InventoryMetadata {
         owners = owners == null ? List.of() : owners;

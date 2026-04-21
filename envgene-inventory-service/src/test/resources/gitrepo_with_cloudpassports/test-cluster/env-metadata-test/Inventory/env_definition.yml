@@ -10,6 +10,7 @@ inventory:
     role: "QA"
     accessGroups: ["group1", "group2"]
     effectiveAccessGroups: ["group1", "group2", "group3"]
+    sspStandalone: true
   environmentName: "env-metadata-test"
   description: "description from inventory"
   owners: "owner from inventory"
