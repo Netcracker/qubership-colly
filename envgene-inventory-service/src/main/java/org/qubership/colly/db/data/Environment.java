@@ -35,6 +35,7 @@ public class Environment {
     private List<String> effectiveAccessGroups;
     private List<Namespace> namespaces;
     private List<Paramset> paramsets;
+    private boolean sspStandalone;
 
 
     public Environment(String id, String name) {

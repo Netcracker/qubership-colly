@@ -102,5 +102,11 @@ public record EnvironmentDto(
                 examples = "[\"developers\", \"qa-team\", \"admins\"]",
                 nullable = true
         )
-        List<String> effectiveAccessGroups) {
+        List<String> effectiveAccessGroups,
+
+        @Schema(
+                description = "SSP status of the environment",
+                nullable = true
+        )
+        boolean sspStandalone) {
 }

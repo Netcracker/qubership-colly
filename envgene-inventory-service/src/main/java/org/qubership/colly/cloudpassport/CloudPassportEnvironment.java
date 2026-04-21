@@ -18,5 +18,6 @@ public record CloudPassportEnvironment(String name,
                                        String role,
                                        List<String> accessGroups,
                                        List<String> effectiveAccessGroups,
-                                       List<Paramset> paramsets) {
+                                       List<Paramset> paramsets,
+                                       boolean sspStandalone) {
 }

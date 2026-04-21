@@ -31,7 +31,8 @@ public class DtoMapper {
                 environment.getType(),
                 environment.getRole(),
                 environment.getAccessGroups(),
-                environment.getEffectiveAccessGroups()
+                environment.getEffectiveAccessGroups(),
+                environment.isSspStandalone()
         );
     }
 

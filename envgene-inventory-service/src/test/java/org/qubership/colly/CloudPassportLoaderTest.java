@@ -53,7 +53,8 @@ class CloudPassportLoaderTest {
                             null,
                             List.of(),
                             List.of(),
-                            List.of(new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value")))),
+                            List.of(new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value"))),
+                            false),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
@@ -76,7 +77,8 @@ class CloudPassportLoaderTest {
                                     new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_RUNTIME_PARAMETER", "some value")),
                                     new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_PIPELINE_PARAMETER", "some value2")),
                                     new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_PIPELINE_PARAMETER", "some value"))
-                            ))),
+                            ),
+                            true)),
             "http://localhost:8428",
             new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),
                     "target/test-cloud-passport-folder/1", "1"),
@@ -103,7 +105,8 @@ class CloudPassportLoaderTest {
                     null,
                     List.of(),
                     List.of(),
-                    List.of())),
+                    List.of(),
+                    false)),
             "https://vmsingle-victoria.unreachable.url",
             new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/2", "2"),
             null,
@@ -160,7 +163,7 @@ class CloudPassportLoaderTest {
                 "some_token_for_cluster_with_invalid_envs",
                 "https://42.gr7.eu-west-1.eks.amazonaws.com:443",
                 "gr7.eu-west-1.eks.amazonaws.com",
-                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of())),
+                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false)),
                 "http://localhost:8428",
                 new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn"),
                         "target/test-cloud-passport-folder/1", "1"),
@@ -173,6 +176,25 @@ class CloudPassportLoaderTest {
         )));
     }
 
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void ssp_standalone_is_read_from_metadata() {
+        Project project = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")), List.of(), ClusterPlatform.K8S,
+                new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")), List.of(), null, null, null);
+
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+
+        Map<String, Boolean> sspByEnv = result.stream()
+                .flatMap(cp -> cp.environments().stream())
+                .collect(java.util.stream.Collectors.toMap(
+                        CloudPassportEnvironment::name,
+                        CloudPassportEnvironment::sspStandalone));
+
+        assertTrue(sspByEnv.get("env-metadata-test"), "env-metadata-test should have sspStandalone=true");
+        assertFalse(sspByEnv.get("env-test"), "env-test should have sspStandalone=false when absent from metadata");
+    }
 
     @Test
     void test_read_cloud_passport_data(@TempDir Path tempDir) throws IOException {

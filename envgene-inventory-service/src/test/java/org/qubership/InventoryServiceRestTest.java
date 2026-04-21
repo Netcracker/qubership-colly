@@ -226,6 +226,8 @@ class InventoryServiceRestTest {
                                 hasEntry("description", "some env for tests")
                         )
                 ))
+                .body("find { it.name == 'env-metadata-test' }.sspStandalone", equalTo(true))
+                .body("find { it.name == 'env-test' }.sspStandalone", equalTo(false))
                 .body("find { it.name == 'env-metadata-test' }.teams", contains("team-from-metadata"))
                 .body("find { it.name == 'env-metadata-test' }.owners", contains("owner from metadata"));
     }
@@ -251,6 +253,7 @@ class InventoryServiceRestTest {
                 .body("labels", contains("label1", "label2"))
                 .body("accessGroups", contains("group1", "group2"))
                 .body("effectiveAccessGroups", contains("group1", "group2", "group3"))
+                .body("sspStandalone", equalTo(true))
                 .body("namespaces", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "test-ns"),
