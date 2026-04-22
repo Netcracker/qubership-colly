@@ -8,8 +8,14 @@ colly:
     image: ghcr.io/netcracker/envgene-inventory-service:latest
     serviceName: envgene-inventory-service
     projectRepoUrl:
-    gitToken: fff
-    cronSchedule: 0 0/1 * * * ?
+    projectRepoGitToken: fff
+    gitTokens: [ ]
+    # gitTokens:
+    #   - region: cn
+    #     token: ghp_token_for_cn
+    #   - region: mb
+    #     token: ghp_token_for_mb
+    cronSchedule: 0 0/2 * * * ?
     cloudCoreSupport: false
     idp:
       url:
