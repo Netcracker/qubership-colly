@@ -17,7 +17,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusComponentTest
-@TestConfigProperty(key = "colly.eis.git.token", value = "test-token")
+@TestConfigProperty(key = "colly.eis.project.repo.git.token", value = "test-token")
+@TestConfigProperty(key = "colly.eis.git.tokens.cn", value = "token-for-cn")
+@TestConfigProperty(key = "colly.eis.git.tokens.mb", value = "token-for-mb")
 class GitServiceTest {
 
     @Inject
@@ -145,6 +147,52 @@ class GitServiceTest {
 
         assertDoesNotThrow(() ->
                 gitService.commitAndPush(localRepo.toFile(), "commit via default token"));
+    }
+
+    @Test
+    void resolveToken_shouldReturnExplicitTokenWhenProvided() {
+        String result = gitService.resolveToken("my-explicit-token", null);
+        assertEquals("my-explicit-token", result);
+    }
+
+    @Test
+    void resolveToken_shouldReturnExplicitTokenWhenBothProvided() {
+        String result = gitService.resolveToken("my-explicit-token", "cn");
+        assertEquals("my-explicit-token", result);
+    }
+
+    @Test
+    void resolveToken_shouldReturnRegionalTokenWhenNoExplicitToken() {
+        String result = gitService.resolveToken(null, "cn");
+        assertEquals("token-for-cn", result);
+    }
+
+    @Test
+    void resolveToken_shouldReturnRegionalTokenForDifferentRegion() {
+        String result = gitService.resolveToken("", "mb");
+        assertEquals("token-for-mb", result);
+    }
+
+    @Test
+    void resolveToken_shouldThrowWhenNoTokenAndNoRegion() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> gitService.resolveToken(null, null));
+        assertTrue(ex.getMessage().contains("no explicit token and no region provided"));
+    }
+
+    @Test
+    void resolveToken_shouldThrowWhenNoTokenAndBlankRegion() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> gitService.resolveToken("", ""));
+        assertTrue(ex.getMessage().contains("no explicit token and no region provided"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.git.tokens.cn", value = "token-for-cn")
+    void resolveToken_shouldThrowWhenRegionNotConfigured() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> gitService.resolveToken(null, "unknown-region"));
+        assertTrue(ex.getMessage().contains("no token configured for region: unknown-region"));
     }
 
     @Test
