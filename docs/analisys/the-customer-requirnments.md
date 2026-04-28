@@ -483,5 +483,6 @@ This is not the full list of attributes for these objects, but only those that w
 - [ ] Make `repositories.url` `repositories.token` optional
 - [ ] move `region` from env to cluster. RO. Get from Cloud Passport
 - [ ] change enum env `status` - `PLANNED`, `PROVISION_FAILED`, `CREATED`
+- [ ] move `accessGroups`, `effectiveAccessGroups` and to security
 <!-- - [ ] Add `cmApproach` to env **P4**
 - [ ] Add `defaultCmApproach` to project **P4** -->

@@ -3,6 +3,7 @@
 - [Mapping of Colly attributes to EnvGene attributes](#mapping-of-colly-attributes-to-envgene-attributes)
   - [Description](#description)
   - [Mapping table](#mapping-table)
+    - [`cluster-metadata.yml` example](#cluster-metadatayml-example)
     - [`env_definition.yml` example](#env_definitionyml-example)
   - [To Discuss](#to-discuss)
   - [To Implement](#to-implement)
@@ -15,8 +16,7 @@ This document details how Colly attributes are persisted within the EnvGene Inst
 
 | Colly Object | Colly Attribute         | Attribute Type in Colly                                                                           | EnvGene Repository | Location in EnvGene                             | Description                                                                                                 |
 |--------------|-------------------------|---------------------------------------------------------------------------------------------------|--------------------|-------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| Environment  | `id`                    | string                                                                                            | instance           | `env_definition.metadata.id`                    | Unique identifier of the Environment in Colly and EnvGene, matches the name                                 |
-| Environment  | `name`                  | string                                                                                            | instance           | `env_definition.metadata.name`                  | Environment name; same as the identifier                                                                    |
+| Environment  | `name`                  | string                                                                                            | instance           | folder name in <cluster-name>/<env-name>        | Environment name                                                                                            |
 | Environment  | `owners`                | array of string                                                                                   | instance           | `env_definition.metadata.owners`                | Users responsible for the environment (Owners in Colly)                                                     |
 | Environment  | `teams`                 | array of string                                                                                   | instance           | `env_definition.metadata.teams`                 | List of teams assigned to the environment                                                                   |
 | Environment  | `status`                | enum [`IN_USE`, `RESERVED`, `FREE`, `MIGRATING`, `DEPRECATED`]                                    | instance           | `env_definition.metadata.status`                | Current status of the environment: in use, free, reserved, etc                                              |
@@ -25,16 +25,35 @@ This document details how Colly attributes are persisted within the EnvGene Inst
 | Environment  | `role`                  | string (the list of allowed values is set via deployment parameter)                               | instance           | `env_definition.metadata.role`                  | Usage role of the environment (e.g. Dev, QA), set by parameters                                             |
 | Environment  | `labels`                | array of string                                                                                   | instance           | `env_definition.metadata.labels`                | User-defined labels/tags for the environment                                                                |
 | Environment  | `description`           | string                                                                                            | instance           | `env_definition.metadata.description`           | Free-form environment description                                                                           |
-| Environment  | `region`                | string                                                                                            | instance           | `env_definition.metadata.region`                | Geographical region associated with the environment; set by the user                                        |
-| Environment  | `accessGroups`          | array of string                                                                                   | instance           | `env_definition.metadata.accessGroups`          | List of user groups that can work with the environment                                                      |
-| Environment  | `effectiveAccessGroups` | array of string                                                                                   | instance           | `env_definition.metadata.effectiveAccessGroups` | Resolved full list of user groups (contains groups and their descendants). resolved based on `accessGroups` |
-| Cluster      | `name`                  | string                                                                                            | TBD                | TBD                                             | Name / Identifier of the cluster (cluster name), unique within the instance context                         |
-| Cluster      | `id`                    | string                                                                                            | TBD                | TBD                                             | Unique identifier of the cluster (same as name); retained for compatibility                                 |
-| Cluster      | `description`           | string                                                                                            | TBD                | TBD                                             | Free-form cluster description                                                                               |
+| Environment  | `accessGroups`          | array of string                                                                                   | instance           | `env_definition.security.accessGroups`          | List of user groups that can work with the environment                                                      |
+| Environment  | `effectiveAccessGroups` | array of string                                                                                   | instance           | `env_definition.security.effectiveAccessGroups` | Resolved full list of user groups (contains groups and their descendants). resolved based on `accessGroups` |
+| Cluster      | `name`                  | string                                                                                            | instance           | folder name in <cluster-name>/<env-name>        | Cluster name                                                                                                |
+| Cluster      | `description`           | string                                                                                            | instance           | `cluster-metadata.metadata.description`         | Free-form cluster description                                                                               |
+| Cluster      | `roAdGroups`            | string                                                                                            | instance           | `cluster-metadata.metadata.roAdGroups`          | List of ro names and AD user groups under which all clusters of all projects will be managed                |
+| Cluster      | `rwAdGroups`            | string                                                                                            | instance           | `cluster-metadata.metadata.rwAdGroups`          | List of rw names and AD user groups under which all clusters of all projects will be managed                |
+| Cluster      | `owners`                | string                                                                                            | instance           | `cluster-metadata.metadata.owners`              | List of owners of the cluster                                                                               |
+
+Colly should support definition of owners names and groups for RW/RO access to clusters on project level in project git repository (same way as on global level) and accordingly provide it in project response. Current process of SaaS clusters provision consider both SaaS and project members to be mentioned in PaaS Zero Touch pipeline. New attributes are required for SSP to fit into existing flow with Provision Empty Cluster operation.
+
+### `cluster-metadata.yml` example
+
+location: `/environments/<cluster-name>/cloud-passport/`
+
+```yaml
+metadata:
+  # Optional
+  description: string
+  # Optional
+  # groups for RW/RO access to clusters
+  roAdGroups: list of strings
+  rwAdGroups: list of strings
+  owners: list of strings
+```
 
 ### `env_definition.yml` example
 
 ```yaml
+security: TBD
 metadata:
   owners:
     - "user1"
