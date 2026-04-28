@@ -7,7 +7,6 @@ public class Inventory {
     private String environmentName;
     private String description;
     private String owners;
-    private InventoryMetadata metadata;
 
     public String getEnvironmentName() {
         return environmentName;
@@ -31,13 +30,5 @@ public class Inventory {
 
     public void setOwners(String owners) {
         this.owners = owners;
-    }
-
-    public InventoryMetadata getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(InventoryMetadata metadata) {
-        this.metadata = metadata;
     }
 }

@@ -82,16 +82,16 @@ class UpdateEnvironmentServiceTest {
         Path path = Paths.get(testCluster.getGitInfo().folderName() + "/gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
-        assertEquals("new description", envDefinition.inventory().getMetadata().description());
+        assertEquals("new description", envDefinition.metadata().description());
         assertNull(envDefinition.inventory().getDescription());
-        assertThat(envDefinition.inventory().getMetadata().owners(), contains("new owner"));
-        assertThat(envDefinition.inventory().getMetadata().teams(), contains("new test-team"));
+        assertThat(envDefinition.metadata().owners(), contains("new owner"));
+        assertThat(envDefinition.metadata().teams(), contains("new test-team"));
         assertNull(envDefinition.inventory().getOwners());
-        assertThat(envDefinition.inventory().getMetadata().labels(), contains("ci", "dev"));
-        assertEquals("DESIGN_TIME", envDefinition.inventory().getMetadata().type());
-        assertEquals("Dev", envDefinition.inventory().getMetadata().role());
-        assertThat(envDefinition.inventory().getMetadata().status(), is("IN_USE"));
-        assertThat(envDefinition.inventory().getMetadata().expirationDate(), is("2025-12-31"));
+        assertThat(envDefinition.metadata().labels(), contains("ci", "dev"));
+        assertEquals("DESIGN_TIME", envDefinition.metadata().type());
+        assertEquals("Dev", envDefinition.metadata().role());
+        assertThat(envDefinition.metadata().status(), is("IN_USE"));
+        assertThat(envDefinition.metadata().expirationDate(), is("2025-12-31"));
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
     }
 
