@@ -83,10 +83,10 @@ class UpdateEnvironmentServiceTest {
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
         assertEquals("new description", envDefinition.metadata().description());
-        assertNull(envDefinition.inventory().getDescription());
+        assertNull(envDefinition.inventory().description());
         assertThat(envDefinition.metadata().owners(), contains("new owner"));
         assertThat(envDefinition.metadata().teams(), contains("new test-team"));
-        assertNull(envDefinition.inventory().getOwners());
+        assertNull(envDefinition.inventory().owners());
         assertThat(envDefinition.metadata().labels(), contains("ci", "dev"));
         assertEquals("DESIGN_TIME", envDefinition.metadata().type());
         assertEquals("Dev", envDefinition.metadata().role());

@@ -203,10 +203,10 @@ public class CloudPassportLoader {
             }
             EnvDefinitionMetadata envDefinitionMetadata = envDefinition.metadata();
             String description = envDefinitionMetadata == null || envDefinitionMetadata.description() == null
-                    ? inventory.getDescription()
+                    ? inventory.description()
                     : envDefinitionMetadata.description();
             List<String> owners = envDefinitionMetadata == null || envDefinitionMetadata.owners() == null
-                    ? inventory.getOwners() == null ? List.of() : List.of(inventory.getOwners())
+                    ? inventory.owners() == null ? List.of() : List.of(inventory.owners())
                     : envDefinitionMetadata.owners();
             List<String> labels = envDefinitionMetadata == null || envDefinitionMetadata.labels() == null
                     ? List.of()
@@ -234,7 +234,7 @@ public class CloudPassportLoader {
                     : envDefinitionMetadata.effectiveAccessGroups();
             boolean sspStandalone = envDefinitionMetadata != null && Boolean.TRUE.equals(envDefinitionMetadata.sspStandalone());
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
+            return new CloudPassportEnvironment(inventory.environmentName(), description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
                     accessGroups, effectiveAccessGroups, paramsets, sspStandalone);
         } catch (IOException e) {
