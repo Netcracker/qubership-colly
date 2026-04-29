@@ -81,7 +81,7 @@ customerName: string
 name: string
 # Mandatory
 # Type of the project
-type: enum[ project, product ]
+type: enum[ project, product]
 # Optional
 # List of groups with RW access rights to objects of this project
 accessGroups:
