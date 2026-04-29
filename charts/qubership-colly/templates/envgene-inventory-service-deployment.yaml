@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       annotations:
-        app.quarkus.io/quarkus-version: 3.18.2
+        app.quarkus.io/quarkus-version: 3.27.2
       labels:
         name: {{ .Values.colly.envgeneInventoryService.serviceName }}
         app.kubernetes.io/name: {{ .Values.colly.envgeneInventoryService.serviceName }}
@@ -50,11 +50,18 @@ spec:
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: COLLY_EIS_PROJECT_REPO_URL
               value: {{ .Values.colly.envgeneInventoryService.projectRepoUrl }}
-            - name: COLLY_EIS_GIT_TOKEN
+            - name: COLLY_EIS_PROJECT_REPO_GIT_TOKEN
               valueFrom:
                 secretKeyRef:
-                  key: gitToken
+                  key: projectRepoGitToken
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
+            {{- range .Values.colly.envgeneInventoryService.gitTokens }}
+            - name: COLLY_EIS_GIT_TOKENS_{{ .region | upper }}
+              valueFrom:
+                secretKeyRef:
+                  key: gitToken-{{ .region }}
+                  name: {{ $.Values.colly.envgeneInventoryService.serviceName }}-secret
+            {{- end }}
             - name: COLLY_EIS_CRON_SCHEDULE
               value: {{ .Values.colly.envgeneInventoryService.cronSchedule }}
             - name: QUARKUS_OIDC_AUTH_SERVER_URL
@@ -78,3 +85,21 @@ spec:
             - containerPort: {{ .Values.colly.envgeneInventoryService.ports.http }}
               name: web
               protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: {{ .Values.colly.envgeneInventoryService.ports.http }}
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: {{ .Values.colly.envgeneInventoryService.ports.http }}
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3

@@ -55,7 +55,7 @@ clusters:
 | `repositories`    | Array         | Yes      | List of repository configurations (instance repos, pipelines, template repo) |
 | `accessGroups`    | Array[String] | No       | List of access group names for role-based access control                     |
 | `mavenRepoName`   | String        | No       | Name of the Maven repository associated with the project                     |
-| `gitGroupUrl`     | String        | No       | URL of the Git group containing project repositories                         |
+| `gitGroupUrls`    | Array         | No       | List of Git group URL entries (each with `region` and `url`)                 |
 
 ### Repository Types
 
@@ -113,7 +113,11 @@ name: saturn
 type: product
 clusterPlatform: ocp
 mavenRepoName: saturn-maven-repo
-gitGroupUrl: https://github.com/example/saturn-group
+gitGroupUrls:
+  - region: mb
+    url: https://github.com/example/saturn-group-mb
+  - region: cn
+    url: https://github.com/example/saturn-group-cn
 accessGroups:
   - saturn-admins
   - saturn-developers
@@ -144,7 +148,11 @@ name: earth
 type: project
 clusterPlatform: k8s
 mavenRepoName: earth-maven-repo
-gitGroupUrl: https://github.com/example/earth-group
+gitGroupUrls:
+  - region: cn
+    url: https://github.com/example/earth-group-cn
+  - region: eu-west-1
+    url: https://github.com/example/earth-group-eu
 accessGroups:
   - earth-team
 repositories:

@@ -15,23 +15,24 @@ The Qubership Colly Helm chart provides a complete deployment solution for Kuber
 
 ### Envgene Inventory Service (`colly.envgeneInventoryService`)
 
-| Parameter                  | Description                                     | Default                                               |
-|----------------------------|-------------------------------------------------|-------------------------------------------------------|
-| `image`                    | Container image                                 | `ghcr.io/netcracker/envgene-inventory-service:latest` |
-| `serviceName`              | Service name                                    | `envgene-inventory-service`                           |
-| `projectRepoUrl`           | Git URL of the project configuration repository | -                                                     |
-| `gitToken`                 | Git token for accessing the project repository  | -                                                     |
-| `cronSchedule`             | Synchronization schedule (cron)                 | `0 0/2 * * * ?`                                       |
-| `cloudCoreSupport`         | Enable Cloud Core integration                   | `false`                                               |
-| `idp.url`                  | OIDC auth server URL                            | -                                                     |
-| `idp.clientId`             | OIDC client ID                                  | `envgene-inventory-service`                           |
-| `idp.clientSecret`         | OIDC client secret                              | -                                                     |
-| `redis.hosts`              | Redis connection URL                            | `redis://redis-master.redis:6379`                     |
-| `redis.username`           | Redis username                                  | -                                                     |
-| `redis.password`           | Redis password                                  | -                                                     |
-| `ports.http`               | HTTP port                                       | `8080`                                                |
-| `ingress.className`        | Ingress class name                              | `alb`                                                 |
-| `ingress.http.annotations` | Ingress annotations map                         | ALB internet-facing annotations                       |
+| Parameter                  | Description                                                                                               | Default                                               |
+|----------------------------|-----------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| `image`                    | Container image                                                                                           | `ghcr.io/netcracker/envgene-inventory-service:latest` |
+| `serviceName`              | Service name                                                                                              | `envgene-inventory-service`                           |
+| `projectRepoUrl`           | Git URL of the project configuration repository                                                           | -                                                     |
+| `projectRepoGitToken`      | Git token for cloning the project repository (see [Git Token Configuration](#git-token-configuration))    | -                                                     |
+| `gitTokens`                | Per-region Git tokens for instance repositories (see [Git Token Configuration](#git-token-configuration)) | `[]`                                                  |
+| `cronSchedule`             | Synchronization schedule (cron)                                                                           | `0 0/2 * * * ?`                                       |
+| `cloudCoreSupport`         | Enable Cloud Core integration                                                                             | `false`                                               |
+| `idp.url`                  | OIDC auth server URL                                                                                      | -                                                     |
+| `idp.clientId`             | OIDC client ID                                                                                            | `envgene-inventory-service`                           |
+| `idp.clientSecret`         | OIDC client secret                                                                                        | -                                                     |
+| `redis.hosts`              | Redis connection URL                                                                                      | `redis://redis-master.redis:6379`                     |
+| `redis.username`           | Redis username                                                                                            | -                                                     |
+| `redis.password`           | Redis password                                                                                            | -                                                     |
+| `ports.http`               | HTTP port                                                                                                 | `8080`                                                |
+| `ingress.className`        | Ingress class name                                                                                        | `alb`                                                 |
+| `ingress.http.annotations` | Ingress annotations map                                                                                   | ALB internet-facing annotations                       |
 
 ### Environment Operational Service (`colly.environmentOperationalService`)
 
@@ -77,7 +78,9 @@ helm install qubership-colly ./charts/qubership-colly \
   --set NAMESPACE=colly-prod \
   --set CLOUD_PUBLIC_HOST=apps.company.com \
   --set colly.envgeneInventoryService.projectRepoUrl=https://github.com/company/project-configs.git \
-  --set colly.envgeneInventoryService.gitToken=ghp_yourtoken \
+  --set colly.envgeneInventoryService.projectRepoGitToken=ghp_yourtoken \
+  --set "colly.envgeneInventoryService.gitTokens[0].region=cn" \
+  --set "colly.envgeneInventoryService.gitTokens[0].token=ghp_cn_token" \
   --set colly.envgeneInventoryService.idp.url=https://auth.company.com/realms/colly \
   --set colly.envgeneInventoryService.idp.clientSecret=secret \
   --set colly.environmentOperationalService.idp.url=https://auth.company.com/realms/colly \
@@ -95,7 +98,12 @@ colly:
   envgeneInventoryService:
     image: ghcr.io/netcracker/envgene-inventory-service:v1.0.0
     projectRepoUrl: https://github.com/company/project-configs.git
-    gitToken: ghp_yourtoken
+    projectRepoGitToken: ghp_yourtoken
+    gitTokens:
+      - region: cn
+        token: ghp_cn_token
+      - region: mb
+        token: ghp_mb_token
     cronSchedule: "0 0/5 * * * ?"
     idp:
       url: https://auth.company.com/realms/colly
@@ -184,7 +192,10 @@ helm uninstall qubership-colly
     - Verify repository URL and credentials
     - Check network egress policies
     - Ensure proper authentication tokens
-    - Check `COLLY_EIS_GIT_TOKEN` is set correctly
+   - For project repository: check `COLLY_EIS_PROJECT_REPO_GIT_TOKEN` is set correctly
+   - For instance repositories: check that either an explicit `token` is set in `parameters.yaml` or
+     `COLLY_EIS_GIT_TOKENS_<REGION>` is configured for the repository's region (
+     see [Git Token Configuration](#git-token-configuration))
 
 4. **Redis Connection Issues**
     - Verify Redis is running and accessible
@@ -259,17 +270,18 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 
 #### Inventory Service
 
-| Variable                                   | Description                                                   | Default            |
-|--------------------------------------------|---------------------------------------------------------------|--------------------|
-| `COLLY_EIS_PROJECT_REPO_URL`               | Git repository URL for project configurations (see [Project Configuration Guide](PROJECT_CONFIGURATION.md)) | -                  |
-| `COLLY_EIS_PROJECT_REPO_FOLDER`            | Local folder for cloned project repository                    | `./project-git`    |
-| `COLLY_EIS_CLOUD_PASSPORT_FOLDER`          | Local folder for cloned Cloud Passport repositories           | `./git-repo`       |
-| `COLLY_EIS_GIT_TOKEN`                      | Git token for private repository access                       | -                  |
-| `COLLY_EIS_CRON_SCHEDULE`                  | Synchronization schedule for inventory data                   | `0 * * * * ?`      |
-| `QUARKUS_OIDC_AUTH_SERVER_URL`             | OIDC provider URL (e.g., Keycloak realm URL)                  | -                  |
-| `QUARKUS_OIDC_CLIENT_ID`                   | OIDC client ID                                                | `colly-envgene-inventory-service` |
-| `QUARKUS_OIDC_CREDENTIALS_SECRET`          | OIDC client secret                                            | -                  |
-| `QUARKUS_REDIS_HOSTS`                      | Redis connection URL                                          | `redis://localhost:6379` |
+| Variable                           | Description                                                                                                                                                                                                   | Default                           |
+|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------|
+| `COLLY_EIS_PROJECT_REPO_URL`       | Git repository URL for project configurations (see [Project Configuration Guide](PROJECT_CONFIGURATION.md))                                                                                                   | -                                 |
+| `COLLY_EIS_PROJECT_REPO_FOLDER`    | Local folder for cloned project repository                                                                                                                                                                    | `./project-git`                   |
+| `COLLY_EIS_CLOUD_PASSPORT_FOLDER`  | Local folder for cloned Cloud Passport repositories                                                                                                                                                           | `./git-repo`                      |
+| `COLLY_EIS_PROJECT_REPO_GIT_TOKEN` | Git token for cloning the project repository                                                                                                                                                                  | -                                 |
+| `COLLY_EIS_GIT_TOKENS_<REGION>`    | Git token for the given region (e.g. `COLLY_EIS_GIT_TOKENS_CN`). Used to clone instance repositories when no explicit token is set on the repository. See [Git Token Configuration](#git-token-configuration) | -                                 |
+| `COLLY_EIS_CRON_SCHEDULE`          | Synchronization schedule for inventory data                                                                                                                                                                   | `0 * * * * ?`                     |
+| `QUARKUS_OIDC_AUTH_SERVER_URL`     | OIDC provider URL (e.g., Keycloak realm URL)                                                                                                                                                                  | -                                 |
+| `QUARKUS_OIDC_CLIENT_ID`           | OIDC client ID                                                                                                                                                                                                | `colly-envgene-inventory-service` |
+| `QUARKUS_OIDC_CREDENTIALS_SECRET`  | OIDC client secret                                                                                                                                                                                            | -                                 |
+| `QUARKUS_REDIS_HOSTS`              | Redis connection URL                                                                                                                                                                                          | `redis://localhost:6379`          |
 
 #### Operational Service
 
@@ -300,6 +312,70 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 | `QUARKUS_OIDC_CLIENT_ID`                        | OIDC client ID                           | `ui-service`                   |
 | `QUARKUS_OIDC_CREDENTIALS_SECRET`               | OIDC client secret                       | -                              |
 
+## Git Token Configuration
+
+Inventory service uses two types of Git tokens:
+
+### Project Repository Token
+
+Used exclusively to clone the **project Git repository** (the repo containing `parameters.yaml` files that define
+projects and their instance repositories).
+
+| Configuration        | Value                                               |
+|----------------------|-----------------------------------------------------|
+| Helm parameter       | `colly.envgeneInventoryService.projectRepoGitToken` |
+| Environment variable | `COLLY_EIS_PROJECT_REPO_GIT_TOKEN`                  |
+| Application property | `colly.eis.project.repo.git.token`                  |
+
+### Per-Region Instance Repository Tokens
+
+Used when cloning **instance repositories** (Cloud Passport repositories listed in `parameters.yaml`). The token is
+resolved in this order:
+
+1. If `token` is explicitly set on the repository in `parameters.yaml` — use it.
+2. If `token` is not set but `region` is — look up the token configured for that region.
+3. If neither `token` nor `region` is set — the service fails with an error during sync.
+
+**Helm configuration:**
+
+```yaml
+colly:
+  envgeneInventoryService:
+    gitTokens:
+      - region: cn
+        token: ghp_token_for_cn_region
+      - region: mb
+        token: ghp_token_for_mb_region
+```
+
+**Environment variables (alternative to Helm):**
+
+```bash
+COLLY_EIS_GIT_TOKENS_CN=ghp_token_for_cn_region
+COLLY_EIS_GIT_TOKENS_MB=ghp_token_for_mb_region
+```
+
+**Example `parameters.yaml` showing all cases:**
+
+```yaml
+repositories:
+  # Explicit token — region token is not used
+  - type: envgeneInstance
+    url: https://gitlab.com/my-org/repo-with-token.git
+    branch: main
+    token: ghp_explicit_token
+
+  # No token, region set — uses COLLY_EIS_GIT_TOKENS_CN
+  - type: envgeneInstance
+    url: https://gitlab.cn/my-org/cn-repo.git
+    branch: main
+    region: cn
+
+  # No token, no region — sync will fail for this repository
+  - type: envgeneInstance
+    url: https://gitlab.com/my-org/broken-repo.git
+    branch: main
+```
 
 ## Docker Compose Configuration
 

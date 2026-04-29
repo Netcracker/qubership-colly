@@ -79,9 +79,8 @@ public record ProjectDto(
         )
         String mavenRepoName,
         @Schema(
-                description = "URL of the git group for the project",
-                examples = "https://gitlab.com/my-project-git-group",
+                description = "List of git group URLs for the project, each with a region and URL",
                 nullable = true
         )
-        String gitGroupUrl) {
+        List<GitGroupUrlDto> gitGroupUrls) {
 }

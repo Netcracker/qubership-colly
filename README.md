@@ -27,7 +27,7 @@ The main interface displays environments in a comprehensive table with the follo
 - **Name** - Environment name from Cloud Passport configuration
 - **Type** - Environment type (ENVIRONMENT, CSE_TOOLSET, DESIGN_TIME, APP_DEPLOYER, INFRASTRUCTURE, PORTAL, UNDEFINED) - editable by admins
 - **Namespace(s)** - Associated Kubernetes namespaces (color-coded: red if namespace doesn't exist in K8s)
-- **Region** - Geographic region or deployment region for the environment (from project configuration)
+- **Region** - Geographic region or deployment region for the cluster (from the cloud passport)
 - **Cluster** - Source cluster name
 - **Owner(s)** - List of environment owners (editable by admins)
 - **Team(s)** - List of associated teams (editable by admins)
@@ -137,7 +137,7 @@ helm repo update
 # Install with basic configuration
 helm install qubership-colly ./charts/qubership-colly \
   --set colly.envgeneInventoryService.projectRepoUrl=https://github.com/your-org/project-configs.git \
-  --set colly.envgeneInventoryService.gitToken=<GIT_TOKEN> \
+  --set colly.envgeneInventoryService.projectRepoGitToken=<PROJECT_REPO_GIT_TOKEN> \
   --set colly.envgeneInventoryService.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm \
   --set colly.envgeneInventoryService.idp.clientSecret=<CLIENT_SECRET> \
   --set colly.environmentOperationalService.idp.url=http://<KEYCLOAK_HOST>:<PORT>/realms/colly-realm \

@@ -91,13 +91,6 @@ public record EnvironmentDto(
         String role,
 
         @Schema(
-                description = "Geographic region or datacenter location",
-                examples = "us-east-1",
-                nullable = true
-        )
-        String region,
-
-        @Schema(
                 description = "List of access groups directly assigned to this environment",
                 examples = "[\"developers\", \"qa-team\"]",
                 nullable = true
@@ -109,5 +102,11 @@ public record EnvironmentDto(
                 examples = "[\"developers\", \"qa-team\", \"admins\"]",
                 nullable = true
         )
-        List<String> effectiveAccessGroups) {
+        List<String> effectiveAccessGroups,
+
+        @Schema(
+                description = "SSP status of the environment",
+                nullable = true
+        )
+        boolean sspStandalone) {
 }

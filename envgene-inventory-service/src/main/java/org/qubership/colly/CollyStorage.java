@@ -20,6 +20,7 @@ import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class CollyStorage {
@@ -51,11 +52,29 @@ public class CollyStorage {
     void syncAll() {
         Log.info("Task for loading data from git has started");
         List<Project> projects = projectRepoLoader.loadProjects();
+        removeDeletedProjects(projects);
         projects.forEach(projectRepository::persist);
         Log.info("Projects loaded: " + projects.size());
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
         Log.info("Cloud passports loaded: " + cloudPassports.size());
         cloudPassports.forEach(this::saveDataToCache);
+    }
+
+    private void removeDeletedProjects(List<Project> currentProjects) {
+        Set<String> currentProjectIds = currentProjects.stream()
+                .map(Project::id)
+                .collect(Collectors.toSet());
+        projectRepository.listAll().stream()
+                .filter(cached -> !currentProjectIds.contains(cached.id()))
+                .forEach(deleted -> {
+                    Log.infof("Project %s no longer exists in git - removing from cache", deleted.name());
+                    clusterRepository.findByProjectId(deleted.id()).forEach(cluster -> {
+                        environmentRepository.findByClusterId(cluster.getId())
+                                .forEach(env -> environmentRepository.deleteById(env.getId()));
+                        clusterRepository.deleteById(cluster.getId());
+                    });
+                    projectRepository.deleteById(deleted.id());
+                });
     }
 
     void syncProject(String projectId) {
@@ -84,6 +103,7 @@ public class CollyStorage {
         cluster.setDeployerUrl(cloudPassport.deployerUrl());
         cluster.setArgoUrl(cloudPassport.argoUrl());
         cluster.setAchkaUrl(cloudPassport.achkaUrl());
+        cluster.setRegion(cloudPassport.region());
 
         // Persist cluster first to ensure it has an ID
         clusterRepository.persist(cluster);
@@ -94,7 +114,7 @@ public class CollyStorage {
         // Delete environments that were removed from Git
         Set<String> currentEnvNames = cloudPassport.environments().stream()
                 .map(CloudPassportEnvironment::name)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         environmentRepository.findByClusterId(finalCluster.getId()).stream()
                 .filter(env -> !currentEnvNames.contains(env.getName()))
                 .forEach(env -> {
@@ -131,10 +151,10 @@ public class CollyStorage {
         finalEnvironment.setExpirationDate(cloudPassportEnvironment.expirationDate());
         finalEnvironment.setType(cloudPassportEnvironment.type());
         finalEnvironment.setRole(cloudPassportEnvironment.role());
-        finalEnvironment.setRegion(cloudPassportEnvironment.region());
         finalEnvironment.setAccessGroups(cloudPassportEnvironment.accessGroups());
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
+        finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
 
         Log.infof("Environment %s has been loaded from CloudPassport", finalEnvironment.getName());
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));

@@ -10,15 +10,36 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
+import java.util.Map;
+import java.util.Optional;
 
 @ApplicationScoped
 public class GitService {
 
-    @ConfigProperty(name = "colly.eis.git.token")
-    String gitToken;
+    @ConfigProperty(name = "colly.eis.project.repo.git.token")
+    String projectRepoGitToken;
+
+    @ConfigProperty(name = "colly.eis.git.tokens")
+    Optional<Map<String, String>> gitTokens;
+
+    public String resolveToken(String explicitToken, String region) {
+        if (explicitToken != null && !explicitToken.isBlank()) {
+            return explicitToken;
+        }
+        if (region == null || region.isBlank()) {
+            throw new IllegalStateException(
+                    "Cannot resolve git token: no explicit token and no region provided");
+        }
+        String token = gitTokens.map(m -> m.get(region)).orElse(null);
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException(
+                    "Cannot resolve git token: no token configured for region: " + region);
+        }
+        return token;
+    }
 
     public void cloneRepository(String repositoryUrl, String branch, String token, File destinationPath) {
-        String tokenToUse = token != null && !token.isBlank() ? token : gitToken;
+        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken;
         CredentialsProvider credentialsProvider =
                 new UsernamePasswordCredentialsProvider("", tokenToUse);
 
@@ -51,7 +72,7 @@ public class GitService {
 
     public void commitAndPush(File repositoryPath, String commitMessage, String token, String gitUser, String gitEmail) {
         Log.info("Committing and pushing changes in repository: " + repositoryPath);
-        String tokenToUse = token != null && !token.isBlank() ? token : gitToken;
+        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken;
         try (Git git = Git.open(repositoryPath)) {
             git.add().addFilepattern(".").call();
 
@@ -73,6 +94,6 @@ public class GitService {
     }
 
     public void commitAndPush(File repositoryPath, String commitMessage) {
-        commitAndPush(repositoryPath, commitMessage, gitToken, null, null);
+        commitAndPush(repositoryPath, commitMessage, projectRepoGitToken, null, null);
     }
 }

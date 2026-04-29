@@ -126,23 +126,23 @@ public class UpdateEnvironmentService {
         }
         Log.info("Updating yaml file " + yamlPath);
         yqService.deleteYamlField(yamlPath, ".inventory.description");
-        yqService.updateYamlField(yamlPath, ".inventory.metadata.description", environmentUpdate.getDescription());
+        yqService.updateYamlField(yamlPath, ".metadata.description", environmentUpdate.getDescription());
         Log.info("Updated metadata description to " + environmentUpdate.getDescription());
         yqService.deleteYamlField(yamlPath, ".inventory.owners");
-        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.owners", environmentUpdate.getOwners());
+        yqService.updateYamlArrayField(yamlPath, ".metadata.owners", environmentUpdate.getOwners());
         Log.info("Updated metadata owners to " + environmentUpdate.getOwners());
-        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.labels", environmentUpdate.getLabels());
+        yqService.updateYamlArrayField(yamlPath, ".metadata.labels", environmentUpdate.getLabels());
         Log.info("Updated metadata labels to " + environmentUpdate.getLabels());
-        yqService.updateYamlArrayField(yamlPath, ".inventory.metadata.teams", environmentUpdate.getTeams());
+        yqService.updateYamlArrayField(yamlPath, ".metadata.teams", environmentUpdate.getTeams());
         Log.info("Updated metadata teams to " + environmentUpdate.getTeams());
-        yqService.updateYamlField(yamlPath, ".inventory.metadata.status", environmentUpdate.getStatus().name());
+        yqService.updateYamlField(yamlPath, ".metadata.status", environmentUpdate.getStatus().name());
         Log.info("Updated status to " + environmentUpdate.getStatus().name());
-        yqService.updateYamlField(yamlPath, ".inventory.metadata.expirationDate",
+        yqService.updateYamlField(yamlPath, ".metadata.expirationDate",
                 environmentUpdate.getExpirationDate() == null ? null : environmentUpdate.getExpirationDate().toString());
         Log.info("Updated expirationDate to " + environmentUpdate.getExpirationDate());
-        yqService.updateYamlField(yamlPath, ".inventory.metadata.type", environmentUpdate.getType().name());
+        yqService.updateYamlField(yamlPath, ".metadata.type", environmentUpdate.getType().name());
         Log.info("Updated type to " + environmentUpdate.getType().name());
-        yqService.updateYamlField(yamlPath, ".inventory.metadata.role", environmentUpdate.getRole());
+        yqService.updateYamlField(yamlPath, ".metadata.role", environmentUpdate.getRole());
         Log.info("Updated role to " + environmentUpdate.getRole());
     }
 }

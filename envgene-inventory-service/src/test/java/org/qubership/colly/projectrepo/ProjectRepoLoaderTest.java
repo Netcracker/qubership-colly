@@ -48,7 +48,8 @@ class ProjectRepoLoaderTest {
             ClusterPlatform.OCP,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
-            List.of("group1", "group2"), CLUSTER_DEFAULTS, "test.repo", "https://gitlab.com/test-group");
+            List.of("group1", "group2"), CLUSTER_DEFAULTS, "test.repo",
+            List.of(new GitGroupUrl("cn", "https://gitlab.com/test-group")));
     public static final Project TEST_PROJECT_2 = new Project(
             "test-project-2",
             "Test Project 2",
@@ -61,7 +62,7 @@ class ProjectRepoLoaderTest {
             ClusterPlatform.K8S,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-0987654", "ci")),
-            List.of(), CLUSTER_DEFAULTS, null, null);
+            List.of(), CLUSTER_DEFAULTS, null, List.of());
     @InjectMock
     GitService gitService;
     @Inject
@@ -132,7 +133,7 @@ class ProjectRepoLoaderTest {
                 List.of(),
                 ClusterPlatform.OCP, null,
                 List.of(),
-                null, null, null);
+                null, null, List.of());
 
         Project project = loader.processProject(parametersFile, projectDir, null);
         assertThat(project, equalTo(expectedResult));
@@ -155,7 +156,7 @@ class ProjectRepoLoaderTest {
         Files.createDirectories(projectDir);
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
-        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"), null, null, null);
+        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"), null, null, List.of());
 
         Project project = loader.processProject(parametersFile, projectDir, null);
 
@@ -208,14 +209,18 @@ class ProjectRepoLoaderTest {
     @Test
     @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_parse_yaml_with_git_group_url(@TempDir Path tempDir) throws IOException {
+    void test_parse_yaml_with_git_group_urls(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
                 name: Test Project
                 customerName: Test Customer
                 type: product
                 clusterPlatform: ocp
                 repositories: []
-                gitGroupUrl: https://gitlab.com/my-group
+                gitGroupUrls:
+                  - region: cn
+                    url: https://gitlab.com/my-group
+                  - region: mb
+                    url: https://gitlab.com/my-group-mb
                 """;
 
         Path projectDir = tempDir.resolve("test-project");
@@ -226,13 +231,17 @@ class ProjectRepoLoaderTest {
         Project project = loader.processProject(parametersFile, projectDir, null);
 
         assertNotNull(project);
-        assertThat(project.gitGroupUrl(), equalTo("https://gitlab.com/my-group"));
+        assertThat(project.gitGroupUrls(), hasSize(2));
+        assertThat(project.gitGroupUrls().get(0).region(), equalTo("cn"));
+        assertThat(project.gitGroupUrls().get(0).url(), equalTo("https://gitlab.com/my-group"));
+        assertThat(project.gitGroupUrls().get(1).region(), equalTo("mb"));
+        assertThat(project.gitGroupUrls().get(1).url(), equalTo("https://gitlab.com/my-group-mb"));
     }
 
     @Test
     @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
     @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_parse_yaml_without_git_group_url(@TempDir Path tempDir) throws IOException {
+    void test_parse_yaml_without_git_group_urls(@TempDir Path tempDir) throws IOException {
         String yamlContent = """
                 name: Test Project
                 customerName: Test Customer
@@ -249,7 +258,7 @@ class ProjectRepoLoaderTest {
         Project project = loader.processProject(parametersFile, projectDir, null);
 
         assertNotNull(project);
-        assertThat(project.gitGroupUrl(), nullValue());
+        assertThat(project.gitGroupUrls(), empty());
     }
 
     @Test

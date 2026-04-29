@@ -1,11 +1,12 @@
 package org.qubership.colly.cloudpassport.envgen;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record InventoryMetadata(
+public record EnvDefinitionMetadata(
         String description,
         List<String> owners,
         List<String> labels,
@@ -16,9 +17,11 @@ public record InventoryMetadata(
         String role,
         String region,
         List<String> accessGroups,
-        List<String> effectiveAccessGroups
+        List<String> effectiveAccessGroups,
+        @JsonProperty("ssp_standalone")
+        Boolean sspStandalone
 ) {
-    public InventoryMetadata {
+    public EnvDefinitionMetadata {
         owners = owners == null ? List.of() : owners;
         labels = labels == null ? List.of() : labels;
         teams = teams == null ? List.of() : teams;
