@@ -201,40 +201,40 @@ public class CloudPassportLoader {
             if (inventory == null) {
                 return null;
             }
-            InventoryMetadata inventoryMetadata = inventory.getMetadata();
-            String description = inventoryMetadata == null || inventoryMetadata.description() == null
-                    ? inventory.getDescription()
-                    : inventoryMetadata.description();
-            List<String> owners = inventoryMetadata == null || inventoryMetadata.owners() == null
-                    ? inventory.getOwners() == null ? List.of() : List.of(inventory.getOwners())
-                    : inventoryMetadata.owners();
-            List<String> labels = inventoryMetadata == null || inventoryMetadata.labels() == null
+            EnvDefinitionMetadata envDefinitionMetadata = envDefinition.metadata();
+            String description = envDefinitionMetadata == null || envDefinitionMetadata.description() == null
+                    ? inventory.description()
+                    : envDefinitionMetadata.description();
+            List<String> owners = envDefinitionMetadata == null || envDefinitionMetadata.owners() == null
+                    ? inventory.owners() == null ? List.of() : List.of(inventory.owners())
+                    : envDefinitionMetadata.owners();
+            List<String> labels = envDefinitionMetadata == null || envDefinitionMetadata.labels() == null
                     ? List.of()
-                    : inventoryMetadata.labels();
-            List<String> teams = inventoryMetadata == null || inventoryMetadata.teams() == null
+                    : envDefinitionMetadata.labels();
+            List<String> teams = envDefinitionMetadata == null || envDefinitionMetadata.teams() == null
                     ? List.of()
-                    : inventoryMetadata.teams();
-            EnvironmentStatus environmentStatus = inventoryMetadata == null || inventoryMetadata.status() == null
+                    : envDefinitionMetadata.teams();
+            EnvironmentStatus environmentStatus = envDefinitionMetadata == null || envDefinitionMetadata.status() == null
                     ? EnvironmentStatus.FREE
-                    : EnvironmentStatus.valueOf(inventoryMetadata.status());
-            LocalDate expirationDate = inventoryMetadata == null || inventoryMetadata.expirationDate() == null
+                    : EnvironmentStatus.valueOf(envDefinitionMetadata.status());
+            LocalDate expirationDate = envDefinitionMetadata == null || envDefinitionMetadata.expirationDate() == null
                     ? null
-                    : LocalDate.parse(inventoryMetadata.expirationDate());
-            EnvironmentType type = inventoryMetadata == null || inventoryMetadata.type() == null
+                    : LocalDate.parse(envDefinitionMetadata.expirationDate());
+            EnvironmentType type = envDefinitionMetadata == null || envDefinitionMetadata.type() == null
                     ? EnvironmentType.ENVIRONMENT
-                    : EnvironmentType.valueOf(inventoryMetadata.type());
-            String role = inventoryMetadata == null
+                    : EnvironmentType.valueOf(envDefinitionMetadata.type());
+            String role = envDefinitionMetadata == null
                     ? null
-                    : inventoryMetadata.role();
-            List<String> accessGroups = inventoryMetadata == null || inventoryMetadata.accessGroups() == null
+                    : envDefinitionMetadata.role();
+            List<String> accessGroups = envDefinitionMetadata == null || envDefinitionMetadata.accessGroups() == null
                     ? List.of()
-                    : inventoryMetadata.accessGroups();
-            List<String> effectiveAccessGroups = inventoryMetadata == null || inventoryMetadata.effectiveAccessGroups() == null
+                    : envDefinitionMetadata.accessGroups();
+            List<String> effectiveAccessGroups = envDefinitionMetadata == null || envDefinitionMetadata.effectiveAccessGroups() == null
                     ? List.of()
-                    : inventoryMetadata.effectiveAccessGroups();
-            boolean sspStandalone = inventoryMetadata != null && Boolean.TRUE.equals(inventoryMetadata.sspStandalone());
+                    : envDefinitionMetadata.effectiveAccessGroups();
+            boolean sspStandalone = envDefinitionMetadata != null && Boolean.TRUE.equals(envDefinitionMetadata.sspStandalone());
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
+            return new CloudPassportEnvironment(inventory.environmentName(), description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
                     accessGroups, effectiveAccessGroups, paramsets, sspStandalone);
         } catch (IOException e) {
