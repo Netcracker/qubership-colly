@@ -391,4 +391,134 @@ class ProjectRepoLoaderTest {
                 contains(new Pipeline(PipelineType.DCL, "https://gitlab.com/test/dcl-pipeline.git", "main", null)));
     }
 
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void test_project_clusters_override_global_defaults(@TempDir Path tempDir) throws IOException {
+        String yamlContent = """
+                name: Test Project
+                customerName: Test Customer
+                type: product
+                clusterPlatform: ocp
+                repositories: []
+                clusters:
+                  owners:
+                    - project-owner
+                  roAdGroups:
+                    - project-ro
+                  rwAdGroups:
+                    - project-rw
+                """;
+
+        Path projectDir = tempDir.resolve("test-project");
+        Files.createDirectories(projectDir);
+        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
+
+        ClusterDefaults globalDefaults = new ClusterDefaults(List.of("global-owner"), List.of("global-ro"), List.of("global-rw"));
+        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, globalDefaults);
+
+        assertNotNull(project);
+        assertThat(project.clusterDefaults().owners(), containsInAnyOrder("global-owner", "project-owner"));
+        assertThat(project.clusterDefaults().roAdGroups(), containsInAnyOrder("global-ro", "project-ro"));
+        assertThat(project.clusterDefaults().rwAdGroups(), containsInAnyOrder("global-rw", "project-rw"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void test_project_clusters_partial_override(@TempDir Path tempDir) throws IOException {
+        String yamlContent = """
+                name: Test Project
+                customerName: Test Customer
+                type: product
+                clusterPlatform: ocp
+                repositories: []
+                clusters:
+                  owners:
+                    - project-owner
+                """;
+
+        Path projectDir = tempDir.resolve("test-project");
+        Files.createDirectories(projectDir);
+        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
+
+        ClusterDefaults globalDefaults = new ClusterDefaults(List.of("global-owner"), List.of("global-ro"), List.of("global-rw"));
+        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, globalDefaults);
+
+        assertNotNull(project);
+        assertThat(project.clusterDefaults().owners(), containsInAnyOrder("global-owner", "project-owner"));
+        assertThat(project.clusterDefaults().roAdGroups(), contains("global-ro"));
+        assertThat(project.clusterDefaults().rwAdGroups(), contains("global-rw"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void test_project_clusters_no_global_defaults(@TempDir Path tempDir) throws IOException {
+        String yamlContent = """
+                name: Test Project
+                customerName: Test Customer
+                type: product
+                clusterPlatform: ocp
+                repositories: []
+                clusters:
+                  owners:
+                    - project-owner
+                  roAdGroups:
+                    - project-ro
+                  rwAdGroups:
+                    - project-rw
+                """;
+
+        Path projectDir = tempDir.resolve("test-project");
+        Files.createDirectories(projectDir);
+        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
+
+        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, null);
+
+        assertNotNull(project);
+        assertThat(project.clusterDefaults().owners(), contains("project-owner"));
+        assertThat(project.clusterDefaults().roAdGroups(), contains("project-ro"));
+        assertThat(project.clusterDefaults().rwAdGroups(), contains("project-rw"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void test_project_clusters_empty_section_falls_back_to_global(@TempDir Path tempDir) throws IOException {
+        String yamlContent = """
+                name: Test Project
+                customerName: Test Customer
+                type: product
+                clusterPlatform: ocp
+                repositories: []
+                clusters: {}
+                """;
+
+        Path projectDir = tempDir.resolve("test-project");
+        Files.createDirectories(projectDir);
+        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
+
+        ClusterDefaults globalDefaults = new ClusterDefaults(List.of("global-owner"), List.of("global-ro"), List.of("global-rw"));
+        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, globalDefaults);
+
+        assertNotNull(project);
+        assertThat(project.clusterDefaults().owners(), contains("global-owner"));
+        assertThat(project.clusterDefaults().roAdGroups(), contains("global-ro"));
+        assertThat(project.clusterDefaults().rwAdGroups(), contains("global-rw"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo-with-project-clusters")
+    void test_load_projects_merges_global_and_project_clusters() {
+        List<Project> projects = loader.loadProjects();
+
+        assertThat(projects, hasSize(1));
+        Project project = projects.getFirst();
+        assertThat(project.clusterDefaults().owners(), containsInAnyOrder("global-owner", "project-owner"));
+        assertThat(project.clusterDefaults().roAdGroups(), contains("global-ro"));
+        assertThat(project.clusterDefaults().rwAdGroups(), contains("global-rw"));
+    }
+
 }

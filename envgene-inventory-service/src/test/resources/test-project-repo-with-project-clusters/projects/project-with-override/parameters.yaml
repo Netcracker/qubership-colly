@@ -1,0 +1,12 @@
+name: project-with-override
+customerName: Test Customer
+type: product
+clusterPlatform: ocp
+clusters:
+  owners:
+    - project-owner
+repositories:
+  - type: envgeneInstance
+    url: https://gitlab.com/test/repo.git
+    token: test-token
+    branch: main

@@ -46,16 +46,31 @@ clusters:
 
 ### Top-Level Fields
 
-| Field             | Type          | Required | Description                                                                  |
-|-------------------|---------------|----------|------------------------------------------------------------------------------|
-| `customerName`    | String        | Yes      | Customer or organization name                                                |
-| `name`            | String        | Yes      | Project name (unique identifier)                                             |
-| `type`            | String        | Yes      | Project type: `project` or `product`                                         |
-| `clusterPlatform` | String        | Yes      | Cluster platform: `k8s` or `ocp` (OpenShift Container Platform)              |
-| `repositories`    | Array         | Yes      | List of repository configurations (instance repos, pipelines, template repo) |
-| `accessGroups`    | Array[String] | No       | List of access group names for role-based access control                     |
-| `mavenRepoName`   | String        | No       | Name of the Maven repository associated with the project                     |
-| `gitGroupUrls`    | Array         | No       | List of Git group URL entries (each with `region` and `url`)                 |
+| Field             | Type          | Required | Description                                                                                                                                          |
+|-------------------|---------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `customerName`    | String        | Yes      | Customer or organization name                                                                                                                        |
+| `name`            | String        | Yes      | Project name (unique identifier)                                                                                                                     |
+| `type`            | String        | Yes      | Project type: `project` or `product`                                                                                                                 |
+| `clusterPlatform` | String        | Yes      | Cluster platform: `k8s` or `ocp` (OpenShift Container Platform)                                                                                      |
+| `repositories`    | Array         | Yes      | List of repository configurations (instance repos, pipelines, template repo)                                                                         |
+| `accessGroups`    | Array[String] | No       | List of access group names for role-based access control                                                                                             |
+| `mavenRepoName`   | String        | No       | Name of the Maven repository associated with the project                                                                                             |
+| `gitGroupUrls`    | Array         | No       | List of Git group URL entries (each with `region` and `url`)                                                                                         |
+| `clusters`        | Object        | No       | Per-project cluster access settings (owners, RO/RW AD groups). Merged field by field with `defaults/defaults.yaml` — project values take precedence. |
+
+### Clusters
+
+The optional `clusters` object defines owner names and AD groups for cluster access at the project level.
+
+| Field        | Type          | Description                                  |
+|--------------|---------------|----------------------------------------------|
+| `owners`     | Array[String] | Owner names assigned to clusters             |
+| `roAdGroups` | Array[String] | AD groups with read-only access to clusters  |
+| `rwAdGroups` | Array[String] | AD groups with read-write access to clusters |
+
+**Merge behaviour:** Values defined here are merged field by field with the global `defaults/defaults.yaml`. A field
+defined at the project level overrides the corresponding global default; fields absent from the project configuration
+fall back to the global value.
 
 ### Repository Types
 
