@@ -128,7 +128,7 @@ public class ProjectRepoLoader {
                     ClusterPlatform.fromString(projectEntity.clusterPlatform()),
                     convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId),
                     projectEntity.accessGroups() == null ? List.of() : projectEntity.accessGroups(),
-                    clusterDefaults,
+                    mergeClusterDefaults(clusterDefaults, projectEntity.clusters()),
                     projectEntity.mavenRepoName(),
                     projectEntity.gitGroupUrls() == null ? List.of() : projectEntity.gitGroupUrls());
         } catch (Exception e) {
@@ -175,10 +175,27 @@ public class ProjectRepoLoader {
                 .toList();
     }
 
+    private ClusterDefaults mergeClusterDefaults(ClusterDefaults global, ClusterDefaults projectLevel) {
+        if (projectLevel == null) return global;
+        if (global == null) return projectLevel;
+        return new ClusterDefaults(
+                mergeLists(global.owners(), projectLevel.owners()),
+                mergeLists(global.roAdGroups(), projectLevel.roAdGroups()),
+                mergeLists(global.rwAdGroups(), projectLevel.rwAdGroups())
+        );
+    }
+
+    private List<String> mergeLists(List<String> global, List<String> projectLevel) {
+        if (global == null || global.isEmpty()) return projectLevel;
+        if (projectLevel == null || projectLevel.isEmpty()) return global;
+        return Stream.concat(global.stream(), projectLevel.stream()).distinct().toList();
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ProjectEntity(String name, String customerName, String type,
                                 List<RepositoryEntity> repositories, String clusterPlatform,
-                                List<String> accessGroups, String mavenRepoName, List<GitGroupUrl> gitGroupUrls) {
+                                List<String> accessGroups, String mavenRepoName, List<GitGroupUrl> gitGroupUrls,
+                                ClusterDefaults clusters) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
