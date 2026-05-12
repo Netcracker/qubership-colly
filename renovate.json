@@ -8,6 +8,8 @@
   "dependencyDashboard": true,
   "prConcurrentLimit": 1,
   "branchConcurrentLimit": 1,
+  "timezone": "Europe/Moscow",
+  "schedule": ["* 0-3 1,15 * *"],
   "packageRules": [
     {
       "description": "Maven: semver patch only — disable minor and major",
