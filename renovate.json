@@ -12,8 +12,8 @@
   "schedule": ["* 0-3 1,15 * *"],
   "packageRules": [
     {
-      "description": "Maven: semver patch only — disable minor and major",
-      "matchManagers": ["maven"],
+      "description": "Maven and Docker: semver patch only — disable minor and major",
+      "matchManagers": ["maven", "dockerfile"],
       "matchUpdateTypes": ["minor", "major"],
       "enabled": false
     },
