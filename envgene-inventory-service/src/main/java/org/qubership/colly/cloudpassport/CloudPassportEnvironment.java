@@ -1,5 +1,6 @@
 package org.qubership.colly.cloudpassport;
 
+import org.qubership.colly.db.data.CmApproach;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
 
@@ -19,5 +20,6 @@ public record CloudPassportEnvironment(String name,
                                        List<String> accessGroups,
                                        List<String> effectiveAccessGroups,
                                        List<Paramset> paramsets,
-                                       boolean sspStandalone) {
+                                       boolean sspStandalone,
+                                       CmApproach cmApproach) {
 }

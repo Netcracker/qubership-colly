@@ -15,6 +15,7 @@ inventory:
   description: "description from inventory"
   owners: "owner from inventory"
   tenantName: "Applications"
+  deployer: "https://deployer.example.com"
 envTemplate:
   name: "env-template-test"
   envSpecificParamsets: # deployment paramsetContext

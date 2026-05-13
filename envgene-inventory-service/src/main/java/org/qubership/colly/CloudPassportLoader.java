@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.cloudpassport.envgen.*;
+import org.qubership.colly.db.data.CmApproach;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.projectrepo.InstanceRepository;
@@ -233,10 +234,11 @@ public class CloudPassportLoader {
                     ? List.of()
                     : envDefinitionMetadata.effectiveAccessGroups();
             boolean sspStandalone = envDefinitionMetadata != null && Boolean.TRUE.equals(envDefinitionMetadata.sspStandalone());
+            CmApproach cmApproach = inventory.deployer() != null ? CmApproach.CMDB : CmApproach.NO_CMDB;
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             return new CloudPassportEnvironment(inventory.environmentName(), description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
-                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone);
+                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach);
         } catch (IOException e) {
             Log.error("Error loading environment from " + environmentPath, e);
             return null;

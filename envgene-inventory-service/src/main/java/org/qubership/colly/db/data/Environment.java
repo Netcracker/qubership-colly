@@ -36,6 +36,7 @@ public class Environment {
     private List<Namespace> namespaces;
     private List<Paramset> paramsets;
     private boolean sspStandalone;
+    private CmApproach cmApproach;
 
 
     public Environment(String id, String name) {
