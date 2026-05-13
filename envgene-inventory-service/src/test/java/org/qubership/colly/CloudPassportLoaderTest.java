@@ -11,10 +11,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.cloudpassport.envgen.CloudData;
 import org.qubership.colly.cloudpassport.envgen.CloudPassportData;
-import org.qubership.colly.db.data.EnvironmentStatus;
-import org.qubership.colly.db.data.EnvironmentType;
-import org.qubership.colly.db.data.ParamsetContext;
-import org.qubership.colly.db.data.ParamsetLevel;
+import org.qubership.colly.db.data.*;
 import org.qubership.colly.projectrepo.*;
 
 import java.io.File;
@@ -54,7 +51,8 @@ class CloudPassportLoaderTest {
                             List.of(),
                             List.of(),
                             List.of(new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value"))),
-                            false),
+                            false,
+                            CmApproach.noCmdb),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
@@ -78,7 +76,8 @@ class CloudPassportLoaderTest {
                                     new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_PIPELINE_PARAMETER", "some value2")),
                                     new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_PIPELINE_PARAMETER", "some value"))
                             ),
-                            true)),
+                            true,
+                            CmApproach.cmdb)),
             "http://localhost:8428",
             new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),
                     "target/test-cloud-passport-folder/1", "1"),
@@ -106,7 +105,8 @@ class CloudPassportLoaderTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    false)),
+                    false,
+                    CmApproach.noCmdb)),
             "https://vmsingle-victoria.unreachable.url",
             new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/2", "2"),
             null,
@@ -163,7 +163,7 @@ class CloudPassportLoaderTest {
                 "some_token_for_cluster_with_invalid_envs",
                 "https://42.gr7.eu-west-1.eks.amazonaws.com:443",
                 "gr7.eu-west-1.eks.amazonaws.com",
-                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false)),
+                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false, CmApproach.noCmdb)),
                 "http://localhost:8428",
                 new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn"),
                         "target/test-cloud-passport-folder/1", "1"),
@@ -194,6 +194,25 @@ class CloudPassportLoaderTest {
 
         assertTrue(sspByEnv.get("env-metadata-test"), "env-metadata-test should have sspStandalone=true");
         assertFalse(sspByEnv.get("env-test"), "env-test should have sspStandalone=false when absent from metadata");
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void cm_approach_is_cmdb_when_inventory_deployer_is_present() {
+        Project project = new Project("1", "project-1", ProjectType.PROJECT, "some-customer",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")), List.of(), ClusterPlatform.K8S,
+                new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")), List.of(), null, null, null);
+
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+
+        Map<String, CmApproach> cmApproachByEnv = result.stream()
+                .flatMap(cp -> cp.environments().stream())
+                .collect(java.util.stream.Collectors.toMap(
+                        CloudPassportEnvironment::name,
+                        CloudPassportEnvironment::cmApproach));
+
+        assertEquals(CmApproach.cmdb, cmApproachByEnv.get("env-metadata-test"), "env-metadata-test has inventory.deployer so cmApproach should be cmdb");
+        assertEquals(CmApproach.noCmdb, cmApproachByEnv.get("env-test"), "env-test has no inventory.deployer so cmApproach should be noCmdb");
     }
 
     @Test
