@@ -212,7 +212,7 @@ class InventoryServiceRestTest {
                                 hasEntry("expirationDate", null),
                                 hasEntry("type", "ENVIRONMENT"),
                                 hasEntry("role", null),
-                                hasEntry("cmApproach", "noCmdb")
+                                hasEntry("cmApproach", "NO_CMDB")
                         ),
                         allOf(
                                 hasEntry("name", "env-metadata-test"),
@@ -221,7 +221,7 @@ class InventoryServiceRestTest {
                                 hasEntry("expirationDate", "2025-12-31"),
                                 hasEntry("type", "DESIGN_TIME"),
                                 hasEntry("role", "QA"),
-                                hasEntry("cmApproach", "cmdb")
+                                hasEntry("cmApproach", "CMDB")
                         ),
                         allOf(
                                 hasEntry("name", "env-1"),
@@ -256,7 +256,7 @@ class InventoryServiceRestTest {
                 .body("accessGroups", contains("group1", "group2"))
                 .body("effectiveAccessGroups", contains("group1", "group2", "group3"))
                 .body("sspStandalone", equalTo(true))
-                .body("cmApproach", equalTo("cmdb"))
+                .body("cmApproach", equalTo("CMDB"))
                 .body("namespaces", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "test-ns"),

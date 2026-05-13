@@ -52,7 +52,7 @@ class CloudPassportLoaderTest {
                             List.of(),
                             List.of(new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value"))),
                             false,
-                            CmApproach.noCmdb),
+                            CmApproach.NO_CMDB),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
@@ -77,7 +77,7 @@ class CloudPassportLoaderTest {
                                     new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_PIPELINE_PARAMETER", "some value"))
                             ),
                             true,
-                            CmApproach.cmdb)),
+                            CmApproach.CMDB)),
             "http://localhost:8428",
             new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),
                     "target/test-cloud-passport-folder/1", "1"),
@@ -106,7 +106,7 @@ class CloudPassportLoaderTest {
                     List.of(),
                     List.of(),
                     false,
-                    CmApproach.noCmdb)),
+                    CmApproach.NO_CMDB)),
             "https://vmsingle-victoria.unreachable.url",
             new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/2", "2"),
             null,
@@ -163,7 +163,7 @@ class CloudPassportLoaderTest {
                 "some_token_for_cluster_with_invalid_envs",
                 "https://42.gr7.eu-west-1.eks.amazonaws.com:443",
                 "gr7.eu-west-1.eks.amazonaws.com",
-                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false, CmApproach.noCmdb)),
+                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false, CmApproach.NO_CMDB)),
                 "http://localhost:8428",
                 new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn"),
                         "target/test-cloud-passport-folder/1", "1"),
@@ -211,8 +211,8 @@ class CloudPassportLoaderTest {
                         CloudPassportEnvironment::name,
                         CloudPassportEnvironment::cmApproach));
 
-        assertEquals(CmApproach.cmdb, cmApproachByEnv.get("env-metadata-test"), "env-metadata-test has inventory.deployer so cmApproach should be cmdb");
-        assertEquals(CmApproach.noCmdb, cmApproachByEnv.get("env-test"), "env-test has no inventory.deployer so cmApproach should be noCmdb");
+        assertEquals(CmApproach.CMDB, cmApproachByEnv.get("env-metadata-test"), "env-metadata-test has inventory.deployer so cmApproach should be cmdb");
+        assertEquals(CmApproach.NO_CMDB, cmApproachByEnv.get("env-test"), "env-test has no inventory.deployer so cmApproach should be noCmdb");
     }
 
     @Test

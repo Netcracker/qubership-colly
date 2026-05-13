@@ -234,7 +234,7 @@ public class CloudPassportLoader {
                     ? List.of()
                     : envDefinitionMetadata.effectiveAccessGroups();
             boolean sspStandalone = envDefinitionMetadata != null && Boolean.TRUE.equals(envDefinitionMetadata.sspStandalone());
-            CmApproach cmApproach = inventory.deployer() != null ? CmApproach.cmdb : CmApproach.noCmdb;
+            CmApproach cmApproach = inventory.deployer() != null ? CmApproach.CMDB : CmApproach.NO_CMDB;
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             return new CloudPassportEnvironment(inventory.environmentName(), description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
