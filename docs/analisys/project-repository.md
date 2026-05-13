@@ -48,16 +48,7 @@ This document describes the structure and contents of the Project repository.
 # Optional
 # List of rw/ro names and AD user groups under which all clusters of all projects will be created
 # these parameters are used when creating a cluster
-clusters:
-  roAdGroups: list of strings
-  rwAdGroups: list of strings
-  owners: list of strings
-```
-
-```yaml
-# Optional
-# List of rw/ro names and AD user groups under which all clusters of all projects will be created
-# these parameters are used when creating a cluster
+Used by SSP
 clusters:
   roAdGroups: list of strings
   rwAdGroups: list of strings
@@ -75,31 +66,39 @@ Currently, this file has no contents
 ```yaml
 # Mandatory
 # Name of the customer
+# Used by SSP
 customerName: string
 # Mandatory
 # Name of the project
+# Used by SSP and Colly
 name: string
 # Mandatory
 # Type of the project
+# Used by SSP
 type: enum[ project, product]
 # Optional
 # List of groups with RW access rights to objects of this project
+# Used by SSP
 accessGroups:
   - string
 # Optional
 # Platform type for clusters in this project
 # "ocp" stands for OpenShift, "k8s" for generic Kubernetes
+# Used by SSP
 clustersPlatform: enum[ ocp, k8s ]
 # Attribute used for Cloud Passport generation
-mavenRepoName: string
+# Used by SSP
+mavenRepoName: string (SSP)
 # Optional
 # Full URL to the git group where project repositories are located
 # На основе этого аттрибута вычисляются repositories[].url 
 # Или на всех repositories заданы url или задан этот аттрибут
+# Used by SSP and Colly
 gitGroupUrls:
   - region: string
     gitGroupUrl: string
 # Optional
+# Used by SSP and Colly
 repositories:
   - # Mandatory
     # All repositories with type envgeneInstance must be specified because Colly uses them; url is mandatory for them
