@@ -10,8 +10,6 @@ The Project Git Repository stores configuration files for projects in YAML forma
 
 ```
 project-git-repo/
-├── defaults/
-│   └── defaults.yaml
 └── projects/
     ├── project-one/
     │   └── parameters.yaml
@@ -21,56 +19,15 @@ project-git-repo/
         └── parameters.yaml
 ```
 
-## Cluster Defaults (`defaults/defaults.yaml`)
-
-The optional `defaults/defaults.yaml` file at the root of the project repository defines default values applied to all
-clusters across all projects.
-
-```yaml
-clusters:
-  owners:
-    - team-ops
-  roAdGroups:
-    - group-readonly
-  rwAdGroups:
-    - group-readwrite
-```
-
-| Field        | Type          | Description                                  |
-|--------------|---------------|----------------------------------------------|
-| `owners`     | Array[String] | Default list of owners assigned to clusters  |
-| `roAdGroups` | Array[String] | AD groups with read-only access to clusters  |
-| `rwAdGroups` | Array[String] | AD groups with read-write access to clusters |
-
 ## Configuration File Schema
 
 ### Top-Level Fields
 
-| Field             | Type          | Required | Description                                                                                                                                          |
-|-------------------|---------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `customerName`    | String        | Yes      | Customer or organization name                                                                                                                        |
-| `name`            | String        | Yes      | Project name (unique identifier)                                                                                                                     |
-| `type`            | String        | Yes      | Project type: `project` or `product`                                                                                                                 |
-| `clusterPlatform` | String        | Yes      | Cluster platform: `k8s` or `ocp` (OpenShift Container Platform)                                                                                      |
-| `repositories`    | Array         | Yes      | List of repository configurations (instance repos, pipelines, template repo)                                                                         |
-| `accessGroups`    | Array[String] | No       | List of access group names for role-based access control                                                                                             |
-| `mavenRepoName`   | String        | No       | Name of the Maven repository associated with the project                                                                                             |
-| `gitGroupUrls`    | Array         | No       | List of Git group URL entries (each with `region` and `url`)                                                                                         |
-| `clusters`        | Object        | No       | Per-project cluster access settings (owners, RO/RW AD groups). Merged field by field with `defaults/defaults.yaml` — project values take precedence. |
-
-### Clusters
-
-The optional `clusters` object defines owner names and AD groups for cluster access at the project level.
-
-| Field        | Type          | Description                                  |
-|--------------|---------------|----------------------------------------------|
-| `owners`     | Array[String] | Owner names assigned to clusters             |
-| `roAdGroups` | Array[String] | AD groups with read-only access to clusters  |
-| `rwAdGroups` | Array[String] | AD groups with read-write access to clusters |
-
-**Merge behaviour:** Values defined here are merged field by field with the global `defaults/defaults.yaml`. A field
-defined at the project level overrides the corresponding global default; fields absent from the project configuration
-fall back to the global value.
+| Field          | Type   | Required | Description                                                       |
+|----------------|--------|----------|-------------------------------------------------------------------|
+| `name`         | String | Yes      | Project name (unique identifier)                                  |
+| `repositories` | Array  | Yes      | List of repository configurations (instance repos, template repo) |
+| `gitGroupUrls` | Array  | No       | List of Git group URL entries (each with `region` and `url`)      |
 
 ### Repository Types
 
@@ -88,18 +45,7 @@ Repositories containing Cloud Passport configurations for environments.
 | `token`  | String | No       | Authentication token for private repositories                              |
 | `region` | String | No       | Geographic region identifier (e.g., `us-east-1`, `eu-west-1`, `cn`, `mb`)  |
 
-#### 2. Pipeline Repositories
-
-CI/CD pipeline repositories. All pipeline types share the same set of fields.
-
-| Field    | Type   | Required | Description                                                                |
-|----------|--------|----------|----------------------------------------------------------------------------|
-| `type`   | String | Yes      | Pipeline type: `clusterProvision`, `envProvision`, `solutionDeploy`, `dcl` |
-| `url`    | String | Yes      | Pipeline repository URL                                                    |
-| `branch` | String | No       | Git branch to use                                                          |
-| `region` | String | No       | Region where pipeline operates                                             |
-
-#### 3. EnvGene Template Repository (`envgeneTemplate`)
+#### 2. EnvGene Template Repository (`envgeneTemplate`)
 
 Template repositories for environment generation.
 
@@ -119,33 +65,21 @@ Template repositories for environment generation.
 
 ## Configuration Examples
 
-### Example 1: Product Project with Multiple Repositories
+### Example 1: Project with Multiple Regions
 
 ```yaml
 # projects/solar_saturn/parameters.yml
-customerName: Solar System
 name: saturn
-type: product
-clusterPlatform: ocp
-mavenRepoName: saturn-maven-repo
 gitGroupUrls:
   - region: mb
     url: https://github.com/example/saturn-group-mb
   - region: cn
     url: https://github.com/example/saturn-group-cn
-accessGroups:
-  - saturn-admins
-  - saturn-developers
-  - platform-team
 repositories:
   - type: envgeneInstance
     url: https://github.com/example/envgene-saturn
     token: saturn-envgene-token-123
     region: mb
-  - type: solutionDeploy
-    url: https://github.com/example/solution-deploy-saturn
-  - type: clusterProvision
-    url: https://github.com/example/cluster-provision-saturn
   - type: envgeneTemplate
     url: https://gitlab.com/example/template-repo.git
     branch: main
@@ -154,80 +88,17 @@ repositories:
       defaultTemplateDescriptorName: dev
 ```
 
-### Example 2: Project with Multiple Regions and Feature Branch
-
-```yaml
-# projects/solar_earth/parameters.yaml
-customerName: Solar System
-name: earth
-type: project
-clusterPlatform: k8s
-mavenRepoName: earth-maven-repo
-gitGroupUrls:
-  - region: cn
-    url: https://github.com/example/earth-group-cn
-  - region: eu-west-1
-    url: https://github.com/example/earth-group-eu
-accessGroups:
-  - earth-team
-repositories:
-  - type: envgeneInstance
-    url: https://github.com/example/envgene-earth
-    branch: feature/new-environments  # Using a feature branch
-    token: earth-envgene-token-789
-    region: cn
-  - type: clusterProvision
-    url: https://github.com/example/cluster-provision-earth
-    region: eu-west-1
-  - type: envProvision
-    url: https://github.com/example/env-provision-earth
-    region: us-east-1
-  - type: envgeneTemplate
-    url: https://gitlab.com/example/template-repo.git
-    branch: main
-    envgeneArtifact:
-      name: my-app:feature-new-ui-123456
-      defaultTemplateDescriptorName: dev
-```
-
-### Example 3: Minimal Configuration
+### Example 2: Minimal Configuration
 
 ```yaml
 # projects/minimal-project/parameters.yaml
-customerName: Example Company
 name: minimal
-type: project
-clusterPlatform: k8s
 repositories:
   - type: envgeneInstance
     url: https://github.com/example/cloud-passports
 ```
 
 ## Field Descriptions
-
-### Project Type
-
-- **`project`**: Standard project configuration for development teams
-- **`product`**: Product-level configuration for production deployments
-
-### Cluster Platform
-
-- **`k8s`**: Standard Kubernetes clusters
-- **`ocp`**: Red Hat OpenShift Container Platform
-
-### Access Groups
-
-The `accessGroups` field enables role-based access control for projects. It defines which user groups have access to the
-project.
-
-- Groups are typically mapped to identity provider groups (e.g., LDAP, Keycloak, Active Directory)
-- Group names are case-sensitive and should match exactly with the identity provider
-
-**Example use cases:**
-
-- Restrict project access to specific teams: `["team-backend", "team-devops"]`
-- Limit access by department: `["dept-engineering"]`
-- Combine role-based groups: `["project-saturn-admins", "project-saturn-developers", "project-saturn-viewers"]`
 
 ### Region
 
@@ -236,11 +107,6 @@ The `region` field is optional and can be used to:
 - Map environments to specific cloud regions (AWS, Azure, GCP)
 - Filter and group environments in the UI
 - Identify deployment targets
-
-### Maven Repository Name
-
-The `mavenRepoName` field specifies the name of the Maven repository associated with the project. Used to resolve
-artifacts during deployment.
 
 ### Git Group URL
 
@@ -287,11 +153,10 @@ colly.eis.cron.schedule=0 * * * * ?
 
 When loading project configurations, Qubership Colly validates:
 
-1. **Required fields**: `customerName`, `name`, `type`, `clusterPlatform` must be present
-2. **Enum values**: `type` must be `project` or `product`, `clusterPlatform` must be `k8s` or `ocp`
-3. **Repository types**: Each repository must have a valid `type`
-4. **URL format**: Repository URLs should be valid Git URLs
-5. **Template configuration**: If `envgeneTemplate` is used, `envgeneArtifact` is required
+1. **Required fields**: `name` must be present
+2. **Repository types**: Each repository must have a valid `type`
+3. **URL format**: Repository URLs should be valid Git URLs
+4. **Template configuration**: If `envgeneTemplate` is used, `envgeneArtifact` is required
 
 ## Troubleshooting
 

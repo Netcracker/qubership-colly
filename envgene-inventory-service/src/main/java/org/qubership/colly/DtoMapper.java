@@ -7,7 +7,10 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.dto.*;
-import org.qubership.colly.projectrepo.*;
+import org.qubership.colly.projectrepo.EnvgeneTemplateRepository;
+import org.qubership.colly.projectrepo.GitGroupUrl;
+import org.qubership.colly.projectrepo.InstanceRepository;
+import org.qubership.colly.projectrepo.Project;
 
 import java.util.List;
 
@@ -90,23 +93,9 @@ public class DtoMapper {
         return new ProjectDto(
                 project.id(),
                 project.name(),
-                project.type(),
-                project.customerName(),
                 project.instanceRepositories().stream().map(this::toDto).toList(),
-                project.pipelines().stream().map(this::toDto).toList(),
-                project.clusterPlatform(),
                 toDto(project.envgeneTemplateRepository()),
-                project.accessGroups(),
-                toDto(project.clusterDefaults()),
-                project.mavenRepoName(),
                 project.gitGroupUrls().stream().map(this::toDto).toList());
-    }
-
-    private ClusterDefaultsDto toDto(ClusterDefaults clusterDefaults) {
-        if (clusterDefaults == null) {
-            return null;
-        }
-        return new ClusterDefaultsDto(clusterDefaults.owners(), clusterDefaults.roAdGroups(), clusterDefaults.rwAdGroups());
     }
 
     public InstanceRepositoryDto toDto(InstanceRepository instanceRepository) {
@@ -130,15 +119,6 @@ public class DtoMapper {
 
     public GitGroupUrlDto toDto(GitGroupUrl gitGroupUrl) {
         return new GitGroupUrlDto(gitGroupUrl.region(), gitGroupUrl.url());
-    }
-
-    public PipelineDto toDto(Pipeline pipeline) {
-        return new PipelineDto(
-                pipeline.type(),
-                pipeline.url(),
-                pipeline.branch(),
-                pipeline.region()
-        );
     }
 
     public List<ProjectDto> toProjectDtos(List<Project> projects) {

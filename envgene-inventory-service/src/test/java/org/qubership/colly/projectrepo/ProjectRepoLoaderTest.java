@@ -27,42 +27,27 @@ import static org.mockito.Mockito.doAnswer;
 @QuarkusComponentTest
 class ProjectRepoLoaderTest {
 
-    private static final ClusterDefaults CLUSTER_DEFAULTS = new ClusterDefaults(
-            List.of("user1", "user2"),
-            List.of("group1", "group2"),
-            List.of("group3")
-    );
-
     public static final Project TEST_PROJECT_1 = new Project(
             "test-project-1",
             "Test Project 1",
-            ProjectType.PRODUCT,
-            "Test Customer 1",
             List.of(
                     new InstanceRepository("https://gitlab.com/test/repo1.git", "main", "test-token-1", "cn"),
                     new InstanceRepository("https://gitlab.com/test/repo2.git", null, "test-token-2", "mb")
             ),
-            List.of(
-                    new Pipeline(PipelineType.CLUSTER_PROVISION, "https://gitlab.com/test/pipeline-repo3.git", "test", null)
-            ),
-            ClusterPlatform.OCP,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
-            List.of("group1", "group2"), CLUSTER_DEFAULTS, "test.repo",
             List.of(new GitGroupUrl("cn", "https://gitlab.com/test-group")));
+
     public static final Project TEST_PROJECT_2 = new Project(
             "test-project-2",
             "Test Project 2",
-            ProjectType.PROJECT,
-            "Test Customer 2",
             List.of(
                     new InstanceRepository("https://gitlab.com/test/repo4.git", null, "test-token-4", "cn")
             ),
-            List.of(),
-            ClusterPlatform.K8S,
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-0987654", "ci")),
-            List.of(), CLUSTER_DEFAULTS, null, List.of());
+            List.of());
+
     @InjectMock
     GitService gitService;
     @Inject
@@ -124,18 +109,14 @@ class ProjectRepoLoaderTest {
 
         Project expectedResult = new Project("test-project",
                 "Test Project",
-                ProjectType.PRODUCT,
-                "Test Customer",
                 List.of(
                         new InstanceRepository("https://gitlab.com/test/repo1.git", "main", "test-token-1", null),
                         new InstanceRepository("https://gitlab.com/test/repo2.git", null, "test-token-2", null)
                 ),
-                List.of(),
-                ClusterPlatform.OCP, null,
-                List.of(),
-                null, null, List.of());
+                null,
+                List.of());
 
-        Project project = loader.processProject(parametersFile, projectDir, null);
+        Project project = loader.processProject(parametersFile, projectDir);
         assertThat(project, equalTo(expectedResult));
     }
 
@@ -156,9 +137,9 @@ class ProjectRepoLoaderTest {
         Files.createDirectories(projectDir);
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
-        Project expectedResult = new Project("test-project", "Test Project", ProjectType.PRODUCT, "Test Customer", List.of(), List.of(), ClusterPlatform.K8S, null, List.of("group1", "group2"), null, null, List.of());
+        Project expectedResult = new Project("test-project", "Test Project", List.of(), null, List.of());
 
-        Project project = loader.processProject(parametersFile, projectDir, null);
+        Project project = loader.processProject(parametersFile, projectDir);
 
         assertThat(project, equalTo(expectedResult));
     }
@@ -192,7 +173,7 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir, null);
+        Project project = loader.processProject(parametersFile, projectDir);
 
         assertNotNull(project);
         assertThat(project.instanceRepositories(), hasSize(2));
@@ -228,7 +209,7 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir, null);
+        Project project = loader.processProject(parametersFile, projectDir);
 
         assertNotNull(project);
         assertThat(project.gitGroupUrls(), hasSize(2));
@@ -255,7 +236,7 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir, null);
+        Project project = loader.processProject(parametersFile, projectDir);
 
         assertNotNull(project);
         assertThat(project.gitGroupUrls(), empty());
@@ -276,249 +257,9 @@ class ProjectRepoLoaderTest {
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
 
-        Project project = loader.processProject(parametersFile, projectDir, null);
+        Project project = loader.processProject(parametersFile, projectDir);
 
         assertNull(project);
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_parse_yaml_with_missing_type_required_field_returns_null(@TempDir Path tempDir) throws IOException {
-        String yamlContent = """
-                name: Test Project
-                customerName: Test Customer
-                clusterPlatform: ocp
-                repositories: []
-                """;
-
-        Path projectDir = tempDir.resolve("test-project");
-        Files.createDirectories(projectDir);
-        Path parametersFile = projectDir.resolve("parameters.yaml");
-        Files.writeString(parametersFile, yamlContent);
-
-        Project project = loader.processProject(parametersFile, projectDir, null);
-
-        assertNull(project);
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_parse_yaml_with_missing_platform_required_field_returns_null(@TempDir Path tempDir) throws IOException {
-        String yamlContent = """
-                name: Test Project
-                customerName: Test Customer
-                type: product
-                repositories: []
-                """;
-
-        Path projectDir = tempDir.resolve("test-project");
-        Files.createDirectories(projectDir);
-        Path parametersFile = projectDir.resolve("parameters.yaml");
-        Files.writeString(parametersFile, yamlContent);
-
-        Project project = loader.processProject(parametersFile, projectDir, null);
-
-        assertNull(project);
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_without_defaults")
-    void test_project_without_defaults() {
-
-        List<Project> projects = loader.loadProjects();
-        assertThat(projects, hasSize(1));
-        assertThat(projects.getFirst().clusterDefaults(), nullValue());
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_invalid_defaults")
-    void test_project_with_invalid_defaults() {
-
-        List<Project> projects = loader.loadProjects();
-        assertThat(projects, hasSize(1));
-        assertThat(projects.getFirst().clusterDefaults(), nullValue());
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_incorrect_location_defaults")
-    void test_project_incorrect_location_defaults() {
-
-        List<Project> projects = loader.loadProjects();
-        assertThat(projects, hasSize(1));
-        assertThat(projects.getFirst().clusterDefaults(), nullValue());
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "gitrepo_project_invalid_yaml_defaults")
-    void test_project_invalid_yaml_defaults() {
-
-        List<Project> projects = loader.loadProjects();
-        assertThat(projects, hasSize(1));
-        assertThat(projects.getFirst().clusterDefaults(), nullValue());
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_parse_yaml_with_dcl_pipeline_type(@TempDir Path tempDir) throws IOException {
-        String yamlContent = """
-                name: Test Project
-                customerName: Test Customer
-                type: product
-                clusterPlatform: ocp
-                repositories:
-                  - type: dcl
-                    url: https://gitlab.com/test/dcl-pipeline.git
-                    branch: main
-                    token: dcl-token
-                """;
-
-        Path projectDir = tempDir.resolve("test-project");
-        Files.createDirectories(projectDir);
-        Path parametersFile = projectDir.resolve("parameters.yaml");
-        Files.writeString(parametersFile, yamlContent);
-
-        Project project = loader.processProject(parametersFile, projectDir, null);
-
-        assertNotNull(project);
-        assertThat(project.pipelines(),
-                contains(new Pipeline(PipelineType.DCL, "https://gitlab.com/test/dcl-pipeline.git", "main", null)));
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_project_clusters_override_global_defaults(@TempDir Path tempDir) throws IOException {
-        String yamlContent = """
-                name: Test Project
-                customerName: Test Customer
-                type: product
-                clusterPlatform: ocp
-                repositories: []
-                clusters:
-                  owners:
-                    - project-owner
-                  roAdGroups:
-                    - project-ro
-                  rwAdGroups:
-                    - project-rw
-                """;
-
-        Path projectDir = tempDir.resolve("test-project");
-        Files.createDirectories(projectDir);
-        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
-
-        ClusterDefaults globalDefaults = new ClusterDefaults(List.of("global-owner"), List.of("global-ro"), List.of("global-rw"));
-        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, globalDefaults);
-
-        assertNotNull(project);
-        assertThat(project.clusterDefaults().owners(), containsInAnyOrder("global-owner", "project-owner"));
-        assertThat(project.clusterDefaults().roAdGroups(), containsInAnyOrder("global-ro", "project-ro"));
-        assertThat(project.clusterDefaults().rwAdGroups(), containsInAnyOrder("global-rw", "project-rw"));
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_project_clusters_partial_override(@TempDir Path tempDir) throws IOException {
-        String yamlContent = """
-                name: Test Project
-                customerName: Test Customer
-                type: product
-                clusterPlatform: ocp
-                repositories: []
-                clusters:
-                  owners:
-                    - project-owner
-                """;
-
-        Path projectDir = tempDir.resolve("test-project");
-        Files.createDirectories(projectDir);
-        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
-
-        ClusterDefaults globalDefaults = new ClusterDefaults(List.of("global-owner"), List.of("global-ro"), List.of("global-rw"));
-        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, globalDefaults);
-
-        assertNotNull(project);
-        assertThat(project.clusterDefaults().owners(), containsInAnyOrder("global-owner", "project-owner"));
-        assertThat(project.clusterDefaults().roAdGroups(), contains("global-ro"));
-        assertThat(project.clusterDefaults().rwAdGroups(), contains("global-rw"));
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_project_clusters_no_global_defaults(@TempDir Path tempDir) throws IOException {
-        String yamlContent = """
-                name: Test Project
-                customerName: Test Customer
-                type: product
-                clusterPlatform: ocp
-                repositories: []
-                clusters:
-                  owners:
-                    - project-owner
-                  roAdGroups:
-                    - project-ro
-                  rwAdGroups:
-                    - project-rw
-                """;
-
-        Path projectDir = tempDir.resolve("test-project");
-        Files.createDirectories(projectDir);
-        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
-
-        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, null);
-
-        assertNotNull(project);
-        assertThat(project.clusterDefaults().owners(), contains("project-owner"));
-        assertThat(project.clusterDefaults().roAdGroups(), contains("project-ro"));
-        assertThat(project.clusterDefaults().rwAdGroups(), contains("project-rw"));
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
-    void test_project_clusters_empty_section_falls_back_to_global(@TempDir Path tempDir) throws IOException {
-        String yamlContent = """
-                name: Test Project
-                customerName: Test Customer
-                type: product
-                clusterPlatform: ocp
-                repositories: []
-                clusters: {}
-                """;
-
-        Path projectDir = tempDir.resolve("test-project");
-        Files.createDirectories(projectDir);
-        Files.writeString(projectDir.resolve("parameters.yaml"), yamlContent);
-
-        ClusterDefaults globalDefaults = new ClusterDefaults(List.of("global-owner"), List.of("global-ro"), List.of("global-rw"));
-        Project project = loader.processProject(projectDir.resolve("parameters.yaml"), projectDir, globalDefaults);
-
-        assertNotNull(project);
-        assertThat(project.clusterDefaults().owners(), contains("global-owner"));
-        assertThat(project.clusterDefaults().roAdGroups(), contains("global-ro"));
-        assertThat(project.clusterDefaults().rwAdGroups(), contains("global-rw"));
-    }
-
-    @Test
-    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
-    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo-with-project-clusters")
-    void test_load_projects_merges_global_and_project_clusters() {
-        List<Project> projects = loader.loadProjects();
-
-        assertThat(projects, hasSize(1));
-        Project project = projects.getFirst();
-        assertThat(project.clusterDefaults().owners(), containsInAnyOrder("global-owner", "project-owner"));
-        assertThat(project.clusterDefaults().roAdGroups(), contains("global-ro"));
-        assertThat(project.clusterDefaults().rwAdGroups(), contains("global-rw"));
     }
 
 }
