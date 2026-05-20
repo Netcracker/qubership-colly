@@ -421,24 +421,16 @@ class InventoryServiceRestTest {
                         hasItems(
                                 allOf(
                                         hasEntry("id", "solar_earth"),
-                                        hasEntry("name", "earth"),
-                                        hasEntry("type", "PROJECT"),
-                                        hasEntry("customerName", "Solar System"),
-                                        hasEntry("clusterPlatform", "K8S")
+                                        hasEntry("name", "earth")
                                 ),
                                 allOf(
                                         hasEntry("id", "solar_saturn"),
-                                        hasEntry("name", "saturn"),
-                                        hasEntry("type", "PRODUCT"),
-                                        hasEntry("customerName", "Solar System"),
-                                        hasEntry("clusterPlatform", "OCP"),
-                                        hasEntry("templateRepository", null)
+                                        hasEntry("name", "saturn")
                                 )
                         ))
                 .body("find { it.id == 'solar_earth' }.instanceRepositories", hasSize(1))
                 .body("find { it.id == 'solar_saturn' }.instanceRepositories", hasSize(1))
-                .body("find { it.id == 'solar_earth' }.pipelines", hasSize(2))
-                .body("find { it.id == 'solar_saturn' }.pipelines", hasSize(2));
+                .body("find { it.id == 'solar_saturn' }.templateRepository", nullValue());
     }
 
     @Test
@@ -498,11 +490,6 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("id", equalTo("solar_earth"))
                 .body("name", equalTo("earth"))
-                .body("type", equalTo("PROJECT"))
-                .body("customerName", equalTo("Solar System"))
-                .body("clusterPlatform", equalTo("K8S"))
-                .body("accessGroups", contains("group1", "group2"))
-                .body("mavenRepoName", equalTo("dev.maven.repo"))
                 .body("gitGroupUrls", hasSize(2))
                 .body("gitGroupUrls.find { it.region == 'cn' }.url", equalTo("https://gitlab.com/solar-system"))
                 .body("gitGroupUrls.find { it.region == 'mb' }.url", equalTo("https://gitlab.com/solar-system-mb"))
@@ -515,24 +502,7 @@ class InventoryServiceRestTest {
                 .body("templateRepository.url", equalTo("https://gitlab.com/test/templateRepo.git"))
                 .body("templateRepository.branch", equalTo("main"))
                 .body("templateRepository.envgeneArtifact.name", equalTo("my-app:feature-new-ui-123456"))
-                .body("templateRepository.envgeneArtifact.defaultTemplateDescriptorName", equalTo("dev"))
-                .body("clusterDefaults.owners", contains("user1", "user2"))
-                .body("clusterDefaults.roAdGroups", contains("ro-group1", "ro-group2"))
-                .body("clusterDefaults.rwAdGroups", contains("rw-group1"))
-                .body("pipelines", hasItems(
-                        allOf(
-                                hasEntry("type", "CLUSTER_PROVISION"),
-                                hasEntry("url", "https://github.com/example/cluster-provision-earth"),
-                                hasEntry("region", "eu-west-1"),
-                                hasEntry("branch", "test")
-                        ),
-                        allOf(
-                                hasEntry("type", "ENV_PROVISION"),
-                                hasEntry("url", "https://github.com/example/env-provision-earth"),
-                                hasEntry("region", "us-east-1"),
-                                hasEntry("branch", null)
-                        )
-                ));
+                .body("templateRepository.envgeneArtifact.defaultTemplateDescriptorName", equalTo("dev"));
     }
 
     @Test

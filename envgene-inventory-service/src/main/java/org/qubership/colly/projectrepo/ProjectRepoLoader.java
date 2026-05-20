@@ -1,7 +1,6 @@
 package org.qubership.colly.projectrepo;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
@@ -49,52 +48,16 @@ public class ProjectRepoLoader {
         gitService.cloneRepository(projectGitRepoUrl, null, null, directory);
 
         Path dir = Paths.get(projectRepoFolder);
-        ClusterDefaults clusterDefaults = getClusterDefaults(dir);
 
         try (Stream<Path> walk = Files.walk(dir)) {
             return walk.filter(path -> path.toString().endsWith("parameters.yaml") || path.endsWith("parameters.yml"))
-                    .map(path -> processProject(path, path.getParent(), clusterDefaults)).filter(Objects::nonNull).toList();
-
+                    .map(path -> processProject(path, path.getParent())).filter(Objects::nonNull).toList();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private ClusterDefaults getClusterDefaults(Path dir) {
-        ClusterDefaults clusterDefaults;
-        try (Stream<Path> walk = Files.walk(dir)) {
-            clusterDefaults = walk.filter(path -> path.toString().endsWith("defaults.yaml") || path.endsWith("defaults.yml"))
-                    .map(path -> processDefaultsFile(path, path.getParent())).filter(Objects::nonNull).findFirst().orElse(null);
-
-        } catch (IOException e) {
-            Log.error("Error loading cluster defaults:", e);
-            return null;
-        }
-        return clusterDefaults;
-    }
-
-    private ClusterDefaults processDefaultsFile(Path pathToDefaultsFile, Path parent) {
-        if (!parent.getFileName().toString().equals("defaults")) {
-            Log.error("Defaults file found in unexpected location: " + pathToDefaultsFile);
-            return null;
-        }
-        Log.info("Processing cluster defaults from file: " + pathToDefaultsFile);
-        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        try (FileInputStream inputStream = new FileInputStream(pathToDefaultsFile.toFile())) {
-            JsonNode root = mapper.readTree(inputStream);
-            JsonNode clustersNode = root.get("clusters");
-            if (clustersNode == null) {
-                Log.warn("No 'clusters' section found in defaults file: " + pathToDefaultsFile);
-                return null;
-            }
-            return mapper.treeToValue(clustersNode, ClusterDefaults.class);
-        } catch (Exception e) {
-            Log.error("Can't read project data from file: " + pathToDefaultsFile, e);
-            return null;
-        }
-    }
-
-    Project processProject(Path parametersFilePath, Path projectPath, ClusterDefaults clusterDefaults) {
+    Project processProject(Path parametersFilePath, Path projectPath) {
         String projectId = projectPath.getFileName().toString();
         Log.info("processing project: " + projectId + " from file: " + parametersFilePath.toString());
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -109,27 +72,10 @@ public class ProjectRepoLoader {
                     .filter(repositoryEntity -> "envgeneTemplate".equals(repositoryEntity.type()))
                     .toList();
 
-            List<RepositoryEntity> pipelineRepos = projectEntity.repositories.stream()
-                    .filter(repositoryEntity -> {
-                        String type = repositoryEntity.type();
-                        return "clusterProvision".equals(type)
-                                || "envProvision".equals(type)
-                                || "solutionDeploy".equals(type)
-                                || "dcl".equals(type);
-                    })
-                    .toList();
-
             return new Project(projectId,
                     projectEntity.name(),
-                    ProjectType.fromString(projectEntity.type),
-                    projectEntity.customerName(),
                     convertToInstanceRepositories(envgeneInstanceRepos),
-                    convertToPipelines(pipelineRepos),
-                    ClusterPlatform.fromString(projectEntity.clusterPlatform()),
                     convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId),
-                    projectEntity.accessGroups() == null ? List.of() : projectEntity.accessGroups(),
-                    mergeClusterDefaults(clusterDefaults, projectEntity.clusters()),
-                    projectEntity.mavenRepoName(),
                     projectEntity.gitGroupUrls() == null ? List.of() : projectEntity.gitGroupUrls());
         } catch (Exception e) {
             Log.error("Can't read project data from file: " + parametersFilePath, e);
@@ -164,38 +110,8 @@ public class ProjectRepoLoader {
                 .orElse(null);
     }
 
-    private List<Pipeline> convertToPipelines(List<RepositoryEntity> pipelineRepos) {
-        return pipelineRepos.stream()
-                .map(repoEntity -> new Pipeline(
-                        PipelineType.fromString(repoEntity.type()),
-                        repoEntity.url(),
-                        repoEntity.branch(),
-                        repoEntity.region()))
-                .filter(pipeline -> pipeline.type() != null)
-                .toList();
-    }
-
-    private ClusterDefaults mergeClusterDefaults(ClusterDefaults global, ClusterDefaults projectLevel) {
-        if (projectLevel == null) return global;
-        if (global == null) return projectLevel;
-        return new ClusterDefaults(
-                mergeLists(global.owners(), projectLevel.owners()),
-                mergeLists(global.roAdGroups(), projectLevel.roAdGroups()),
-                mergeLists(global.rwAdGroups(), projectLevel.rwAdGroups())
-        );
-    }
-
-    private List<String> mergeLists(List<String> global, List<String> projectLevel) {
-        if (global == null || global.isEmpty()) return projectLevel;
-        if (projectLevel == null || projectLevel.isEmpty()) return global;
-        return Stream.concat(global.stream(), projectLevel.stream()).distinct().toList();
-    }
-
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ProjectEntity(String name, String customerName, String type,
-                                List<RepositoryEntity> repositories, String clusterPlatform,
-                                List<String> accessGroups, String mavenRepoName, List<GitGroupUrl> gitGroupUrls,
-                                ClusterDefaults clusters) {
+    public record ProjectEntity(String name, List<RepositoryEntity> repositories, List<GitGroupUrl> gitGroupUrls) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
