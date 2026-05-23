@@ -1,8 +1,10 @@
 package org.qubership.colly;
 
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import org.qubership.colly.cloudpassport.CloudPassport;
@@ -20,6 +22,7 @@ import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -32,6 +35,17 @@ public class CollyStorage {
     private final UpdateEnvironmentService updateEnvironmentService;
     private final ProjectRepoLoader projectRepoLoader;
     private final ParamsetService paramsetService;
+    private final AtomicBoolean syncRunning = new AtomicBoolean(false);
+
+    CollyStorage() {
+        this.clusterRepository = null;
+        this.environmentRepository = null;
+        this.projectRepository = null;
+        this.cloudPassportLoader = null;
+        this.updateEnvironmentService = null;
+        this.projectRepoLoader = null;
+        this.paramsetService = null;
+    }
 
     @Inject
     public CollyStorage(
@@ -48,16 +62,29 @@ public class CollyStorage {
         this.paramsetService = paramsetService;
     }
 
-    @Scheduled(cron = "{colly.eis.cron.schedule}")
+    void onStart(@Observes StartupEvent event) {
+        Log.info("Starting Initial sync");
+        syncAll();
+        Log.info("Initial sync has completed.");
+    }
+
+    @Scheduled(cron = "{colly.eis.cron.schedule}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void syncAll() {
-        Log.info("Task for loading data from git has started");
-        List<Project> projects = projectRepoLoader.loadProjects();
-        removeDeletedProjects(projects);
-        projects.forEach(projectRepository::persist);
-        Log.info("Projects loaded: " + projects.size());
-        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
-        Log.info("Cloud passports loaded: " + cloudPassports.size());
-        cloudPassports.forEach(this::saveDataToCache);
+        if (!syncRunning.compareAndSet(false, true)) {
+            Log.info("syncAll is already running, skipping");
+            return;
+        }
+        try {
+            Log.info("Task for loading data from git has started");
+            List<Project> projects = projectRepoLoader.loadProjects();
+            removeDeletedProjects(projects);projects.forEach(projectRepository::persist);
+            Log.info("Projects loaded: " + projects.size());
+            List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
+            Log.info("Cloud passports loaded: " + cloudPassports.size());
+            cloudPassports.forEach(this::saveDataToCache);
+        } finally {
+            syncRunning.set(false);
+        }
     }
 
     private void removeDeletedProjects(List<Project> currentProjects) {

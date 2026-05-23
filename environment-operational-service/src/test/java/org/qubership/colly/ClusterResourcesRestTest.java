@@ -1,4 +1,4 @@
-package org.qubership;
+package org.qubership.colly;
 
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.test.InjectMock;
@@ -10,7 +10,6 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.qubership.colly.EnvgeneInventoryServiceRest;
 import org.qubership.colly.achka.AchKubernetesAgentClient;
 import org.qubership.colly.achka.AchKubernetesAgentClientFactory;
 import org.qubership.colly.achka.ApplicationsVersion;
@@ -42,8 +41,12 @@ class ClusterResourcesRestTest {
     @Inject
     RedisDataSource redisDataSource;
 
+    @Inject
+    CollyStorage collyStorage;
+
     @BeforeEach
     void setUp() {
+        collyStorage.resetSyncState();
         redisDataSource.flushall();
 
         Mockito.when(envgeneInventoryServiceRest.getClusterInfos()).thenReturn(List.of(

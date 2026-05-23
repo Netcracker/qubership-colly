@@ -44,6 +44,12 @@ public class ClusterResourcesLoader {
     @ConfigProperty(name = "colly.environment-operational-service.config-map.versions.name")
     String versionsConfigMapName;
 
+    @ConfigProperty(name = "colly.environment-operational-service.cluster-resource-loader.connect-timeout-ms", defaultValue = "10000")
+    int connectTimeoutMs;
+
+    @ConfigProperty(name = "colly.environment-operational-service.cluster-resource-loader.read-timeout-ms", defaultValue = "30000")
+    int readTimeoutMs;
+
     @Inject
     public ClusterResourcesLoader(NamespaceRepository namespaceRepository,
                                   ClusterRepository clusterRepository,
@@ -66,6 +72,8 @@ public class ClusterResourcesLoader {
                     .setBasePath(clusterInfo.cloudApiHost())
                     .setVerifyingSsl(false)
                     .build();
+            client.setConnectTimeout(connectTimeoutMs);
+            client.setReadTimeout(readTimeoutMs);
             CoreV1Api coreV1Api = new CoreV1Api(client);
             loadClusterResources(coreV1Api, clusterInfo);
         } catch (RuntimeException | IOException e) {
