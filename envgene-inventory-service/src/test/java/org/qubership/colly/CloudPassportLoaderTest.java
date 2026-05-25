@@ -72,6 +72,12 @@ class CloudPassportLoaderTest {
                             List.of(
                                     new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_DEPLOY_PARAMETER", "some value", "CORE_DEPLOY_PARAMETER_2", Map.of("SECOND_LEVEL_KEY", "some value"))),
                                     new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("MY_APP_DEPLOY_PARAMETER", "foo")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.of("GENERIC_NAMESPACE_PARAM", "namespace value")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("GENERIC_APP_PARAM", "app value")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.of("PARAM", "namespace value")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("PARAM", "app value")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.of("DUPLICATE_PARAM", "first value")),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null, Map.of("DUPLICATE_PARAM", "second value")),
                                     new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_DEPLOY_PARAMETER", "some value")),
                                     new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_RUNTIME_PARAMETER", "some value3")),
                                     new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("MY_APP_RUNTIME_PARAMETER", "bar")),

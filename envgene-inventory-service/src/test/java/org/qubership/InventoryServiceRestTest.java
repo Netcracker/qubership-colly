@@ -679,6 +679,77 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void get_ui_parameters_namespace_level_includes_generic_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"))
+                // ui-override params are still present
+                .body("parameters.DEPLOYMENT.CORE_DEPLOY_PARAMETER", equalTo("some value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_both_levels_from_single_paramset_file() {
+        // core-mixed-paramset.yaml has both `parameters` and `applications` sections.
+        // The same file must produce NAMESPACE-level params (for namespace requests)
+        // and APPLICATION-level params (for application requests).
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.GENERIC_APP_PARAM", equalTo("app value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_same_key_different_value_per_level() {
+        // mixed-paramset-same-parameter.yaml has the same key PARAM in both
+        // `parameters` (namespace level) and `applications[my-app]` (application level).
+        // Namespace request must return the namespace value; application request — the application value.
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.PARAM", equalTo("namespace value"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.PARAM", equalTo("app value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_last_paramset_wins_on_duplicate_key() {
+        // core-first-param declares DUPLICATE_PARAM="first value",
+        // core-second-param (listed after it) declares DUPLICATE_PARAM="second value".
+        // The last paramset in env_definition.yml must win.
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.DUPLICATE_PARAM", equalTo("second value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_ui_parameters_application_level_non_existent_app() {
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
 

@@ -38,14 +38,14 @@ public class ParamsetService {
             return List.of();
         }
         List<Paramset> paramsets = new ArrayList<>();
-        parseParamsetsForContext(envTemplate.envSpecificParamsets(), ParamsetContext.DEPLOYMENT, "deploy-ui-override", inventoryDir, paramsets);
-        parseParamsetsForContext(envTemplate.envSpecificTechnicalParamsets(), ParamsetContext.RUNTIME, "runtime-ui-override", inventoryDir, paramsets);
-        parseParamsetsForContext(envTemplate.envSpecificE2EParamsets(), ParamsetContext.PIPELINE, "pipeline-ui-override", inventoryDir, paramsets);
+        parseParamsetsForContext(envTemplate.envSpecificParamsets(), ParamsetContext.DEPLOYMENT, inventoryDir, paramsets);
+        parseParamsetsForContext(envTemplate.envSpecificTechnicalParamsets(), ParamsetContext.RUNTIME, inventoryDir, paramsets);
+        parseParamsetsForContext(envTemplate.envSpecificE2EParamsets(), ParamsetContext.PIPELINE, inventoryDir, paramsets);
         return paramsets;
     }
 
     private void parseParamsetsForContext(Map<String, List<String>> paramsetMap, ParamsetContext paramsetContext,
-                                          String suffix, Path inventoryDir, List<Paramset> result) {
+                                          Path inventoryDir, List<Paramset> result) {
         if (paramsetMap == null) {
             return;
         }
@@ -56,65 +56,59 @@ public class ParamsetService {
                 continue;
             }
             for (String paramsetName : paramsetNames) {
-                if (!paramsetName.contains(suffix)) {
-                    continue;
-                }
-                Paramset paramset = parseParamsetFile(paramsetName, deployPostfix, paramsetContext, suffix, inventoryDir);
-                if (paramset != null) {
-                    result.add(paramset);
-                }
+                result.addAll(parseParamsetFile(paramsetName, deployPostfix, paramsetContext, inventoryDir));
             }
         }
     }
 
-    private Paramset parseParamsetFile(String paramsetName, String deployPostfix, ParamsetContext paramsetContext,
-                                       String suffix, Path inventoryDir) {
+    /**
+     * Parses a single paramset file and returns one or more Paramset records based on file content.
+     *
+     * <p>Level is determined by content, not by file name:
+     * <ul>
+     *   <li>{@code deployPostfix == "cloud"} → {@link ParamsetLevel#ENVIRONMENT} (uses {@code parameters} section)</li>
+     *   <li>otherwise, non-empty {@code parameters} section → {@link ParamsetLevel#NAMESPACE}</li>
+     *   <li>otherwise, each entry in {@code applications} section → {@link ParamsetLevel#APPLICATION}</li>
+     * </ul>
+     * A single file with both {@code parameters} and {@code applications} produces both NAMESPACE and APPLICATION records.
+     */
+    private List<Paramset> parseParamsetFile(String paramsetName, String deployPostfix, ParamsetContext paramsetContext,
+                                             Path inventoryDir) {
         Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(paramsetName + ".yaml");
         if (!Files.isRegularFile(paramsetFilePath)) {
             Log.warn("Paramset file not found: " + paramsetFilePath);
-            return null;
+            return List.of();
         }
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try (FileInputStream inputStream = new FileInputStream(paramsetFilePath.toFile())) {
             ParamsetFileData fileData = mapper.readValue(inputStream, ParamsetFileData.class);
+            List<Paramset> result = new ArrayList<>();
 
-            ParamsetLevel level;
-            String applicationName = null;
-            Map<String, Object> parameters;
-
-            if (paramsetName.equals(suffix) && deployPostfix.equals(ENV_SPECIFIC_DEPLOY_POSTFIX)) {
-                level = ParamsetLevel.ENVIRONMENT;
-                parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
-            } else if (paramsetName.equals(deployPostfix + "-" + suffix)) {
-                level = ParamsetLevel.NAMESPACE;
-                parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
-            } else if (paramsetName.startsWith(deployPostfix + "-") && paramsetName.endsWith("-" + suffix)) {
-                level = ParamsetLevel.APPLICATION;
-                String prefix = deployPostfix + "-";
-                String suffixWithDash = "-" + suffix;
-                applicationName = paramsetName.substring(prefix.length(), paramsetName.length() - suffixWithDash.length());
-                parameters = extractApplicationParameters(fileData, applicationName);
+            if (ENV_SPECIFIC_DEPLOY_POSTFIX.equals(deployPostfix)) {
+                Map<String, Object> parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
+                if (!parameters.isEmpty()) {
+                    result.add(new Paramset(paramsetContext, ParamsetLevel.ENVIRONMENT, deployPostfix, null, parameters));
+                }
             } else {
-                Log.warn("Cannot determine level for paramset: " + paramsetName + " with deployPostfix: " + deployPostfix);
-                return null;
+                Map<String, Object> parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
+                if (!parameters.isEmpty()) {
+                    result.add(new Paramset(paramsetContext, ParamsetLevel.NAMESPACE, deployPostfix, null, parameters));
+                }
+                if (fileData.applications() != null) {
+                    for (ParamsetFileData.ParamsetApplicationData app : fileData.applications()) {
+                        Map<String, Object> appParams = app.parameters() != null ? app.parameters() : Map.of();
+                        if (!appParams.isEmpty()) {
+                            result.add(new Paramset(paramsetContext, ParamsetLevel.APPLICATION, deployPostfix, app.appName(), appParams));
+                        }
+                    }
+                }
             }
 
-            return new Paramset(paramsetContext, level, deployPostfix, applicationName, parameters);
+            return result;
         } catch (IOException e) {
             Log.error("Error reading paramset file: " + paramsetFilePath, e);
-            return null;
+            return List.of();
         }
-    }
-
-    private Map<String, Object> extractApplicationParameters(ParamsetFileData fileData, String applicationName) {
-        if (fileData.applications() == null) {
-            return Map.of();
-        }
-        return fileData.applications().stream()
-                .filter(app -> applicationName.equals(app.appName()))
-                .findFirst()
-                .map(app -> app.parameters() != null ? app.parameters() : Map.<String, Object>of())
-                .orElse(Map.of());
     }
 
     public void writeParamsetFile(Path inventoryDir, ParamsetTarget target,
