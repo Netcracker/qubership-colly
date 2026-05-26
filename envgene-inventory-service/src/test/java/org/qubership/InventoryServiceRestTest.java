@@ -735,6 +735,75 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void set_ui_parameters_overridden_by_later_paramset_after_sync() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        // 1. POST LATE_PARAM="api-value-1" → written to core-deploy-ui-override;
+        //    updateParamset replaces all NAMESPACE/core/DEPLOYMENT paramsets in memory with the single ui-override entry
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {\"DEPLOYMENT\":{\"LATE_PARAM\":\"api-value-1\"}}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("api-value-1"));
+
+        // 2. Second sync: inject late-paramset into env_definition.yml (after core-second-param, i.e. last in core list).
+        //    late-paramset.yaml pre-exists in the repo and declares LATE_PARAM="from-late-paramset".
+        //    core-deploy-ui-override.yaml is reverted to its original content (no LATE_PARAM) by the clone.
+        //    After reload, late-paramset is the last for core/DEPLOYMENT → it wins over ui-override.
+        doAnswer(invocation -> {
+            String repoName = invocation.getArgument(0);
+            File dest = invocation.getArgument(3);
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_cloudpassports".equals(repoName)) {
+                File envDef = new File(dest, "test-cluster/env-metadata-test/Inventory/env_definition.yml");
+                String content = FileUtils.readFileToString(envDef, "UTF-8");
+                content = content.replace(
+                        "      - core-second-param\n",
+                        "      - core-second-param\n      - late-paramset\n"
+                );
+                FileUtils.writeStringToFile(envDef, content, "UTF-8");
+            }
+            return null;
+        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("from-late-paramset"));
+
+        // 3. POST LATE_PARAM="api-value-2" → updateParamset removes ALL NAMESPACE/core/DEPLOYMENT paramsets
+        //    from memory (including late-paramset) and appends the ui-override entry at the END → ui-override wins
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {\"DEPLOYMENT\":{\"LATE_PARAM\":\"api-value-2\"}}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("api-value-2"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_ui_parameters_last_paramset_wins_on_duplicate_key() {
         // core-first-param declares DUPLICATE_PARAM="first value",
         // core-second-param (listed after it) declares DUPLICATE_PARAM="second value".
