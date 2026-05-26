@@ -982,8 +982,7 @@ class InventoryServiceRestTest {
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
                         "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
                 .then()
@@ -996,7 +995,7 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("parameters.DEPLOYMENT.NEW_NS_DEPLOY_PARAMETER", equalTo("some value1"))
                 .body("parameters.RUNTIME.NEW_NS_RUNTIME_PARAMETER", equalTo("some value2"))
-                .body("parameters.PIPELINE.NEW_NS_PIPELINE_PARAMETER", equalTo("some value3"));
+                .body("parameters.PIPELINE", anEmptyMap());
     }
 
     @Test
@@ -1057,6 +1056,24 @@ class InventoryServiceRestTest {
                         "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_namespace_level_pipeline_context_is_not_allowed() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(400);
     }

@@ -36,10 +36,10 @@ public class UpdateEnvironmentService {
                                          CommitInfoDto commitInfo) {
 
         Map<String, Object> pipelineParameters = parameters.get(ParamsetContext.PIPELINE);
-        if (target.level() == ParamsetLevel.APPLICATION
+        if ((target.level() == ParamsetLevel.APPLICATION || target.level() == ParamsetLevel.NAMESPACE)
                 && pipelineParameters != null && !pipelineParameters.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Pipeline parameters cannot be set for Application level. Environment=" + environment.getName()
+                    "Pipeline parameters cannot be set for " + target.level() + " level. Environment=" + environment.getName()
                             + ", application=" + applicationName);
         }
 
