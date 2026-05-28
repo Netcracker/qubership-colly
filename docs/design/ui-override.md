@@ -24,7 +24,7 @@
 This document describes the Override UI API as implemented in Colly. It specifies the HTTP endpoints Colly
 exposes to UI clients, the storage layout Colly maintains in the EnvGene instance repository, and the
 per-endpoint processing logic that ties the two together. The design follows the storage approach selected
-in [Analysis](/docs/analysis/ui-override.md).
+in [Analysis](../analysis/ui-override.md).
 
 ## Requirements and constraints
 
@@ -198,7 +198,7 @@ behaviors are part of the contract and shape backend semantics:
 
 3. **commitMessage content validation.** UI clients validate `commitMessage` format (length, ticket-id
    pattern, language conventions) before POST. Colly accepts any non-empty string (see [Requirements and
-   constraints](/docs/design/ui-override.md#requirements-and-constraints)).
+   constraints](#requirements-and-constraints)).
 
 ## API reference
 
@@ -252,7 +252,7 @@ Namespace / application scope: same response body without `pipeline`.
       `applications[0].parameters`. Otherwise merge `parameters`.
 4. Wrap the per-context maps in the response body and return.
 
-Reads are served from the cache. See [Cache](/docs/design/ui-override.md#cache) for staleness semantics.
+Reads are served from the cache. See [Cache](#cache) for staleness semantics.
 
 ### POST /api/v1/environments/{environmentId}/ui-parameters
 
@@ -306,7 +306,7 @@ Namespace / application scope omits `pipeline` from `parameters`. Presence trigg
    application scope with `400`.
 3. Compute the UI override paramset filename and inventory list key for this scope and context from
    scope × context × `deployPostfix` × `applicationName` per [Storage
-   model](/docs/design/ui-override.md#storage-model).
+   model](#storage-model).
 4. For each key in the request body, apply the semantics in the table above..
 5. If the UI override file's becomes empty as a result, mark the file for deletion.
 6. Reconcile the UI override inventory entry:
