@@ -6,26 +6,30 @@
 
 ## Mapping table
 
-| Colly Object | Colly Attribute         | Default in Colly | Attribute Type                                                                                              | EnvGene Repo | Location in EnvGene              | Description                                         |
-|--------------|-------------------------|------------------|-------------------------------------------------------------------------------------------------------------|--------------|----------------------------------|-----------------------------------------------------|
-| Environment  | `name`                  |                  | string                                                                                                      | instance     | `inventory.environmentName`      | Unique name of the Environment within the Cluster   |
-| Environment  | `description`           | `""`             | string                                                                                                      | instance     | `metadata.description`           | Free-form Environment description                   |
-| Environment  | `owners`                | `[]`             | list of strings                                                                                             | instance     | `metadata.owners`                | User(s) responsible for the Environment             |
-| Environment  | `teams`                 | `[]`             | list of strings                                                                                             | instance     | `metadata.teams`                 | Team(s) assigned to the Environment                 |
-| Environment  | `labels`                | `[]`             | list of strings                                                                                             | instance     | `metadata.labels`                | Custom labels for the Environment                   |
-| Environment  | `status`                | `FREE`           | enum [`IN_USE`, `RESERVED`, `FREE`, `MIGRATING`]                                                            | instance     | `metadata.status`                | Current status of the Environment                   |
-| Environment  | `expirationDate`        | `""`             | LocalDate (`yyyy-MM-dd`)                                                                                    | instance     | `metadata.expirationDate`        | Date until which the Environment is allocated       |
-| Environment  | `type`                  | `ENVIRONMENT`    | enum [`ENVIRONMENT`, `CSE_TOOLSET`, `DESIGN_TIME`, `APP_DEPLOYER`, `INFRASTRUCTURE`, `PORTAL`, `UNDEFINED`] | instance     | `metadata.type`                  | Technical category of the Environment               |
-| Environment  | `role`                  | `""`             | string                                                                                                      | instance     | `metadata.role`                  | Usage role of the Environment (e.g. `QA`, `Dev`)    |
-| Environment  | `accessGroups`          | `[]`             | list of strings                                                                                             | instance     | `metadata.accessGroups`          | Groups that have access to the Environment          |
-| Environment  | `effectiveAccessGroups` | `[]`             | list of strings                                                                                             | instance     | `metadata.effectiveAccessGroups` | Computed access groups (includes inherited groups)  |
-| Environment  | `sspStandalone`         | `false`          | boolean                                                                                                     | instance     | `metadata.ssp_standalone`        | Whether the Environment runs in standalone SSP mode |
-| Cluster      | `description`           | `""`             | string                                                                                                      | instance     | **TBD**                          | Free-form Cluster description                       |
+| Colly Object | Colly Attribute         | Default in Colly | Attribute Type                                                                                              | EnvGene Repo | Location in EnvGene                                                                  | Description                                         |
+|--------------|-------------------------|------------------|-------------------------------------------------------------------------------------------------------------|--------------|--------------------------------------------------------------------------------------|-----------------------------------------------------|
+| Environment  | `name`                  |                  | string                                                                                                      | instance     | `inventory.environmentName` *(optional — falls back to the environment folder name)* | Unique name of the Environment within the Cluster   |
+| Environment  | `description`           | `""`             | string                                                                                                      | instance     | `metadata.description`                                                               | Free-form Environment description                   |
+| Environment  | `owners`                | `[]`             | list of strings                                                                                             | instance     | `metadata.owners`                                                                    | User(s) responsible for the Environment             |
+| Environment  | `teams`                 | `[]`             | list of strings                                                                                             | instance     | `metadata.teams`                                                                     | Team(s) assigned to the Environment                 |
+| Environment  | `labels`                | `[]`             | list of strings                                                                                             | instance     | `metadata.labels`                                                                    | Custom labels for the Environment                   |
+| Environment  | `status`                | `FREE`           | enum [`IN_USE`, `RESERVED`, `FREE`, `MIGRATING`]                                                            | instance     | `metadata.status`                                                                    | Current status of the Environment                   |
+| Environment  | `expirationDate`        | `""`             | LocalDate (`yyyy-MM-dd`)                                                                                    | instance     | `metadata.expirationDate`                                                            | Date until which the Environment is allocated       |
+| Environment  | `type`                  | `ENVIRONMENT`    | enum [`ENVIRONMENT`, `CSE_TOOLSET`, `DESIGN_TIME`, `APP_DEPLOYER`, `INFRASTRUCTURE`, `PORTAL`, `UNDEFINED`] | instance     | `metadata.type`                                                                      | Technical category of the Environment               |
+| Environment  | `role`                  | `""`             | string                                                                                                      | instance     | `metadata.role`                                                                      | Usage role of the Environment (e.g. `QA`, `Dev`)    |
+| Environment  | `accessGroups`          | `[]`             | list of strings                                                                                             | instance     | `metadata.accessGroups`                                                              | Groups that have access to the Environment          |
+| Environment  | `effectiveAccessGroups` | `[]`             | list of strings                                                                                             | instance     | `metadata.effectiveAccessGroups`                                                     | Computed access groups (includes inherited groups)  |
+| Environment  | `sspStandalone`         | `false`          | boolean                                                                                                     | instance     | `metadata.ssp_standalone`                                                            | Whether the Environment runs in standalone SSP mode |
+| Cluster      | `description`           | `""`             | string                                                                                                      | instance     | **TBD**                                                                              | Free-form Cluster description                       |
 
 ## env_definition.yml example
 
 `env_definition.yml` resides in `environments/<cluster>/<environment>/Inventory/env_definition.yml` inside the instance
 repository.
+
+`inventory.environmentName` is optional. When omitted, the environment name is taken from the `<environment>` folder
+name
+(i.e. the parent directory of the `Inventory` folder).
 
 ```yaml
 metadata:
@@ -52,7 +56,7 @@ metadata:
   ssp_standalone: true
 
 inventory:
-  environmentName: "my-env"
+  environmentName: "my-env"   # optional — defaults to the environment folder name
   tenantName: "Applications"
 
 envTemplate:
