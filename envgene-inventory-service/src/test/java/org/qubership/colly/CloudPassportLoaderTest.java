@@ -224,6 +224,34 @@ class CloudPassportLoaderTest {
     }
 
     @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void envs_outside_environments_folder_are_ignored() {
+        Project project = new Project("1", "project-1",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn")),
+                new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
+                List.of());
+
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+
+        List<String> clusterNames = result.stream().map(CloudPassport::name).toList();
+        assertThat(clusterNames, not(hasItem("cluster-outside-environments")));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void no_environments_folder_in_repo() {
+        Project project = new Project("1", "project-1",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports_invalid_root_folder", "main", "42", "cn")),
+                null,
+                List.of());
+
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+
+        List<String> clusterNames = result.stream().map(CloudPassport::name).toList();
+        assertThat(clusterNames, not(hasItem("cluster-outside-environments")));
+    }
+
+    @Test
     void test_read_cloud_passport_data(@TempDir Path tempDir) throws IOException {
         String yaml = """
                 cloud:

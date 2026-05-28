@@ -24,7 +24,8 @@
 
 ## env_definition.yml example
 
-`env_definition.yml` resides in `<cluster>/<environment>/Inventory/env_definition.yml` inside the instance repository.
+`env_definition.yml` resides in `environments/<cluster>/<environment>/Inventory/env_definition.yml` inside the instance
+repository.
 
 ```yaml
 metadata:

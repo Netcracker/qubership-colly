@@ -35,6 +35,7 @@ public class CloudPassportLoader {
     public static final String NAMESPACE_YML_FILENAME = "namespace.yml";
     public static final String MONITORING_TYPE_VICTORIA_DB = "VictoriaDB";
     private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
+    private static final String ENVIRONMENTS_FOLDER = "environments";
     @Inject
     GitService gitService;
 
@@ -52,7 +53,12 @@ public class CloudPassportLoader {
         }
         List<CloudPassport> cloudPassports = new ArrayList<>();
         for (GitInfo gitInfo : gitInfos) {
-            try (Stream<Path> paths = Files.walk(Paths.get(gitInfo.folderName()))) {
+            Path environmentsDir = Paths.get(gitInfo.folderName()).resolve(ENVIRONMENTS_FOLDER);
+            if (!Files.isDirectory(environmentsDir)) {
+                Log.error("Environments folder not found in " + gitInfo.folderName() + ", Instance Repository=" + gitInfo.instanceRepository().url());
+                continue;
+            }
+            try (Stream<Path> paths = Files.walk(environmentsDir)) {
                 cloudPassports.addAll(paths.filter(Files::isDirectory)
                         .map(path -> path.resolve(CLOUD_PASSPORT_FOLDER))
                         .filter(Files::isDirectory)
@@ -60,7 +66,7 @@ public class CloudPassportLoader {
                         .filter(Objects::nonNull)
                         .toList());
             } catch (Exception e) {
-                Log.error("Error loading CloudPassports from " + dir, e);
+                Log.error("Error loading CloudPassports from " + environmentsDir, e);
             }
         }
         return cloudPassports;
