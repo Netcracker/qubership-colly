@@ -665,6 +665,53 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void get_ui_parameters_application_level_second_app() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-second-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"))
+                .body("parameters.PIPELINE", anEmptyMap());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_application_level_does_not_affect_other_app() throws Exception {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":{\"MY_APP_DEPLOY_PARAMETER\":\"barUpdated\"}" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("barUpdated"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-second-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"));
+
+        Cluster cluster = clusterRepository.listAll().stream()
+                .filter(c -> c.getName().equals("test-cluster"))
+                .findFirst().orElseThrow();
+        File envDefFile = new File(cluster.getGitInfo().folderName() + "/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        System.out.println("=== env_definition.yml after parameter update ===\n" + FileUtils.readFileToString(envDefFile, "UTF-8"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_ui_parameters_application_level_namespace_without_paramsets() {
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
 

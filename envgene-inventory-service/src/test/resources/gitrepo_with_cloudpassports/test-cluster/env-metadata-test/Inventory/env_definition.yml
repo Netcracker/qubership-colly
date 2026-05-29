@@ -26,6 +26,7 @@ envTemplate:
       - mixed-paramset-same-parameter
       - core-first-param
       - core-second-param
+      - core-my-second-app-deploy-ui-override
     cloud:
       - deploy-ui-override
   envSpecificTechnicalParamsets: # runtime paramsetContext
