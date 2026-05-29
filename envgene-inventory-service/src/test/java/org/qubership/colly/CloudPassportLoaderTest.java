@@ -82,6 +82,7 @@ class CloudPassportLoaderTest {
                                     new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_DEPLOY_PARAMETER", "some value")),
                                     new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_RUNTIME_PARAMETER", "some value3")),
                                     new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("MY_APP_RUNTIME_PARAMETER", "bar")),
+                                    new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app", Map.of("MY_APP_RUNTIME_PARAMETER", "barManual")),
                                     new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_RUNTIME_PARAMETER", "some value")),
                                     new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.NAMESPACE, "core", null, Map.of("CORE_PIPELINE_PARAMETER", "some value2")),
                                     new Paramset(ParamsetContext.PIPELINE, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_PIPELINE_PARAMETER", "some value"))

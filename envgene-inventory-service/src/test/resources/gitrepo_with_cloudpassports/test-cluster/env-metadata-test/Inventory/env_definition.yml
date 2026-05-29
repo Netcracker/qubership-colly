@@ -33,6 +33,7 @@ envTemplate:
     core:
       - core-runtime-ui-override
       - core-my-app-runtime-ui-override
+      - core-my-app-runtime-manual-params
     cloud:
       - runtime-ui-override
   envSpecificE2EParamsets: # pipeline paramsetContext

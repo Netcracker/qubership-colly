@@ -170,7 +170,9 @@ public class ParamsetService {
         String paramsetName = calculateParamsetFileName(target.level(), target.deployPostfix(), applicationName, context);
         String sectionName = getEnvTemplateSectionName(context);
         String yqArrayPath = ".envTemplate." + sectionName + "[\"" + target.deployPostfix() + "\"]";
-        yqService.addToYamlArrayUnique(envDefPath, yqArrayPath, paramsetName);
+        String yqRemovePath = yqArrayPath + "[] | select(. == \"" + yqService.escapeForYq(paramsetName) + "\")";
+        yqService.deleteYamlField(envDefPath, yqRemovePath);
+        yqService.appendToYamlArray(envDefPath, yqArrayPath, paramsetName);
         Log.info("Added paramset reference '" + paramsetName + "' to " + sectionName + "[" + target.deployPostfix() + "]");
     }
 

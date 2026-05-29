@@ -330,6 +330,27 @@ class UpdateEnvironmentServiceTest {
                 contains("runtime-ui-override"));
     }
 
+    @Test
+    void updateParamset_shouldMoveUiOverrideReferenceToEndWhenAlreadyPresent() throws IOException {
+        // env-metadata-test has core-my-app-runtime-ui-override listed BEFORE
+        // core-my-app-runtime-manual-params — after write the ui-override must move to the end
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.RUNTIME, Map.of("MY_APP_RUNTIME_PARAMETER", "barRestUpdated"));
+
+        updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
+
+        Path envDefPath = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
+
+        List<String> runtimeRefs = envDefinition.envTemplate().envSpecificTechnicalParamsets().get("core");
+        assertThat(runtimeRefs, contains("core-runtime-ui-override", "core-my-app-runtime-manual-params", "core-my-app-runtime-ui-override"));
+    }
+
     private void copyDirectory(Path source, Path target) throws IOException {
         Files.walk(source).forEach(sourcePath -> {
             try {

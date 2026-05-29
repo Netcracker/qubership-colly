@@ -659,7 +659,7 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("foo"))
-                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("bar"))
+                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("barManual"))
                 .body("parameters.PIPELINE", anEmptyMap());
     }
 
@@ -1087,6 +1087,34 @@ class InventoryServiceRestTest {
                 .body("parameters.DEPLOYMENT.NEW_NS_DEPLOY_PARAMETER", equalTo("some value1"))
                 .body("parameters.RUNTIME.NEW_NS_RUNTIME_PARAMETER", equalTo("some value2"))
                 .body("parameters.PIPELINE", anEmptyMap());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_application_level_runtime_parameter() throws Exception {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"RUNTIME\":{\"MY_APP_RUNTIME_PARAMETER\":\"barRestUpdated\"}" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("barRestUpdated"));
+
+        Cluster cluster = clusterRepository.listAll().stream()
+                .filter(c -> c.getName().equals("test-cluster"))
+                .findFirst().orElseThrow();
+        File envDefFile = new File(cluster.getGitInfo().folderName() + "/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        System.out.println("=== env_definition.yml after parameter update ===\n" + FileUtils.readFileToString(envDefFile, "UTF-8"));
     }
 
     @Test
