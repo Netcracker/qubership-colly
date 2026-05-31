@@ -1,0 +1,4 @@
+name: core-first-param
+parameters:
+  DUPLICATE_PARAM: "first value"
+applications: [ ]

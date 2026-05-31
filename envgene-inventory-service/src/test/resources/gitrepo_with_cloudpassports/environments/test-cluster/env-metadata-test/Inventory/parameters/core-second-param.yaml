@@ -1,0 +1,4 @@
+name: core-second-param
+parameters:
+  DUPLICATE_PARAM: "second value"
+applications: [ ]

@@ -706,7 +706,7 @@ class InventoryServiceRestTest {
         Cluster cluster = clusterRepository.listAll().stream()
                 .filter(c -> c.getName().equals("test-cluster"))
                 .findFirst().orElseThrow();
-        File envDefFile = new File(cluster.getGitInfo().folderName() + "/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        File envDefFile = new File(cluster.getGitInfo().folderName() + "/environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
         System.out.println("=== env_definition.yml after parameter update ===\n" + FileUtils.readFileToString(envDefFile, "UTF-8"));
     }
 
@@ -810,7 +810,7 @@ class InventoryServiceRestTest {
             File dest = invocation.getArgument(3);
             FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
             if ("gitrepo_with_cloudpassports".equals(repoName)) {
-                File envDef = new File(dest, "test-cluster/env-metadata-test/Inventory/env_definition.yml");
+                File envDef = new File(dest, "environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
                 String content = FileUtils.readFileToString(envDef, "UTF-8");
                 content = content.replace(
                         "      - core-second-param\n",
@@ -1113,7 +1113,7 @@ class InventoryServiceRestTest {
         Cluster cluster = clusterRepository.listAll().stream()
                 .filter(c -> c.getName().equals("test-cluster"))
                 .findFirst().orElseThrow();
-        File envDefFile = new File(cluster.getGitInfo().folderName() + "/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        File envDefFile = new File(cluster.getGitInfo().folderName() + "/environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
         System.out.println("=== env_definition.yml after parameter update ===\n" + FileUtils.readFileToString(envDefFile, "UTF-8"));
     }
 

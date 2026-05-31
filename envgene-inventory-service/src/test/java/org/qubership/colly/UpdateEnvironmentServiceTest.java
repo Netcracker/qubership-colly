@@ -345,7 +345,7 @@ class UpdateEnvironmentServiceTest {
                 new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
 
         Path envDefPath = Paths.get(tempDir.toString(),
-                "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
 
@@ -376,7 +376,7 @@ class UpdateEnvironmentServiceTest {
                 new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
 
         Path inventoryDir = Paths.get(tempDir.toString(),
-                "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory");
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
 
         // core-my-app-runtime-ui-override: was the only key → file deleted
         assertFalse(Files.exists(inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml")));
@@ -409,7 +409,7 @@ class UpdateEnvironmentServiceTest {
 
         // file must be deleted
         Path inventoryDir = Paths.get(tempDir.toString(),
-                "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory");
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
         assertFalse(Files.exists(inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml")));
 
         // no in-memory entry for RUNTIME/APPLICATION/core/my-app
@@ -437,7 +437,7 @@ class UpdateEnvironmentServiceTest {
         // file must exist and contain only the non-null key
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         Path inventoryDir = Paths.get(tempDir.toString(),
-                "gitrepo_with_cloudpassports/test-cluster/env-metadata-test/Inventory");
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
         ParamsetFileData runtimeFile = mapper.readValue(
                 inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml").toFile(),
                 ParamsetFileData.class);

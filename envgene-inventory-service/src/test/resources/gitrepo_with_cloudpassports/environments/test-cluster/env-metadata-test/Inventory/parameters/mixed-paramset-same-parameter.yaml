@@ -1,0 +1,7 @@
+name: mixed-paramset-same-parameter
+parameters:
+  PARAM: "namespace value"
+applications:
+  - appName: "my-app"
+    parameters:
+      PARAM: "app value"
