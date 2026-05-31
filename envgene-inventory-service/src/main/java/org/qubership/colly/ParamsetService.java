@@ -29,6 +29,9 @@ public class ParamsetService {
     @Inject
     YqService yqService;
 
+    private static Path getPathOfEnvDefinition(Path inventoryDir) {
+        return inventoryDir.resolve("env_definition.yml");
+    }
 
     public List<Paramset> parseParamsets(EnvTemplate envTemplate, Path inventoryDir) {
         if (envTemplate == null) {
@@ -142,6 +145,10 @@ public class ParamsetService {
         Log.info("Written paramset file: " + filePath);
     }
 
+    // -------------------------------------------------------------------------
+    // Reference management in env_definition.yml
+    // -------------------------------------------------------------------------
+
     public void deleteParamsetFile(Path inventoryDir, ParamsetTarget target,
                                    String applicationName, ParamsetContext context) throws IOException {
         Path filePath = calculateParamsetFilePath(inventoryDir, target.level(), target.deployPostfix(), applicationName, context);
@@ -152,16 +159,12 @@ public class ParamsetService {
         Log.info("Deleted paramset file: " + filePath);
     }
 
-    // -------------------------------------------------------------------------
-    // Reference management in env_definition.yml
-    // -------------------------------------------------------------------------
-
     public void addParamsetReferenceToEnvDefinition(Path inventoryDir, ParamsetContext context,
                                                     ParamsetTarget target, String applicationName) throws IOException {
         if (!yqService.isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
-        Path envDefPath = inventoryDir.resolve("env_definition.yml");
+        Path envDefPath = getPathOfEnvDefinition(inventoryDir);
         if (!Files.isRegularFile(envDefPath)) {
             Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference update");
             return;
@@ -175,12 +178,16 @@ public class ParamsetService {
         Log.info("Added paramset reference '" + paramsetName + "' to " + sectionName + "[" + target.deployPostfix() + "]");
     }
 
+    // -------------------------------------------------------------------------
+    // Key-level removal
+    // -------------------------------------------------------------------------
+
     public void removeParamsetReferenceFromEnvDefinition(Path inventoryDir, ParamsetContext context,
                                                          ParamsetTarget target, String applicationName) throws IOException {
         if (!yqService.isYqAvailable()) {
             throw new IllegalStateException("yq is not available. Please install yq to use this feature.");
         }
-        Path envDefPath = inventoryDir.resolve("env_definition.yml");
+        Path envDefPath = getPathOfEnvDefinition(inventoryDir);
         if (!Files.isRegularFile(envDefPath)) {
             Log.warn("env_definition.yml not found at " + envDefPath + ", skipping reference removal");
             return;
@@ -192,10 +199,6 @@ public class ParamsetService {
         yqService.deleteYamlField(envDefPath, yqPath);
         Log.info("Removed paramset reference '" + paramsetName + "' from " + sectionName + "[" + target.deployPostfix() + "]");
     }
-
-    // -------------------------------------------------------------------------
-    // Key-level removal
-    // -------------------------------------------------------------------------
 
     /**
      * Removes specific keys from a paramset file without deleting the whole file.
@@ -255,7 +258,7 @@ public class ParamsetService {
             Files.delete(filePath);
             Log.info("Deleted empty paramset file: " + filePath);
             if (yqService.isYqAvailable()) {
-                Path envDefPath = inventoryDir.resolve("env_definition.yml");
+                Path envDefPath = getPathOfEnvDefinition(inventoryDir);
                 if (Files.isRegularFile(envDefPath)) {
                     String sectionName = getEnvTemplateSectionName(context);
                     String yqPath = ".envTemplate." + sectionName + "[\"" + deployPostfix + "\"][] | select(. == \""
