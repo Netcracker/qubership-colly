@@ -19,10 +19,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @ApplicationScoped
 public class ParamsetService {
@@ -84,21 +81,23 @@ public class ParamsetService {
             ParamsetFileData fileData = mapper.readValue(inputStream, ParamsetFileData.class);
             List<Paramset> result = new ArrayList<>();
 
+            // Use paramsetName (= entry in env_definition.yml = filename without .yaml),
+            // not fileData.name() — the YAML name field may differ from the filename.
             if (ENV_SPECIFIC_DEPLOY_POSTFIX.equals(deployPostfix)) {
                 Map<String, Object> parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
                 if (!parameters.isEmpty()) {
-                    result.add(new Paramset(paramsetContext, ParamsetLevel.ENVIRONMENT, deployPostfix, null, parameters));
+                    result.add(new Paramset(paramsetContext, ParamsetLevel.ENVIRONMENT, deployPostfix, null, parameters, paramsetName));
                 }
             } else {
                 Map<String, Object> parameters = fileData.parameters() != null ? fileData.parameters() : Map.of();
                 if (!parameters.isEmpty()) {
-                    result.add(new Paramset(paramsetContext, ParamsetLevel.NAMESPACE, deployPostfix, null, parameters));
+                    result.add(new Paramset(paramsetContext, ParamsetLevel.NAMESPACE, deployPostfix, null, parameters, paramsetName));
                 }
                 if (fileData.applications() != null) {
                     for (ParamsetFileData.ParamsetApplicationData app : fileData.applications()) {
                         Map<String, Object> appParams = app.parameters() != null ? app.parameters() : Map.of();
                         if (!appParams.isEmpty()) {
-                            result.add(new Paramset(paramsetContext, ParamsetLevel.APPLICATION, deployPostfix, app.appName(), appParams));
+                            result.add(new Paramset(paramsetContext, ParamsetLevel.APPLICATION, deployPostfix, app.appName(), appParams, paramsetName));
                         }
                     }
                 }
@@ -195,10 +194,88 @@ public class ParamsetService {
     }
 
     // -------------------------------------------------------------------------
+    // Key-level removal
+    // -------------------------------------------------------------------------
+
+    /**
+     * Removes specific keys from a paramset file without deleting the whole file.
+     * If the file becomes completely empty after removal, it is deleted and its
+     * reference is removed from env_definition.yml.
+     *
+     * @param inventoryDir    path to the Inventory directory
+     * @param sourceName      file name without .yaml extension
+     * @param applicationName null for NAMESPACE / ENVIRONMENT level
+     * @param deployPostfix   deploy postfix (needed for env_definition reference removal)
+     * @param context         paramset context (needed for env_definition reference removal)
+     * @param keysToRemove    parameter keys to delete
+     */
+    public void removeKeysFromParamsetFile(Path inventoryDir, String sourceName, String applicationName,
+                                           String deployPostfix, ParamsetContext context,
+                                           Set<String> keysToRemove) throws IOException {
+        Path filePath = inventoryDir.resolve("parameters").resolve(sourceName + ".yaml");
+        if (!Files.isRegularFile(filePath)) {
+            return;
+        }
+
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        ParamsetFileData existing = mapper.readValue(filePath.toFile(), ParamsetFileData.class);
+
+        Map<String, Object> newTopParams;
+        List<ParamsetFileData.ParamsetApplicationData> newApps;
+
+        if (applicationName != null) {
+            // APPLICATION level: remove keys from the specific app entry
+            newTopParams = existing.parameters() != null ? existing.parameters() : Map.of();
+            newApps = new ArrayList<>();
+            if (existing.applications() != null) {
+                for (ParamsetFileData.ParamsetApplicationData app : existing.applications()) {
+                    if (applicationName.equals(app.appName())) {
+                        Map<String, Object> updated = new LinkedHashMap<>(app.parameters() != null ? app.parameters() : Map.of());
+                        keysToRemove.forEach(updated::remove);
+                        if (!updated.isEmpty()) {
+                            newApps.add(new ParamsetFileData.ParamsetApplicationData(app.appName(), updated));
+                        }
+                    } else {
+                        newApps.add(app);
+                    }
+                }
+            }
+        } else {
+            // NAMESPACE / ENVIRONMENT level: remove keys from top-level parameters
+            newTopParams = new LinkedHashMap<>(existing.parameters() != null ? existing.parameters() : Map.of());
+            keysToRemove.forEach(newTopParams::remove);
+            newApps = existing.applications() != null ? existing.applications() : List.of();
+        }
+
+        boolean topEmpty = newTopParams.isEmpty();
+        boolean appsEmpty = newApps.stream().allMatch(a -> a.parameters() == null || a.parameters().isEmpty());
+
+        if (topEmpty && appsEmpty) {
+            Files.delete(filePath);
+            Log.info("Deleted empty paramset file: " + filePath);
+            if (yqService.isYqAvailable()) {
+                Path envDefPath = inventoryDir.resolve("env_definition.yml");
+                if (Files.isRegularFile(envDefPath)) {
+                    String sectionName = getEnvTemplateSectionName(context);
+                    String yqPath = ".envTemplate." + sectionName + "[\"" + deployPostfix + "\"][] | select(. == \""
+                            + yqService.escapeForYq(sourceName) + "\")";
+                    yqService.deleteYamlField(envDefPath, yqPath);
+                    Log.info("Removed paramset reference '" + sourceName + "' from " + sectionName + "[" + deployPostfix + "]");
+                }
+            }
+        } else {
+            ParamsetFileData updated = new ParamsetFileData(sourceName, newTopParams, newApps);
+            mapper.writeValue(filePath.toFile(), updated);
+            Log.info("Updated paramset file (removed keys): " + filePath);
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Naming utilities
     // -------------------------------------------------------------------------
 
-    private String calculateParamsetFileName(ParamsetLevel level, String deployPostfix, String applicationName, ParamsetContext context) {
+    public String calculateParamsetFileName(ParamsetLevel level, String deployPostfix, String applicationName, ParamsetContext context) {
         String suffix = calculateFileSuffix(context);
         return switch (level) {
             case ENVIRONMENT -> suffix;

@@ -61,11 +61,31 @@ deployPostfix != "cloud" + non-empty applications → APPLICATION level (one Par
 A single file with both `parameters` and `applications` produces both NAMESPACE and APPLICATION records — this is
 intentional and covered by tests.
 
+### `Paramset` record — fields
+
+```java
+record Paramset(
+        ParamsetContext paramsetContext,
+        ParamsetLevel level,
+        String deployPostfix,
+        String applicationName,   // null for NAMESPACE / ENVIRONMENT
+        Map<String, Object> parameters,
+        String sourceName         // filename without .yaml (e.g. "core-deploy-ui-override")
+) {
+}
+```
+
+`sourceName` is the key into the `env_definition.yml` list and is used by `UpdateEnvironmentService` to know which
+file owns each in-memory paramset. Always pass it — `null` is only acceptable in legacy tests that predate this field.
+
 ### READ vs WRITE path — different logic
 
 - **GET `/ui-parameters`** → reads ALL paramset files from `envTemplate` (any file name)
-- **POST `/ui-parameters`** → writes ONLY to `-ui-override` files (`writeParamsetFile`, `calculateParamsetFileName`) —
-  do not change this
+- **POST `/ui-parameters`** with **non-null values** → writes ONLY to `-ui-override` files
+  (`writeParamsetFile`, `calculateParamsetFileName`) — do not change this
+- **POST `/ui-parameters`** with **null values** → delete that key from every source file that defines it
+  (`removeKeysFromParamsetFile`); if a file becomes empty the file is deleted and its reference is removed from
+  `env_definition.yml`. See `UpdateEnvironmentService.updateParamset` Part B / Part C.
 
 ### "cloud" is a reserved deployPostfix
 
@@ -107,6 +127,7 @@ envTemplate:
 | Paramset file parsing              | `ParamsetService.parseParamsets` / `parseParamsetFile`                          |
 | Filtering on GET                   | `CollyStorage.getUiParameters`                                                  |
 | Paramset file writing              | `ParamsetService.writeParamsetFile` + `UpdateEnvironmentService.updateParamset` |
+| Deleting keys from a file          | `ParamsetService.removeKeysFromParamsetFile` (also deletes file + ref if empty) |
 | Adding reference to env_definition | `ParamsetService.addParamsetReferenceToEnvDefinition` (via yq)                  |
 | Test data                          | `src/test/resources/gitrepo_with_cloudpassports/`                               |
 | Architecture docs                  | `docs/design/paramset-architecture.md`                                          |
@@ -117,3 +138,5 @@ envTemplate:
 - `parseParamsetFile` returns `List<Paramset>`, not a single object
 - Use the constant `ENV_SPECIFIC_DEPLOY_POSTFIX` instead of the string `"cloud"`
 - `CollyStorage.getUiParameters` filtering logic is correct as-is — usually no need to touch it
+- `Paramset` constructor requires 6 arguments — don't forget `sourceName` (last param)
+- `CloudPassportLoaderTest` expected data includes `sourceName` per entry — update it whenever test data changes

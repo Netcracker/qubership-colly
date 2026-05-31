@@ -58,23 +58,82 @@ public class UpdateEnvironmentService {
                 continue;
             }
 
+            Map<String, Object> effectiveParams = contextParams.entrySet().stream()
+                    .filter(e -> e.getValue() != null)
+                    .collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), Map::putAll);
+
+            Set<String> nullKeys = contextParams.entrySet().stream()
+                    .filter(e -> e.getValue() == null)
+                    .map(Map.Entry::getKey)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            // Part A: write or delete the ui-override file
             try {
-                if (contextParams.isEmpty()) {
+                if (effectiveParams.isEmpty()) {
                     paramsetService.deleteParamsetFile(inventoryDir, target, applicationName, context);
                     paramsetService.removeParamsetReferenceFromEnvDefinition(inventoryDir, context, target, applicationName);
                 } else {
-                    paramsetService.writeParamsetFile(inventoryDir, target, applicationName, context, contextParams);
+                    paramsetService.writeParamsetFile(inventoryDir, target, applicationName, context, effectiveParams);
                     paramsetService.addParamsetReferenceToEnvDefinition(inventoryDir, context, target, applicationName);
                 }
             } catch (IOException e) {
                 throw new IllegalStateException("Error updating paramset " + context + "/" + target.level() + " for " + target.deployPostfix(), e);
             }
+
+            // Part B: remove null keys from every other source file that defines them
+            if (!nullKeys.isEmpty()) {
+                List<Paramset> sources = updatedParamsets.stream()
+                        .filter(p -> p.paramsetContext() == context
+                                && p.level() == target.level()
+                                && Objects.equals(p.deployPostfix(), target.deployPostfix())
+                                && Objects.equals(p.applicationName(), applicationName)
+                                && p.sourceName() != null)
+                        .toList();
+                for (Paramset source : sources) {
+                    Set<String> keysInSource = new HashSet<>(source.parameters().keySet());
+                    keysInSource.retainAll(nullKeys);
+                    if (!keysInSource.isEmpty()) {
+                        try {
+                            paramsetService.removeKeysFromParamsetFile(
+                                    inventoryDir, source.sourceName(), applicationName,
+                                    target.deployPostfix(), context, keysInSource);
+                        } catch (IOException e) {
+                            throw new IllegalStateException("Error removing keys from paramset " + source.sourceName(), e);
+                        }
+                    }
+                }
+            }
+
+            // Part C: rebuild in-memory state
+            // Collect non-ui-override Paramsets before removal so we can re-add them with keys stripped
+            String uiOverrideName = paramsetService.calculateParamsetFileName(target.level(), target.deployPostfix(), applicationName, context);
+            List<Paramset> otherSources = updatedParamsets.stream()
+                    .filter(p -> p.paramsetContext() == context
+                            && p.level() == target.level()
+                            && Objects.equals(p.deployPostfix(), target.deployPostfix())
+                            && Objects.equals(p.applicationName(), applicationName)
+                            && !uiOverrideName.equals(p.sourceName()))
+                    .toList();
+
             updatedParamsets.removeIf(p -> p.paramsetContext() == context
                     && p.level() == target.level()
                     && Objects.equals(p.deployPostfix(), target.deployPostfix())
                     && Objects.equals(p.applicationName(), applicationName));
-            if (!contextParams.isEmpty()) {
-                updatedParamsets.add(new Paramset(context, target.level(), target.deployPostfix(), applicationName, new LinkedHashMap<>(contextParams)));
+
+            // When null keys were sent: re-add surviving other-source Paramsets BEFORE
+            // ui-override so ui-override stays last (last-wins) in memory, matching disk order.
+            if (!nullKeys.isEmpty()) {
+                for (Paramset other : otherSources) {
+                    Map<String, Object> surviving = new LinkedHashMap<>(other.parameters());
+                    nullKeys.forEach(surviving::remove);
+                    if (!surviving.isEmpty()) {
+                        updatedParamsets.add(new Paramset(context, target.level(), target.deployPostfix(), applicationName, surviving, other.sourceName()));
+                    }
+                }
+            }
+
+            if (!effectiveParams.isEmpty()) {
+                updatedParamsets.add(new Paramset(context, target.level(), target.deployPostfix(), applicationName, effectiveParams, uiOverrideName));
             }
         }
 
