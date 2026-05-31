@@ -245,12 +245,43 @@ public class CloudPassportLoader {
                     : environmentPath.getFileName().toString();
             CmApproach cmApproach = inventory.deployer() != null ? CmApproach.CMDB : CmApproach.NO_CMDB;
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
+            List<SdApplication> sdApplications = loadSolutionDescriptor(envDevinitionPath.getParent());
             return new CloudPassportEnvironment(environmentName, description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
-                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach);
+                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications);
         } catch (IOException e) {
             Log.error("Error loading environment from " + environmentPath, e);
             return null;
+        }
+    }
+
+    private List<SdApplication> loadSolutionDescriptor(Path inventoryDir) {
+        Path sdPath = inventoryDir.resolve("solution-descriptor/sd.yaml");
+        if (!Files.isRegularFile(sdPath)) {
+            sdPath = inventoryDir.resolve("solution-descriptor/sd.yml");
+        }
+        if (!Files.isRegularFile(sdPath)) {
+            return Collections.emptyList();
+        }
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try {
+            SolutionDescriptor sd = mapper.readValue(sdPath.toFile(), SolutionDescriptor.class);
+            if (sd.applications() == null || sd.applications().isEmpty()) {
+                Log.warnf("SD at %s has no 'applications' section — skipping", sdPath);
+                return Collections.emptyList();
+            }
+            List<SdApplication> result = new ArrayList<>();
+            for (SdApplication app : sd.applications()) {
+                if (app.version() == null || app.deployPostfix() == null) {
+                    Log.warnf("SD at %s has application entry with missing version or deployPostfix — discarding SD", sdPath);
+                    return Collections.emptyList();
+                }
+                result.add(app);
+            }
+            return result;
+        } catch (Exception e) {
+            Log.warnf("Failed to parse SD at %s: %s", sdPath, e.getMessage());
+            return Collections.emptyList();
         }
     }
 

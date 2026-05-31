@@ -701,6 +701,26 @@ public class InventoryServiceRest {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments/{environmentId}/applications")
+    @Operation(
+            summary = "Get applications for a namespace",
+            description = "Returns a list of application names from the Solution Descriptor filtered by the namespace's deployPostfix. Returns empty list if no SD data is available for the environment."
+    )
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "List of application names (may be empty)"),
+            @APIResponse(responseCode = "404", description = "Environment or namespace not found")
+    })
+    public List<String> getApplications(
+            @Parameter(description = "ID of the environment", required = true)
+            @PathParam("environmentId") String environmentId,
+            @Parameter(description = "Namespace name to filter applications by", required = true)
+            @QueryParam("namespaceName") String namespaceName
+    ) {
+        return collyStorage.getApplications(environmentId, namespaceName);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/auth-status")
     @PermitAll
     @Operation(
