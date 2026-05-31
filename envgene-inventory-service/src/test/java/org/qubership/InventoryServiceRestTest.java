@@ -1197,7 +1197,7 @@ class InventoryServiceRestTest {
         doAnswer(invocation -> {
             File dest = invocation.getArgument(3);
             FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
-            FileUtils.deleteDirectory(new File(dest, "test-cluster/env-metadata-test"));
+            FileUtils.deleteDirectory(new File(dest, "environments/test-cluster/env-metadata-test"));
             return null;
         }).when(gitService).cloneRepository(anyString(), any(), any(), any());
 

@@ -81,7 +81,7 @@ class UpdateEnvironmentServiceTest {
     void updateEnvironment_shouldProcessExistingEnvironmentFile() throws IOException {
         updateEnvironmentService.updateEnvironment(testCluster, testEnvironment);
 
-        Path path = Paths.get(testCluster.getGitInfo().folderName() + "/gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
+        Path path = Paths.get(testCluster.getGitInfo().folderName() + "/gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = objectMapper.readValue(path.toFile(), EnvDefinition.class);
         assertEquals("new description", envDefinition.metadata().description());
@@ -132,7 +132,7 @@ class UpdateEnvironmentServiceTest {
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory");
 
         ParamsetFileData deployFile = mapper.readValue(
                 inventoryDir.resolve("parameters/core-deploy-ui-override.yaml").toFile(),
@@ -163,7 +163,7 @@ class UpdateEnvironmentServiceTest {
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory");
 
         ParamsetFileData deployFile = mapper.readValue(
                 inventoryDir.resolve("parameters/deploy-ui-override.yaml").toFile(),
@@ -190,7 +190,7 @@ class UpdateEnvironmentServiceTest {
 
         // Then
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory");
 
         ParamsetFileData deployParamset = mapper.readValue(
                 inventoryDir.resolve("parameters/core-my-app-deploy-ui-override.yaml").toFile(),
@@ -231,7 +231,7 @@ class UpdateEnvironmentServiceTest {
 
         // Then — read back and verify nested structure preserved
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory");
+        Path inventoryDir = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory");
         ParamsetFileData deployFile = mapper.readValue(
                 inventoryDir.resolve("parameters/core-deploy-ui-override.yaml").toFile(),
                 ParamsetFileData.class);
@@ -256,7 +256,7 @@ class UpdateEnvironmentServiceTest {
                 new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, COMMIT_INFO);
 
         // Then
-        Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
+        Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
 
@@ -286,7 +286,7 @@ class UpdateEnvironmentServiceTest {
                 new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, COMMIT_INFO);
 
         // Then — reference appears exactly once
-        Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
+        Path envDefPath = Paths.get(tempDir.toString(), "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory/env_definition.yml");
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
 
@@ -298,7 +298,7 @@ class UpdateEnvironmentServiceTest {
     void updateParamset_shouldCreateEnvSpecificE2EParamsetsCloudSectionIfMissing() throws IOException {
         // Given — overwrite env_definition.yml without envSpecificE2EParamsets section
         Path envDefPath = Paths.get(tempDir.toString(),
-                "gitrepo_with_cloudpassports/test-cluster/env-test/Inventory/env_definition.yml");
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory/env_definition.yml");
         Files.writeString(envDefPath, """
                 inventory:
                   environmentName: "env-test"

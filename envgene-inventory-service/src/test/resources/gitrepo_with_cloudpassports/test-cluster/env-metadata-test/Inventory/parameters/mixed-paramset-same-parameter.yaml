@@ -1,7 +1,0 @@
-name: core-mixed-paramset
-parameters:
-  PARAM: "namespace value"
-applications:
-  - appName: "my-app"
-    parameters:
-      PARAM: "app value"
