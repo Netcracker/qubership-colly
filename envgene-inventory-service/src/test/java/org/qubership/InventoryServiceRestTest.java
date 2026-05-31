@@ -1302,6 +1302,67 @@ class InventoryServiceRestTest {
                 .body("name", not(hasItems("env-test", "env-metadata-test")));
     }
 
+    @Test
+    @TestSecurity(user = "test")
+    void get_applications_returns_filtered_list() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body(".", containsInAnyOrder("MONITORING", "postgres", "postgres-services"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_applications_no_matching_deploy_postfix() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=test-bss")
+                .then()
+                .statusCode(200)
+                .body(".", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_applications_namespace_not_found() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=non-existent-ns")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_applications_no_sd_file_returns_empty() {
+        Environment environment = prepareEnvironmentForTests("env-1");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=namespace-1")
+                .then()
+                .statusCode(200)
+                .body(".", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_applications_environment_not_found() {
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/non-existent-id/applications?namespaceName=test-ns")
+                .then()
+                .statusCode(404);
+    }
+
     private @NotNull Environment prepareEnvironmentForTests(String envName) {
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")

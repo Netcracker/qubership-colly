@@ -5,10 +5,7 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
-import org.qubership.colly.cloudpassport.CloudPassport;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
-import org.qubership.colly.cloudpassport.CloudPassportNamespace;
-import org.qubership.colly.cloudpassport.Paramset;
+import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
@@ -154,6 +151,7 @@ public class CollyStorage {
         finalEnvironment.setAccessGroups(cloudPassportEnvironment.accessGroups());
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
+        finalEnvironment.setSdApplications(cloudPassportEnvironment.sdApplications());
         finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
         finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());
 
@@ -245,6 +243,32 @@ public class CollyStorage {
         return clusterRepository.findById(id);
     }
 
+
+    public List<String> getApplications(String environmentId, String namespaceName) {
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        String deployPostfix = environment.getNamespaces().stream()
+                .filter(ns -> ns.getName().equals(namespaceName))
+                .map(Namespace::getDeployPostfix)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(
+                        "Namespace '" + namespaceName + "' not found in environment id=" + environmentId));
+
+        List<SdApplication> apps = environment.getSdApplications();
+        if (apps.isEmpty()) {
+            Log.warnf("No SD data for environment %s — returning empty list", environmentId);
+            return Collections.emptyList();
+        }
+
+        return apps.stream()
+                .filter(app -> deployPostfix.equals(app.deployPostfix()))
+                .map(app -> app.version().contains(":") ? app.version().split(":")[0] : app.version())
+                .distinct()
+                .toList();
+    }
 
     public UiParametersDto getUiParameters(String environmentId, String namespaceName, String applicationName) {
         Environment environment = environmentRepository.findById(environmentId);

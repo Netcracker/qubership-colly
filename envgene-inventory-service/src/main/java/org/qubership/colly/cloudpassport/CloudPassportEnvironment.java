@@ -21,5 +21,6 @@ public record CloudPassportEnvironment(String name,
                                        List<String> effectiveAccessGroups,
                                        List<Paramset> paramsets,
                                        boolean sspStandalone,
-                                       CmApproach cmApproach) {
+                                       CmApproach cmApproach,
+                                       List<SdApplication> sdApplications) {
 }

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.qubership.colly.cloudpassport.Paramset;
+import org.qubership.colly.cloudpassport.SdApplication;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class Environment {
     private List<String> effectiveAccessGroups;
     private List<Namespace> namespaces;
     private List<Paramset> paramsets;
+    private List<SdApplication> sdApplications;
     private boolean sspStandalone;
     private CmApproach cmApproach;
 
@@ -58,6 +60,14 @@ public class Environment {
 
     public List<Paramset> getParamsets() {
         return paramsets != null ? Collections.unmodifiableList(paramsets) : Collections.emptyList();
+    }
+
+    public List<SdApplication> getSdApplications() {
+        return sdApplications != null ? Collections.unmodifiableList(sdApplications) : Collections.emptyList();
+    }
+
+    public void setSdApplications(List<SdApplication> sdApplications) {
+        this.sdApplications = sdApplications != null ? new ArrayList<>(sdApplications) : null;
     }
 
     public List<String> getLabels() {
