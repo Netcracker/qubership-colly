@@ -659,8 +659,55 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("foo"))
-                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("bar"))
+                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("barManual"))
                 .body("parameters.PIPELINE", anEmptyMap());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_application_level_second_app() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-second-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"))
+                .body("parameters.PIPELINE", anEmptyMap());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_application_level_does_not_affect_other_app() throws Exception {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":{\"MY_APP_DEPLOY_PARAMETER\":\"barUpdated\"}" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("barUpdated"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-second-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"));
+
+        Cluster cluster = clusterRepository.listAll().stream()
+                .filter(c -> c.getName().equals("test-cluster"))
+                .findFirst().orElseThrow();
+        File envDefFile = new File(cluster.getGitInfo().folderName() + "/environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        System.out.println("=== env_definition.yml after parameter update ===\n" + FileUtils.readFileToString(envDefFile, "UTF-8"));
     }
 
     @Test
@@ -675,6 +722,146 @@ class InventoryServiceRestTest {
                 .body("parameters.DEPLOYMENT", anEmptyMap())
                 .body("parameters.RUNTIME", anEmptyMap())
                 .body("parameters.PIPELINE", anEmptyMap());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_namespace_level_includes_generic_paramsets() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"))
+                // ui-override params are still present
+                .body("parameters.DEPLOYMENT.CORE_DEPLOY_PARAMETER", equalTo("some value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_both_levels_from_single_paramset_file() {
+        // core-mixed-paramset.yaml has both `parameters` and `applications` sections.
+        // The same file must produce NAMESPACE-level params (for namespace requests)
+        // and APPLICATION-level params (for application requests).
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.GENERIC_APP_PARAM", equalTo("app value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_same_key_different_value_per_level() {
+        // mixed-paramset-same-parameter.yaml has the same key PARAM in both
+        // `parameters` (namespace level) and `applications[my-app]` (application level).
+        // Namespace request must return the namespace value; application request — the application value.
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.PARAM", equalTo("namespace value"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.PARAM", equalTo("app value"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_overridden_by_later_paramset_after_sync() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        // 1. POST LATE_PARAM="api-value-1" → written to core-deploy-ui-override;
+        //    updateParamset replaces all NAMESPACE/core/DEPLOYMENT paramsets in memory with the single ui-override entry
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {\"DEPLOYMENT\":{\"LATE_PARAM\":\"api-value-1\"}}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("api-value-1"));
+
+        // 2. Second sync: inject late-paramset into env_definition.yml (after core-second-param, i.e. last in core list).
+        //    late-paramset.yaml pre-exists in the repo and declares LATE_PARAM="from-late-paramset".
+        //    core-deploy-ui-override.yaml is reverted to its original content (no LATE_PARAM) by the clone.
+        //    After reload, late-paramset is the last for core/DEPLOYMENT → it wins over ui-override.
+        doAnswer(invocation -> {
+            String repoName = invocation.getArgument(0);
+            File dest = invocation.getArgument(3);
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_cloudpassports".equals(repoName)) {
+                File envDef = new File(dest, "environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+                String content = FileUtils.readFileToString(envDef, "UTF-8");
+                content = content.replace(
+                        "      - core-second-param\n",
+                        "      - core-second-param\n      - late-paramset\n"
+                );
+                FileUtils.writeStringToFile(envDef, content, "UTF-8");
+            }
+            return null;
+        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("from-late-paramset"));
+
+        // 3. POST LATE_PARAM="api-value-2" → updateParamset removes ALL NAMESPACE/core/DEPLOYMENT paramsets
+        //    from memory (including late-paramset) and appends the ui-override entry at the END → ui-override wins
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {\"DEPLOYMENT\":{\"LATE_PARAM\":\"api-value-2\"}}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("api-value-2"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_last_paramset_wins_on_duplicate_key() {
+        // core-first-param declares DUPLICATE_PARAM="first value",
+        // core-second-param (listed after it) declares DUPLICATE_PARAM="second value".
+        // The last paramset in env_definition.yml must win.
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
+                .then()
+                .statusCode(200)
+                .body("parameters.DEPLOYMENT.DUPLICATE_PARAM", equalTo("second value"));
     }
 
     @Test
@@ -842,8 +1029,7 @@ class InventoryServiceRestTest {
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
                         "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
                 .then()
@@ -856,7 +1042,7 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("parameters.DEPLOYMENT.NEW_NS_DEPLOY_PARAMETER", equalTo("some value1"))
                 .body("parameters.RUNTIME.NEW_NS_RUNTIME_PARAMETER", equalTo("some value2"))
-                .body("parameters.PIPELINE.NEW_NS_PIPELINE_PARAMETER", equalTo("some value3"));
+                .body("parameters.PIPELINE", anEmptyMap());
     }
 
     @Test
@@ -905,6 +1091,34 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void set_ui_parameters_application_level_runtime_parameter() throws Exception {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"RUNTIME\":{\"MY_APP_RUNTIME_PARAMETER\":\"barRestUpdated\"}" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(200)
+                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("barRestUpdated"));
+
+        Cluster cluster = clusterRepository.listAll().stream()
+                .filter(c -> c.getName().equals("test-cluster"))
+                .findFirst().orElseThrow();
+        File envDefFile = new File(cluster.getGitInfo().folderName() + "/environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        System.out.println("=== env_definition.yml after parameter update ===\n" + FileUtils.readFileToString(envDefFile, "UTF-8"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void set_ui_parameters_application_level_pipeline_context_is_not_allowed() {
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
@@ -917,6 +1131,24 @@ class InventoryServiceRestTest {
                         "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void set_ui_parameters_namespace_level_pipeline_context_is_not_allowed() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {" +
+                        "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(400);
     }

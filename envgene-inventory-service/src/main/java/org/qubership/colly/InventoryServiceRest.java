@@ -661,7 +661,10 @@ public class InventoryServiceRest {
     @Path("/environments/{environmentId}/ui-parameters")
     @Operation(
             summary = "Get UI parameters for environment",
-            description = "Retrieves UI parameters for a specific environment, which can be used to customize the user interface based on environment attributes. Requires authentication."
+            description = "Retrieves UI parameters for a specific environment from all paramsets defined in the envTemplate. " +
+                    "Parameters are grouped by context (DEPLOYMENT, RUNTIME, PIPELINE) and scoped by level: " +
+                    "no query params → environment level; namespaceName → namespace level; namespaceName + applicationName → application level. " +
+                    "Requires authentication."
     )
     public UiParametersDto getUiParameters(
             @Parameter(

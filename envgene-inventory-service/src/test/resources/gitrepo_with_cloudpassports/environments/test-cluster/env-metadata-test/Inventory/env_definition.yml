@@ -22,12 +22,18 @@ envTemplate:
     core:
       - core-deploy-ui-override
       - core-my-app-deploy-ui-override
+      - core-mixed-paramset
+      - mixed-paramset-same-parameter
+      - core-first-param
+      - core-second-param
+      - core-my-second-app-deploy-ui-override
     cloud:
       - deploy-ui-override
   envSpecificTechnicalParamsets: # runtime paramsetContext
     core:
       - core-runtime-ui-override
       - core-my-app-runtime-ui-override
+      - core-my-app-runtime-manual-params
     cloud:
       - runtime-ui-override
   envSpecificE2EParamsets: # pipeline paramsetContext

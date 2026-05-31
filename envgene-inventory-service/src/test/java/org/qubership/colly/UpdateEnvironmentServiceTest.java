@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.colly.cloudpassport.GitInfo;
+import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
 import org.qubership.colly.cloudpassport.envgen.ParamsetFileData;
 import org.qubership.colly.db.data.*;
@@ -22,6 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -328,6 +330,251 @@ class UpdateEnvironmentServiceTest {
                 contains("deploy-ui-override"));
         assertThat(envDefinition.envTemplate().envSpecificTechnicalParamsets().get("cloud"),
                 contains("runtime-ui-override"));
+    }
+
+    @Test
+    void updateParamset_shouldMoveUiOverrideReferenceToEndWhenAlreadyPresent() throws IOException {
+        // env-metadata-test has core-my-app-runtime-ui-override listed BEFORE
+        // core-my-app-runtime-manual-params — after write the ui-override must move to the end
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.RUNTIME, Map.of("MY_APP_RUNTIME_PARAMETER", "barRestUpdated"));
+
+        updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
+
+        Path envDefPath = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        EnvDefinition envDefinition = mapper.readValue(envDefPath.toFile(), EnvDefinition.class);
+
+        List<String> runtimeRefs = envDefinition.envTemplate().envSpecificTechnicalParamsets().get("core");
+        assertThat(runtimeRefs, contains("core-runtime-ui-override", "core-my-app-runtime-manual-params", "core-my-app-runtime-ui-override"));
+    }
+
+    @Test
+    void updateParamset_nullValueDeletesParameterFromAllSourceFiles() {
+        // MY_APP_RUNTIME_PARAMETER exists in two files for env-metadata-test:
+        //   core-my-app-runtime-ui-override      → value "bar"
+        //   core-my-app-runtime-manual-params    → value "barManual"
+        // Sending null must remove the key from both files and from memory.
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+        envMetadataTest.setParamsets(List.of(
+                new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app",
+                        Map.of("MY_APP_RUNTIME_PARAMETER", "bar"), "core-my-app-runtime-ui-override"),
+                new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app",
+                        Map.of("MY_APP_RUNTIME_PARAMETER", "barManual"), "core-my-app-runtime-manual-params")
+        ));
+
+        Map<String, Object> nullParam = new HashMap<>();
+        nullParam.put("MY_APP_RUNTIME_PARAMETER", null);
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.RUNTIME, nullParam);
+
+        List<Paramset> updated = updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
+
+        Path inventoryDir = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
+
+        // core-my-app-runtime-ui-override: was the only key → file deleted
+        assertFalse(Files.exists(inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml")));
+
+        // core-my-app-runtime-manual-params: MY_APP_RUNTIME_PARAMETER removed, file has no other keys → file deleted
+        assertFalse(Files.exists(inventoryDir.resolve("parameters/core-my-app-runtime-manual-params.yaml")));
+
+        // no in-memory Paramset for RUNTIME/APPLICATION/core/my-app contains the deleted key
+        boolean anyHasKey = updated.stream()
+                .filter(p -> p.paramsetContext() == ParamsetContext.RUNTIME
+                        && p.level() == ParamsetLevel.APPLICATION
+                        && "my-app".equals(p.applicationName()))
+                .anyMatch(p -> p.parameters().containsKey("MY_APP_RUNTIME_PARAMETER"));
+        assertFalse(anyHasKey);
+    }
+
+    @Test
+    void updateParamset_allNullValuesDeletesParamsetFileAndMemoryEntry() {
+        // When every value in a context map is null, effectiveParams is empty —
+        // treated the same as an explicit empty map: file is deleted and memory entry removed.
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+        Map<String, Object> runtimeParams = new HashMap<>();
+        runtimeParams.put("MY_APP_RUNTIME_PARAMETER", null);
+
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.RUNTIME, runtimeParams);
+
+        List<Paramset> updatedParamsets = updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
+
+        // file must be deleted
+        Path inventoryDir = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
+        assertFalse(Files.exists(inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml")));
+
+        // no in-memory entry for RUNTIME/APPLICATION/core/my-app
+        boolean hasEntry = updatedParamsets.stream().anyMatch(p ->
+                p.paramsetContext() == ParamsetContext.RUNTIME
+                        && p.level() == ParamsetLevel.APPLICATION
+                        && "my-app".equals(p.applicationName()));
+        assertFalse(hasEntry);
+    }
+
+    @Test
+    void updateParamset_partialNullValuesKeepsNonNullKeys() throws IOException {
+        // When only some values are null, only non-null keys are written to the file.
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+        Map<String, Object> runtimeParams = new HashMap<>();
+        runtimeParams.put("MY_APP_RUNTIME_PARAMETER", null);
+        runtimeParams.put("OTHER_PARAM", "kept");
+
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.RUNTIME, runtimeParams);
+
+        List<Paramset> updatedParamsets = updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
+
+        // file must exist and contain only the non-null key
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        Path inventoryDir = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
+        ParamsetFileData runtimeFile = mapper.readValue(
+                inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml").toFile(),
+                ParamsetFileData.class);
+        assertThat(runtimeFile.applications().getFirst().parameters(), not(hasKey("MY_APP_RUNTIME_PARAMETER")));
+        assertThat(runtimeFile.applications().getFirst().parameters(), hasEntry("OTHER_PARAM", "kept"));
+
+        // in-memory entry must also only contain the non-null key
+        Paramset memEntry = updatedParamsets.stream()
+                .filter(p -> p.paramsetContext() == ParamsetContext.RUNTIME
+                        && p.level() == ParamsetLevel.APPLICATION
+                        && "my-app".equals(p.applicationName()))
+                .findFirst().orElseThrow();
+        assertThat(memEntry.parameters(), not(hasKey("MY_APP_RUNTIME_PARAMETER")));
+        assertThat(memEntry.parameters(), hasEntry("OTHER_PARAM", "kept"));
+    }
+
+    @Test
+    void updateParamset_nullRemovesKeyFromSourceFileButKeepsOtherKeys() throws IOException {
+        // core-mixed-paramset.yaml has GENERIC_NAMESPACE_PARAM in `parameters` (namespace level)
+        // and GENERIC_APP_PARAM in `applications[my-app]` (application level).
+        // Sending null for GENERIC_APP_PARAM must strip only the application entry;
+        // GENERIC_NAMESPACE_PARAM in the top-level parameters section must survive.
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+        envMetadataTest.setParamsets(List.of(
+                new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.APPLICATION, "core", "my-app",
+                        Map.of("GENERIC_APP_PARAM", "app value"), "core-mixed-paramset")
+        ));
+
+        Map<String, Object> nullParam = new HashMap<>();
+        nullParam.put("GENERIC_APP_PARAM", null);
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, nullParam);
+
+        updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
+
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        Path inventoryDir = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
+        ParamsetFileData fileData = mapper.readValue(
+                inventoryDir.resolve("parameters/core-mixed-paramset.yaml").toFile(), ParamsetFileData.class);
+
+        assertThat(fileData.parameters(), hasEntry("GENERIC_NAMESPACE_PARAM", "namespace value"));
+        assertTrue(fileData.applications() == null || fileData.applications().stream()
+                .noneMatch(a -> "my-app".equals(a.appName())
+                        && a.parameters() != null && a.parameters().containsKey("GENERIC_APP_PARAM")));
+    }
+
+    @Test
+    void updateParamset_nonNullValueWritesToUiOverrideWithoutTouchingSourceFiles() throws IOException {
+        // Sending a non-null value must update only the ui-override file;
+        // non-ui-override source files must remain byte-for-byte unchanged.
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+        envMetadataTest.setParamsets(List.of(
+                new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app",
+                        Map.of("MY_APP_RUNTIME_PARAMETER", "bar"), "core-my-app-runtime-ui-override"),
+                new Paramset(ParamsetContext.RUNTIME, ParamsetLevel.APPLICATION, "core", "my-app",
+                        Map.of("MY_APP_RUNTIME_PARAMETER", "barManual"), "core-my-app-runtime-manual-params")
+        ));
+
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.RUNTIME, Map.of("MY_APP_RUNTIME_PARAMETER", "newValue"));
+
+        List<Paramset> updated = updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.APPLICATION, "core"), "my-app", params, COMMIT_INFO);
+
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        Path inventoryDir = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
+
+        ParamsetFileData uiOverride = mapper.readValue(
+                inventoryDir.resolve("parameters/core-my-app-runtime-ui-override.yaml").toFile(),
+                ParamsetFileData.class);
+        assertThat(uiOverride.applications().getFirst().parameters(),
+                hasEntry("MY_APP_RUNTIME_PARAMETER", "newValue"));
+
+        ParamsetFileData manualParams = mapper.readValue(
+                inventoryDir.resolve("parameters/core-my-app-runtime-manual-params.yaml").toFile(),
+                ParamsetFileData.class);
+        assertThat(manualParams.applications().getFirst().parameters(),
+                hasEntry("MY_APP_RUNTIME_PARAMETER", "barManual"));
+
+        Paramset uiOverrideEntry = updated.stream()
+                .filter(p -> "core-my-app-runtime-ui-override".equals(p.sourceName()))
+                .findFirst().orElseThrow();
+        assertThat(uiOverrideEntry.parameters(), hasEntry("MY_APP_RUNTIME_PARAMETER", "newValue"));
+    }
+
+    @Test
+    void updateParamset_nullForKeyOnlyInUiOverrideDoesNotTouchOtherSourceFiles() throws IOException {
+        // CORE_DEPLOY_PARAMETER exists only in the ui-override (core-deploy-ui-override.yaml).
+        // Sending null for it must delete the ui-override but leave core-mixed-paramset.yaml intact.
+        Environment envMetadataTest = new Environment("2", "env-metadata-test");
+        envMetadataTest.setParamsets(List.of(
+                new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null,
+                        Map.of("CORE_DEPLOY_PARAMETER", "some value"), "core-deploy-ui-override"),
+                new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "core", null,
+                        Map.of("GENERIC_NAMESPACE_PARAM", "namespace value"), "core-mixed-paramset")
+        ));
+
+        Map<String, Object> nullParam = new HashMap<>();
+        nullParam.put("CORE_DEPLOY_PARAMETER", null);
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, nullParam);
+
+        updateEnvironmentService.updateParamset(testCluster, envMetadataTest,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, COMMIT_INFO);
+
+        Path inventoryDir = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-metadata-test/Inventory");
+        assertFalse(Files.exists(inventoryDir.resolve("parameters/core-deploy-ui-override.yaml")));
+
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        ParamsetFileData mixedFile = mapper.readValue(
+                inventoryDir.resolve("parameters/core-mixed-paramset.yaml").toFile(), ParamsetFileData.class);
+        assertThat(mixedFile.parameters(), hasEntry("GENERIC_NAMESPACE_PARAM", "namespace value"));
+    }
+
+    @Test
+    void updateParamset_nullForNonExistentKeyDoesNotCreateOrDeleteFiles() {
+        // Sending null for a key absent from all files and from in-memory state
+        // must be a no-op: no exception thrown, no files created or deleted.
+        Map<String, Object> nullParam = new HashMap<>();
+        nullParam.put("NONEXISTENT_KEY", null);
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.RUNTIME, nullParam);
+
+        Path inventoryDir = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory");
+        assertTrue(Files.exists(inventoryDir.resolve("parameters/bss-deploy-ui-override.yaml")));
+        assertFalse(Files.exists(inventoryDir.resolve("parameters/bss-runtime-ui-override.yaml")));
+
+        assertDoesNotThrow(() -> updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "bss"), null, params, COMMIT_INFO));
+
+        assertTrue(Files.exists(inventoryDir.resolve("parameters/bss-deploy-ui-override.yaml")));
+        assertFalse(Files.exists(inventoryDir.resolve("parameters/bss-runtime-ui-override.yaml")));
     }
 
     private void copyDirectory(Path source, Path target) throws IOException {
