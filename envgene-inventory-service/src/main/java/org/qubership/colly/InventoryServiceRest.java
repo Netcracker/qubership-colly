@@ -13,7 +13,6 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
@@ -48,36 +47,34 @@ public class InventoryServiceRest {
             summary = "Get all projects",
             description = "Retrieves a list of all projects available in the inventory. Requires authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved list of projects",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = ProjectDto.class)
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Internal server error occurred\"}"
-                            )
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved list of projects",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = ProjectDto.class)
+            )
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Internal server error occurred\"}"
+                    )
+            )
+    )
     public List<ProjectDto> getProjects() {
         return dtoMapper.toProjectDtos(collyStorage.getProjects());
     }
@@ -89,46 +86,44 @@ public class InventoryServiceRest {
             summary = "Get project by ID",
             description = "Retrieves detailed information about a specific project by its ID. Requires authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved project details",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = ProjectDto.class)
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "404",
-                    description = "Project not found",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Project with id= xyz is not found\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Internal server error occurred\"}"
-                            )
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved project details",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = ProjectDto.class)
+            )
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Project not found",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Project with id= xyz is not found\"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Internal server error occurred\"}"
+                    )
+            )
+    )
     public ProjectDto getProject(
             @Parameter(
                     description = "ID of the project to retrieve",
@@ -150,36 +145,35 @@ public class InventoryServiceRest {
             summary = "Get cluster information. For internal colly usages",
             description = "Retrieves detailed cluster information including internal configuration. This is an internal endpoint for service-to-service communication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved internal cluster information",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = InternalClusterInfoDto.class)
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Internal server error occurred\"}"
-                            )
+
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved internal cluster information",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = InternalClusterInfoDto.class)
+            )
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Internal server error occurred\"}"
+                    )
+            )
+    )
     public List<InternalClusterInfoDto> getInternalClusterInfo() {
         return dtoMapper.toClusterInfoDtos(collyStorage.getClusters(null));
     }
@@ -256,46 +250,44 @@ public class InventoryServiceRest {
             summary = "Get cluster by ID",
             description = "Retrieves detailed information about a specific cluster by its ID. Requires authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved cluster details",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = ClusterDto.class)
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "404",
-                    description = "Cluster not found",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Cluster with id= xyz is not found\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Internal server error occurred\"}"
-                            )
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved cluster details",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = ClusterDto.class)
+            )
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Cluster not found",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Cluster with id= xyz is not found\"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Internal server error occurred\"}"
+                    )
+            )
+    )
     public ClusterDto getCluster(
             @Parameter(
                     description = "ID of the cluster to retrieve",
@@ -317,94 +309,92 @@ public class InventoryServiceRest {
             summary = "Get all environments",
             description = "Retrieves a list of all available environments with their details including namespaces, clusters, owners, teams, and metadata. Requires authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved list of environments",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = EnvironmentDto.class),
-                            examples = @ExampleObject(
-                                    name = "environments-list",
-                                    summary = "Example list of environments",
-                                    value = """
-                                            [
-                                              {
-                                                "id": "96180fe7-f025-465f-bbbf-5e83f301a614",
-                                                "name": "prod-env-1",
-                                                "description": "Production environment for main application",
-                                                "namespaces": [
-                                                  {
-                                                    "id": "34f89c4d-bcc3-4eff-b271-6fdcdaf977c9",
-                                                    "name": "prod-env-1-app"
-                                                  },
-                                                  {
-                                                    "id": "6d3eff88-f35b-471c-b84a-923765861feb",
-                                                    "name": "prod-env-1-services"
-                                                  }
-                                                ],
-                                                "cluster": {
-                                                  "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
-                                                  "name": "prod-cluster-01"
-                                                },
-                                                "owners": ["john.doe", "jane.smith"],
-                                                "labels": ["production", "critical"],
-                                                "teams": ["DevOps"],
-                                                "status": "IN_USE",
-                                                "expirationDate": null,
-                                                "type": "ENVIRONMENT",
-                                                "role": "production",
-                                                "region": "us-east-1"
-                                              },
-                                              {
-                                                "id": "b41b5769-239c-4297-9ef8-8cb2866f186e",
-                                                "name": "dev-env-test",
-                                                "description": "Development environment for testing",
-                                                "namespaces": [
-                                                  {
-                                                    "id": "8c1e53b8-74af-48cb-869d-e814447b0c91",
-                                                    "name": "dev-env-test-apps"
-                                                  }
-                                                ],
-                                                "cluster": {
-                                                  "id": "bd75a053-1210-4b9a-9fe1-9af265b006c9",
-                                                  "name": "dev-cluster-01"
-                                                },
-                                                "owners": ["dev.team"],
-                                                "labels": ["CI"],
-                                                "teams": ["Development", "QA"],
-                                                "status": "FREE",
-                                                "expirationDate": "2025-12-31",
-                                                "type": "ENVIRONMENT",
-                                                "role": "development",
-                                                "region": "eu-west-1"
-                                              }
-                                            ]
-                                            """
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Internal server error occurred\"}"
-                            )
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved list of environments",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = EnvironmentDto.class),
+                    examples = @ExampleObject(
+                            name = "environments-list",
+                            summary = "Example list of environments",
+                            value = """
+                                    [
+                                      {
+                                        "id": "96180fe7-f025-465f-bbbf-5e83f301a614",
+                                        "name": "prod-env-1",
+                                        "description": "Production environment for main application",
+                                        "namespaces": [
+                                          {
+                                            "id": "34f89c4d-bcc3-4eff-b271-6fdcdaf977c9",
+                                            "name": "prod-env-1-app"
+                                          },
+                                          {
+                                            "id": "6d3eff88-f35b-471c-b84a-923765861feb",
+                                            "name": "prod-env-1-services"
+                                          }
+                                        ],
+                                        "cluster": {
+                                          "id": "995f5292-5725-42b6-ad28-0e8629e0f791",
+                                          "name": "prod-cluster-01"
+                                        },
+                                        "owners": ["john.doe", "jane.smith"],
+                                        "labels": ["production", "critical"],
+                                        "teams": ["DevOps"],
+                                        "status": "IN_USE",
+                                        "expirationDate": null,
+                                        "type": "ENVIRONMENT",
+                                        "role": "production",
+                                        "region": "us-east-1"
+                                      },
+                                      {
+                                        "id": "b41b5769-239c-4297-9ef8-8cb2866f186e",
+                                        "name": "dev-env-test",
+                                        "description": "Development environment for testing",
+                                        "namespaces": [
+                                          {
+                                            "id": "8c1e53b8-74af-48cb-869d-e814447b0c91",
+                                            "name": "dev-env-test-apps"
+                                          }
+                                        ],
+                                        "cluster": {
+                                          "id": "bd75a053-1210-4b9a-9fe1-9af265b006c9",
+                                          "name": "dev-cluster-01"
+                                        },
+                                        "owners": ["dev.team"],
+                                        "labels": ["CI"],
+                                        "teams": ["Development", "QA"],
+                                        "status": "FREE",
+                                        "expirationDate": "2025-12-31",
+                                        "type": "ENVIRONMENT",
+                                        "role": "development",
+                                        "region": "eu-west-1"
+                                      }
+                                    ]
+                                    """
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Internal server error occurred\"}"
+                    )
+            )
+    )
     public List<EnvironmentDto> getEnvironments(
             @Parameter(
                     description = "Optional project ID to filter environments by project",
@@ -421,46 +411,44 @@ public class InventoryServiceRest {
             summary = "Get environment by ID",
             description = "Retrieves detailed information about a specific environment by its ID. Requires authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved environment details",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            schema = @Schema(implementation = EnvironmentDto.class)
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - authentication required",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Authentication required\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "404",
-                    description = "Environment not found",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Environment with id= xyz is not found\"}"
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "500",
-                    description = "Internal server error",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"Internal server error occurred\"}"
-                            )
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved environment details",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = EnvironmentDto.class)
+            )
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Authentication required\"}"
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "404",
+            description = "Environment not found",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Environment with id= xyz is not found\"}"
+                    )
+            )
+    )
+    @APIResponse(
+            responseCode = "500",
+            description = "Internal server error",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            value = "{\"error\": \"Internal server error occurred\"}"
+                    )
+            )
+    )
     public EnvironmentDto getEnvironmentById(
             @Parameter(
                     description = "ID of the environment to retrieve",
@@ -706,10 +694,8 @@ public class InventoryServiceRest {
             summary = "Get applications for a namespace",
             description = "Returns a list of application names from the Solution Descriptor filtered by the namespace's deployPostfix. Returns empty list if no SD data is available for the environment."
     )
-    @APIResponses({
-            @APIResponse(responseCode = "200", description = "List of application names (may be empty)"),
-            @APIResponse(responseCode = "404", description = "Environment or namespace not found")
-    })
+    @APIResponse(responseCode = "200", description = "List of application names (may be empty)")
+    @APIResponse(responseCode = "404", description = "Environment or namespace not found")
     public List<String> getApplications(
             @Parameter(description = "ID of the environment", required = true)
             @PathParam("environmentId") String environmentId,
@@ -727,42 +713,40 @@ public class InventoryServiceRest {
             summary = "Get authentication status",
             description = "Returns the current user's authentication status, including username and admin role information. This endpoint is accessible without authentication."
     )
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Successfully retrieved authentication status",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    name = "authenticated-user",
-                                    summary = "Authenticated user status",
-                                    value = """
-                                            {
-                                              "authenticated": true,
-                                              "username": "john.doe",
-                                              "isAdmin": false
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - user is not authenticated",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON,
-                            examples = @ExampleObject(
-                                    name = "unauthenticated-user",
-                                    summary = "Unauthenticated user status",
-                                    value = """
-                                            {
-                                              "authenticated": false
-                                            }
-                                            """
-                            )
+    @APIResponse(
+            responseCode = "200",
+            description = "Successfully retrieved authentication status",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            name = "authenticated-user",
+                            summary = "Authenticated user status",
+                            value = """
+                                    {
+                                      "authenticated": true,
+                                      "username": "john.doe",
+                                      "isAdmin": false
+                                    }
+                                    """
                     )
             )
-    })
+    )
+    @APIResponse(
+            responseCode = "401",
+            description = "Unauthorized - user is not authenticated",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    examples = @ExampleObject(
+                            name = "unauthenticated-user",
+                            summary = "Unauthenticated user status",
+                            value = """
+                                    {
+                                      "authenticated": false
+                                    }
+                                    """
+                    )
+            )
+    )
     public Response getAuthStatus() {
         if (securityIdentity.isAnonymous()) {
             return Response.status(Response.Status.UNAUTHORIZED)
