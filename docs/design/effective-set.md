@@ -81,6 +81,30 @@ The Calculator emits several files per context. The API reads only one parameter
 | `runtime`    | `parameters.yaml`             |
 | `pipeline`   | `parameters.yaml`             |
 
+**File content.**
+
+`deployment-parameters.yaml`:
+
+```yaml
+<key-1>: <value-1>
+<key-N>: <value-N>
+global: &id001
+  <key-1>: <value-1>
+  <key-N>: <value-N>
+<service-name-1>: *id001
+<service-name-2>: *id001
+```
+
+The `global` map is referenced via YAML anchors from per-service keys, so multiple keys
+in the parsed file share the same map identity.
+
+`parameters.yaml` (runtime and pipeline contexts):
+
+```yaml
+<key-1>: <value-1>
+<key-N>: <value-N>
+```
+
 UI override paramsets are part of the inventory that the Calculator consumes when generating the
 Effective Set. Once the Calculator runs, UI override values are reflected in the Effective Set files
 read by Colly. The Effective Set API does not read UI override paramsets directly.
@@ -97,8 +121,7 @@ this cache and does not read the repository directly on every request.
 
 1. Read the per-context parameters file (see [Storage model](#storage-model)) from Git for each
    (context, scope) tuple in the environment.
-2. Validate file structure against the Effective Set schema.
-3. On successful validation, create or update the cache entry as a per-(context, scope) map.
+2. Create or update the cache entry as a per-(context, scope) map.
 
 ## General API rules
 
