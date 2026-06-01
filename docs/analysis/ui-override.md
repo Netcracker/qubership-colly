@@ -1,54 +1,68 @@
 # Override UI
 
 - [Override UI](#override-ui)
-  - [Problem Statement](#problem-statement)
+  - [Problem statement](#problem-statement)
   - [Scenarios](#scenarios)
-  - [Use Cases](#use-cases)
-  - [Open Questions](#open-questions)
-  - [Proposed Approach](#proposed-approach)
+  - [Use cases](#use-cases)
+  - [Open questions](#open-questions)
+  - [Proposed approach](#proposed-approach)
     - [EnvGene](#envgene)
       - [Option 1. Env Specific Parameters Override](#option-1-env-specific-parameters-override)
-        - [Option 1A. Базовый вариант](#option-1a-базовый-вариант)
-        - [Option 1B. Расширенный вариант](#option-1b-расширенный-вариант)
+        - [Option 1A. Basic variant](#option-1a-basic-variant)
+        - [Option 1B. Extended variant](#option-1b-extended-variant)
       - [Option 2. Env Instance Override](#option-2-env-instance-override)
       - [Option 3. Effective Set Override](#option-3-effective-set-override)
       - [Option 4. UI Override Files (Simplified Approach)](#option-4-ui-override-files-simplified-approach)
-      - [Сравнение Опций](#сравнение-опций)
-  - [API документация](#api-документация)
+      - [Comparison of options](#comparison-of-options)
+  - [API documentation](#api-documentation)
 
-## Problem Statement
+## Problem statement
 
-1. **Нам удобнее в UI**
+1. **UI is more convenient**
 
-   Работа через Git требует определенных навыков и привычек. Для пользователей, которые привыкли работать через UI, это может вызывать неудобство и отторжение.
+   Working through Git requires specific skills and habits. Users who are used to working through a UI
+   may find this inconvenient and off-putting.
 
-2. **EnvGene сложный**
+2. **EnvGene is complex**
 
-   EnvGene содержит большое количество разнообразных объектов, которые необходимы для реализации различных сценариев использования. Пользователь должен изучить и понять эти объекты, чтобы выполнять даже простые действия, такие как изменение одного параметра, что создает высокий барьер входа для новых пользователей и требует значительного времени на изучение системы.
+   EnvGene includes a large number of diverse objects required to support various use cases. The user
+   has to learn and understand these objects in order to perform even simple actions such as changing
+   a single parameter. This creates a high entry barrier for new users and requires significant time
+   to learn the system.
 
-3. **Поменять один параметр долго**
+3. **Changing one parameter takes too long**
 
-   Изменение параметра в EnvGene занимает определенное время: checkout репозитория, изменение YAML-файла в Git, push в удаленный репозиторий. В сценариях разработки, когда разработчик работает с одним окружением, проводит dev-тест и требуются частые изменения параметров, текущий подход по работе с параметрами приносит значительные накладные расходы — изменение одного параметра занимает длительное время, что приводит к потере времени разработчика.
+   Changing a parameter in EnvGene takes a noticeable amount of time: repository checkout, editing a
+   YAML file in Git, push to the remote repository. In development scenarios, when a developer works
+   with a single environment, performs a dev test, and needs frequent parameter changes, the current
+   parameter workflow introduces significant overhead. Changing one parameter takes a long time, which
+   results in lost developer time.
 
 ## Scenarios
 
-1. **Dev/QA Test**
+1. **Dev/QA test**
 
-   Разработчик/QA или группа разработчиков/QA получили развернутое в облаке окружение для тестирования изменений.
+   A developer/QA engineer or a group of developers/QA engineers has received a cloud-deployed
+   environment for testing changes.
 
-   В процессе отладки и тестирования требуется многократный редеплой отдельных приложений с изменением их параметров в CM для достижения корректной работы функциональности.
+   During debugging and testing, individual applications are redeployed multiple times with parameter
+   changes in CM in order to reach a working state of the functionality.
 
-   Полученные в результате отладки и тестирования изменения параметров требуют сохранения в шаблоне окружения для воспроизводимости в будущих окружениях и использования в других инстансах.
+   The parameter changes obtained during debugging and testing need to be saved in the environment
+   template for reproducibility in future environments and for use in other instances.
 
-2. **"Озеленение" CI окружения**
+2. **CI environment stabilization**
 
-   После упавших автотестов при автоматизированном деплое солюшена в CI окружение, QA инженер вносит в этот солюшен фиксы/хот-фиксы для достижения успешного прохождения тестов.
+   After automated tests have failed during an automated solution deployment to a CI environment, a
+   QA engineer applies fixes/hot-fixes to this solution in order to achieve a successful test run.
 
-   Процесс включает многократный редеплой отдельных приложений, что требует изменения параметров этих приложений в CM.
+   The process involves multiple redeploys of individual applications, which requires parameter
+   changes for these applications in CM.
 
-   Полученные в результате отладки и тестирования изменения параметров требуют сохранения в шаблоне окружения для воспроизводимости в будущих окружениях и использования в других инстансах.
+   The parameter changes obtained during debugging and testing need to be saved in the environment
+   template for reproducibility in future environments and for use in other instances.
 
-## Use Cases
+## Use cases
 
 1. Create override.
    1. Add a new parameter to:
@@ -147,59 +161,70 @@
    3. Pipeline context on Environment level
 7. View Effective Set generation date
 
-## Open Questions
+## Open questions
 
-1. Необходимо ли обрабатывать часть UI оверрайд параметров как сенсетив параметры - энкриптить при сохранение в репозиторий?
-   1. Нет
-2. Нужен ли UI оверрайд параметров из DD?
-   1. Нет
-3. Как очищать инвентори от UI оверрайдов при "сдаче" энва?
-   1. через удаление и создание
-4. Какой процесс сохранения параметров полученных в Dev/QA Test и "Озеленение" CI окружения в энв темплейте
-   1. OoS для этого анализа
-5. Для ui парамсетов вводятся ограничения на структуру контента парамсета. EnvGene про эти ограничения  не знает. Что может привести к тому, что параметры на UI и в envgene разойдутся
-   1. **решение: поддержать ограничения и в энвгене (?)**
-   2. решение: дополнительные точки ассоциации в инвентори (?)
-6. Типизация через нейминг это плохо?
-   1. типизация через тип позволит описать правила валидации через JSON схему
-7. ParamSet или ParamSet + ParamSetAssociation ?
-   1. Парамсет + атттрибуты энва
-8. Как получить sha коммита, который изменял конкретный файл
-9. описать про ошибку при пересечение ключей файликов эфектив сета
-10. описать принцип мержа в Колли с учетом
-    1. того что ключи не должны пересекаться
-    2. есть исключения типа `global`
-11. Что делать когда заинкрипчено и есть `sops` секция
-12. дата генерации эффектив сета
+1. Do any UI override parameters need to be treated as sensitive (encrypted on save to the repository)?
+   1. No
+2. Is UI override needed for parameters coming from DD?
+   1. No
+3. How should the inventory be cleaned up from UI overrides when the environment is handed over?
+   1. Through delete and recreate
+4. What is the process for saving parameter changes obtained during Dev/QA test and CI environment
+   stabilization back into the environment template?
+   1. OoS for this analysis
+5. UI paramsets introduce structural constraints on paramset content. EnvGene is not aware of these
+   constraints. This may cause UI and EnvGene views of the parameters to diverge.
+   1. **Decision: support these constraints in EnvGene as well (?)**
+   2. Alternative: additional association points in the inventory (?)
+6. Is typing through naming a bad practice?
+   1. Typing through an explicit type allows describing validation rules via a JSON schema
+7. ParamSet or ParamSet + ParamSetAssociation?
+   1. ParamSet plus environment attributes
+8. How to obtain the SHA of the commit that changed a specific file
+9. Describe the error on key overlap between Effective Set files
+10. Describe the Colly merge principle accounting for:
+    1. The fact that keys must not overlap
+    2. Exceptions such as `global`
+11. What to do when the repository is encrypted and a `sops` section is present
+12. Effective Set generation date
 
-## Proposed Approach
+## Proposed approach
 
-Решение предоставляет UI для быстрого изменения параметров окружения без необходимости работы с Git напрямую. UI оверрайды сохраняются в инстансном репозитории и применяются с наивысшим приоритетом в цепочке парамсетов.
+The solution provides a UI for quickly changing environment parameters without having to work with
+Git directly. UI overrides are stored in the instance repository and applied with the highest
+priority in the paramset chain.
 
-Предложено три варианта реализации, различающиеся местом хранения оверрайдов и временем их применения. Все варианты обеспечивают возможность последующего переноса изменений в шаблон окружения для воспроизводимости.
+Three implementation options are proposed, differing in where overrides are stored and when they are
+applied. All options preserve the ability to transfer the changes into the environment template
+afterwards for reproducibility.
 
 ### EnvGene
 
 #### Option 1. Env Specific Parameters Override
 
-Оверрайды хранятся исключительно в отдельных ParamSet файлах в инстансном репозитории. ParamSet файлы ассоциируются с окружением через Inventory и применяются последними в цепочке параметров, обеспечивая наивысший приоритет. Применение изменений требует выполнения `env_build` и `generate_effective_set`.
+Overrides are stored exclusively in separate ParamSet files in the instance repository. The ParamSet
+files are associated with the environment through the Inventory and applied last in the parameter
+chain, providing the highest priority. Applying changes requires running `env_build` and
+`generate_effective_set`.
 
-##### Option 1A. Базовый вариант
+##### Option 1A. Basic variant
 
-**Уровни оверрайдов:**
+**Override levels:**
 
-- **Deployment и Runtime контексты:** оверрайды задаются только на уровне Application
-- **Pipeline контекст:** оверрайды задаются только на уровне Environment (применяются ко всем NS окружения)
+- **Deployment and Runtime contexts:** overrides are only set at the Application level
+- **Pipeline context:** overrides are only set at the Environment level (applied to all NSs of the
+  environment)
 
-1. При создание UI оверрайда значения сохраняются в инстансном репозитории в виде Env Specific ParamSets
+1. On UI override creation, values are saved in the instance repository as Env Specific ParamSets
 
-   1. парамсеты создается в `/environments/<cluster>/<env>/Inventory/parameters/` отдельно для каждого нс/контекста c именами:
-      1. для `deployment` контекста: `<deploy-postfix>-deploy-ui-override.yaml`
-      2. для `runtime` контекста: `<deploy-postfix>-runtime-ui-override.yaml`
-      3. для `pipeline` контекста: `pipeline-ui-override.yaml`
+   1. ParamSets are created in `/environments/<cluster>/<env>/Inventory/parameters/` separately per
+      namespace/context with the following names:
+      1. For the `deployment` context: `<deploy-postfix>-deploy-ui-override.yaml`
+      2. For the `runtime` context: `<deploy-postfix>-runtime-ui-override.yaml`
+      3. For the `pipeline` context: `pipeline-ui-override.yaml`
 
-   2. парамсет ассоциируется в инвентори энва:
-      1. парамсет добавляется в конец списка парамсетов в текущие точки ассоциации
+   2. The ParamSet is associated in the environment inventory:
+      1. The ParamSet is appended to the end of the ParamSet list at the current association points
 
             ```yaml
             envTemplate:
@@ -218,12 +243,14 @@
                      - pipeline-ui-override
             ```
 
-      2. Во время `env_build` происходит валидация:
-         - UI override парамсеты (с именем файла соответствующим паттерну `*-ui-override.yaml`) должны быть в конце списка - если нет, падает
-      3. Во время `env_inventory_generation` (или в первой джобе?) происходит валидация, что создаются или изменяются ui-override парамсеты - если да, падает
+      2. During `env_build`, the following validation runs:
+         - UI override ParamSets (filenames matching the pattern `*-ui-override.yaml`) must be at the
+           end of the list. Otherwise the build fails.
+      3. During `env_inventory_generation` (or in the first job?), a validation runs that fails if
+         UI-override ParamSets are being created or modified.
 
-   3. парамсеты имеют следующую структуру:
-      1. для `deployment` и `runtime` контекста:
+   3. The ParamSets have the following structure:
+      1. For the `deployment` and `runtime` contexts:
 
             ```yaml
             name: string
@@ -233,7 +260,7 @@
                  parameters: map
             ```
 
-      2. для `pipeline` контекста: `pipeline-ui-override.yaml`
+      2. For the `pipeline` context: `pipeline-ui-override.yaml`
 
             ```yaml
             name: string
@@ -241,35 +268,44 @@
             applications: []
             ```
 
-   4. В BGD кейсе вместо `<deploy-postfix>` используется `<deploy-postfix>-peer|origin`. Для процессинга этой конструкции используется BG Domain объект.
+   4. In the BGD case, `<deploy-postfix>-peer|origin` is used instead of `<deploy-postfix>`. The BG
+      Domain object is used to process this construct.
 
-2. Для отображения сохраненного UI оверрайда используется парамсет
+2. The saved UI override is displayed from the ParamSet.
 
-3. UI оверрайд может содержать макросы ссылки на креды созданные в гите
+3. A UI override may contain macro references to credentials created in Git.
 
-4. Возможность создавать креды не предоставляется. Работа с заинкрипченным репозиторием не поддерживается
-   1. **Assumption**: В тех репозиториях/сайтах где используется Override UI энкрипт репозитория не требуется
+4. Creating credentials is not supported. Working with an encrypted repository is not supported.
+   1. **Assumption:** in repositories/sites where Override UI is used, repository encryption is not
+      required.
 
-##### Option 1B. Расширенный вариант
+##### Option 1B. Extended variant
 
-**Уровни оверрайдов:**
+**Override levels:**
 
-- **Deployment и Runtime контексты:** оверрайды могут быть заданы на уровне Environment, Namespace или Application
-- **Pipeline контекст:** оверрайды могут быть заданы на уровне Environment или Namespace
+- **Deployment and Runtime contexts:** overrides may be set at the Environment, Namespace, or
+  Application level
+- **Pipeline context:** overrides may be set at the Environment or Namespace level
 
-1. При создание UI оверрайда значения сохраняются в инстансном репозитории в виде Env Specific ParamSets
+1. On UI override creation, values are saved in the instance repository as Env Specific ParamSets
 
-   1. парамсеты создается в `/environments/<cluster>/<env>/Inventory/parameters/` отдельно для каждого уровня/контекста c именами:
-      1. Для deployment и runtime контекстов:
-         1. На уровне Environment: `deploy-ui-override.yaml` / `runtime-ui-override.yaml` (через секцию `parameters`)
-         2. На уровне Namespace: `<deploy-postfix>-deploy-ui-override.yaml` / `<deploy-postfix>-runtime-ui-override.yaml` (через секцию `parameters`)
-         3. На уровне Application: `<deploy-postfix>-<application-name>-deploy-ui-override.yaml` / `<deploy-postfix>-<application-name>-runtime-ui-override.yaml` (через секцию `applications`)
-      2. Для pipeline контекста:
-         1. На уровне Environment: `pipeline-ui-override.yaml`
-         2. На уровне Namespace: `<deploy-postfix>-pipeline-ui-override.yaml`
+   1. ParamSets are created in `/environments/<cluster>/<env>/Inventory/parameters/` separately per
+      level/context with the following names:
+      1. For the deployment and runtime contexts:
+         1. At Environment level: `deploy-ui-override.yaml` / `runtime-ui-override.yaml` (via the
+            `parameters` section)
+         2. At Namespace level: `<deploy-postfix>-deploy-ui-override.yaml` /
+            `<deploy-postfix>-runtime-ui-override.yaml` (via the `parameters` section)
+         3. At Application level: `<deploy-postfix>-<application-name>-deploy-ui-override.yaml` /
+            `<deploy-postfix>-<application-name>-runtime-ui-override.yaml` (via the `applications`
+            section)
+      2. For the pipeline context:
+         1. At Environment level: `pipeline-ui-override.yaml`
+         2. At Namespace level: `<deploy-postfix>-pipeline-ui-override.yaml`
 
-   2. парамсет ассоциируется в инвентори энва:
-      1. парамсет добавляется в конец списка парамсетов в соответствующие точки ассоциации:
+   2. The ParamSet is associated in the environment inventory:
+      1. The ParamSet is appended to the end of the ParamSet list at the corresponding association
+         points:
 
             ```yaml
             envTemplate:
@@ -298,128 +334,147 @@
                      - <deploy-postfix>-pipeline-ui-override
             ```
 
-      2. Во время `env_build` происходит валидация:
-         - UI override парамсеты (с именем файла соответствующим паттерну `*-ui-override.yaml`) должны быть в конце списка - если нет, падает
-      3. Во время `env_inventory_generation` (или в первой джобе?) происходит валидация, что создаются или изменяются ui-override парамсеты - если да, падает
+      2. During `env_build`, the following validation runs:
+         - UI override ParamSets (filenames matching the pattern `*-ui-override.yaml`) must be at the
+           end of the list. Otherwise the build fails.
+      3. During `env_inventory_generation` (or in the first job?), a validation runs that fails if
+         UI-override ParamSets are being created or modified.
 
-   3. парамсеты имеют следующую структуру в зависимости от уровня:
-      1. Deployment и Runtime контексты:
+   3. The ParamSets have the following structure depending on the level:
+      1. Deployment and Runtime contexts:
 
-         1. На уровне Environment:
+         1. At Environment level:
 
                ```yaml
-               name: deploy-ui-override  # или runtime-ui-override
-               parameters: map  # Параметры уровня Environment
-               applications: []  # Пусто, т.к. параметры на уровне Environment
+               name: deploy-ui-override  # or runtime-ui-override
+               parameters: map  # Environment-level parameters
+               applications: []  # Empty, because the parameters are at the Environment level
                ```
 
-         2. На уровне Namespace:
+         2. At Namespace level:
 
                ```yaml
-               name: <deploy-postfix>-deploy-ui-override  # или <deploy-postfix>-runtime-ui-override
-               parameters: map  # Параметры уровня Namespace
-               applications: []  # Пусто, т.к. параметры на уровне Namespace
+               name: <deploy-postfix>-deploy-ui-override  # or <deploy-postfix>-runtime-ui-override
+               parameters: map  # Namespace-level parameters
+               applications: []  # Empty, because the parameters are at the Namespace level
                ```
 
-         3. На уровне Application:
+         3. At Application level:
 
                ```yaml
-               name: <deploy-postfix>-<application-name>-deploy-ui-override  # или <deploy-postfix>-<application-name>-runtime-ui-override
-               parameters: {}  # Пусто, т.к. параметры на уровне Application
+               name: <deploy-postfix>-<application-name>-deploy-ui-override  # or <deploy-postfix>-<application-name>-runtime-ui-override
+               parameters: {}  # Empty, because the parameters are at the Application level
                applications:
                   - appName: string
-                    parameters: map  # Параметры уровня Application
+                    parameters: map  # Application-level parameters
                ```
 
-      2. Pipeline контекст:
+      2. Pipeline context:
 
-         1. На уровне Environment:
+         1. At Environment level:
 
                ```yaml
                name: pipeline-ui-override
-               parameters: map  # Параметры уровня Environment
-               applications: []  # Пусто
+               parameters: map  # Environment-level parameters
+               applications: []  # Empty
                ```
 
-         2. На уровне Namespace:
+         2. At Namespace level:
 
                ```yaml
                name: <deploy-postfix>-pipeline-ui-override
-               parameters: map  # Параметры уровня Namespace
-               applications: []  # Пусто
+               parameters: map  # Namespace-level parameters
+               applications: []  # Empty
                ```
 
-   4. В BGD кейсе для уровня Namespace и Application вместо `<deploy-postfix>` используется `<deploy-postfix>-peer|origin`. Для процессинга этой конструкции используется BG Domain объект. Для уровня Environment BGD не применяется (параметры на уровне Environment общие для всего окружения).
+   4. In the BGD case, at Namespace and Application levels, `<deploy-postfix>-peer|origin` is used
+      instead of `<deploy-postfix>`. The BG Domain object is used to process this construct. BGD does
+      not apply at Environment level (Environment-level parameters are common to the entire
+      environment).
 
-2. Для отображения сохраненного UI оверрайда используется парамсет
+2. The saved UI override is displayed from the ParamSet.
 
-3. UI оверрайд может содержать макросы ссылки на креды созданные в гите
+3. A UI override may contain macro references to credentials created in Git.
 
-4. Возможность создавать креды не предоставляется. Работа с заинкрипченным репозиторием не поддерживается
-   1. **Assumption**: В тех репозиториях/сайтах где используется Override UI энкрипт репозитория не требуется
+4. Creating credentials is not supported. Working with an encrypted repository is not supported.
+   1. **Assumption:** in repositories/sites where Override UI is used, repository encryption is not
+      required.
 
 #### Option 2. Env Instance Override
 
-Расширяет Option 1A или Option 1B дополнительным мержем оверрайдов напрямую в Application и Namespace объекты инстансного репозитория. Оверрайды хранятся в двух местах: ParamSet файлах (как в Option 1A/1B) и в Application/Namespace объектах. Применение изменений требует только `generate_effective_set`, что ускоряет процесс по сравнению с Option 1A/1B.
+Extends Option 1A or Option 1B with an additional merge of overrides directly into the Application
+and Namespace objects of the instance repository. Overrides are stored in two places: ParamSet files
+(as in Option 1A/1B) and Application/Namespace objects. Applying changes requires only
+`generate_effective_set`, which speeds up the process compared to Option 1A/1B.
 
-1. Все то же самое что и в **Option 1A** или **Option 1B**
-2. При создание UI оверрайда значения мержатся в режиме Shallow Merge в Application энвайрмента:
-   1. для `deploy` в аттрибут `deployParameters` Application объекта расположенного в `environments/<cluster>/<env>/Namespaces/<ns>/Applications/<app>.yml`
-   2. для `runtime` в аттрибут `technicalConfigurationParameters` Application объекта расположенного в `environments/<cluster>/<env>/Namespaces/<ns>/Applications/<app>.yml`
-   3. для `pipeline` в аттрибут `e2eParameters` во все Namespace объекты энвайрмента, расположенные в `environments/<cluster>/<env>/namespace.yml`
+1. Everything from **Option 1A** or **Option 1B** applies.
+2. On UI override creation, values are merged via Shallow Merge into the Application of the
+   environment:
+   1. For `deploy`, into the `deployParameters` attribute of the Application object located at
+      `environments/<cluster>/<env>/Namespaces/<ns>/Applications/<app>.yml`
+   2. For `runtime`, into the `technicalConfigurationParameters` attribute of the Application object
+      located at `environments/<cluster>/<env>/Namespaces/<ns>/Applications/<app>.yml`
+   3. For `pipeline`, into the `e2eParameters` attribute in every Namespace object of the
+      environment, located at `environments/<cluster>/<env>/namespace.yml`
 
 #### Option 3. Effective Set Override
 
-Расширяет Option 2 дополнительным мержем оверрайдов напрямую в файлы Effective Set. Оверрайды хранятся в трех местах: ParamSet файлах, Application/Namespace объектах и файлах Effective Set. Изменения могут быть применены мгновенно.
+Extends Option 2 with an additional merge of overrides directly into Effective Set files. Overrides
+are stored in three places: ParamSet files, Application/Namespace objects, and Effective Set files.
+Changes can be applied immediately.
 
-1. Все то же самое что и в **Option 2. Env Instance Override**
-2. При создание UI оверрайда значения мержатся в режиме Shallow Merge в файлы ES:
-   1. для `deploy` в `effective-set/deployment/<ns>/<app>/values/deployment-parameters.yaml`
-   2. для `runtime` в `effective-set/runtime/<ns>/<app>/parameters.yaml`
-   3. для `pipeline` в `effective-set/pipeline/parameters.yaml`
+1. Everything from **Option 2. Env Instance Override** applies.
+2. On UI override creation, values are merged via Shallow Merge into the ES files:
+   1. For `deploy`, into `effective-set/deployment/<ns>/<app>/values/deployment-parameters.yaml`
+   2. For `runtime`, into `effective-set/runtime/<ns>/<app>/parameters.yaml`
+   3. For `pipeline`, into `effective-set/pipeline/parameters.yaml`
 
 #### Option 4. UI Override Files (Simplified Approach)
 
-Оверрайды Effective Set хранятся в отдельной директории `ui-overrides/` в трех файлах (по одному на контекст). Файлы UI override создаются и управляются исключительно Colly через API. Calculator применяет UI override напрямую при генерации ES с приоритетом ниже Custom Params. Генерируется файл `ui-override-original-values.yaml` для отслеживания оригинальных значений параметров до применения UI override.
+Effective Set overrides are stored in a dedicated `ui-overrides/` directory in three files (one per
+context). The UI override files are created and managed exclusively by Colly through the API. The
+Calculator applies the UI override directly during ES generation with a priority lower than Custom
+Params. A `ui-override-original-values.yaml` file is generated to track the original parameter values
+before the UI override is applied.
 
-**Структура хранения:**
+**Storage layout:**
 
 ```text
 environments/
   <cluster>/
     <environment>/
       ui-overrides/
-        deployment.yaml       # Deployment контекст
-        runtime.yaml          # Runtime контекст
-        pipeline.yaml         # Pipeline контекст
+        deployment.yaml       # Deployment context
+        runtime.yaml          # Runtime context
+        pipeline.yaml         # Pipeline context
 ```
 
-**Уровни оверрайдов:**
+**Override levels:**
 
-- **Environment Level** - параметры применяются ко всем namespace и application в окружении
-- **Namespace Level** - параметры применяются ко всем application в namespace
-- **Application Level** - параметры применяются к конкретному application
+- **Environment Level** - parameters apply to all namespaces and applications in the environment
+- **Namespace Level** - parameters apply to all applications in the namespace
+- **Application Level** - parameters apply to a specific application
 
-**Пример: `ui-overrides/deployment.yaml`**
+**Example: `ui-overrides/deployment.yaml`**
 
 ```yaml
-# Environment уровень (применяется ко всем namespace и application)
+# Environment level (applies to all namespaces and applications)
 environment:
   param_env1: value1
   param_env2: value2
-# Namespace уровень (применяется ко всем application в namespace)
+# Namespace level (applies to all applications in the namespace)
 namespaces:
   namespace-01:
     param_ns1: value1
     param_ns2: value2
   namespace-02:
     param_ns3: value3
-# Application уровень (применяется к конкретному application)
+# Application level (applies to a specific application)
 applications:
   namespace-01:
     app-01:
       param1: value2
-      param4: null        # Удаление параметра
+      param4: null        # Parameter deletion
     app-02:
       param5: value5
   namespace-02:
@@ -427,32 +482,34 @@ applications:
       param6: value6
 ```
 
-**Calculator изменения:**
+**Calculator changes:**
 
-1. Calculator читает UI Override файлы, расположенные в контрактном пути:
-   - `deployment.yaml` для deployment контекста
-   - `runtime.yaml` для runtime контекста
-   - `pipeline.yaml` для pipeline контекста
+1. The Calculator reads the UI Override files located at the contract paths:
+   - `deployment.yaml` for the deployment context
+   - `runtime.yaml` for the runtime context
+   - `pipeline.yaml` for the pipeline context
 
-2. Calculator мержит их в Effective Set при каждой генерации с приоритетом ниже чем Custom Params
+2. The Calculator merges them into the Effective Set on every generation with a priority lower than
+   Custom Params.
 
-3. Calculator генерирует файл `ui-override-original-values.yaml` с оригинальными значениями параметров до применения UI override:
+3. The Calculator produces a `ui-override-original-values.yaml` file containing the original
+   parameter values before the UI override is applied:
 
    ```text
    effective-set/
-     ui-override-original-values.yaml    # originalValue для всех контекстов
+     ui-override-original-values.yaml    # originalValue for all contexts
    ```
 
-   **Формат файла:**
+   **File format:**
 
    ```yaml
    # ui-override-original-values.yaml
    deployment:
      namespace-01:
        app-01:
-         param1: value1       # Значение до UI override
-         param3: null         # Новый параметр (не было в ES)
-         param4: value4       # Параметр удален через UI override
+         param1: value1       # Value before the UI override
+         param3: null         # New parameter (not present in the ES)
+         param4: value4       # Parameter removed by the UI override
        app-02:
          param5: null
    runtime:
@@ -464,65 +521,66 @@ applications:
      pipeline_param1: old_value
    ```
 
-**Colly изменения:**
+**Colly changes:**
 
-Colly предоставляет REST API для работы с UI override параметрами и Effective Set.
+Colly exposes a REST API for working with UI override parameters and the Effective Set.
 
-1. **UI Parameters API** - управление UI override файлами:
-   - `GET /api/v1/environments/{environmentId}/ui-parameters` - получение UI override параметров
-   - `POST /api/v1/environments/{environmentId}/ui-parameters` - создание/обновление UI override параметров (коммит в Git)
-   - Детали: `colly-ui-parameters-api.md`
+1. **UI Parameters API** - manages UI override files:
+   - `GET /api/v1/environments/{environmentId}/ui-parameters` - retrieves the UI override parameters
+   - `POST /api/v1/environments/{environmentId}/ui-parameters` - creates/updates the UI override
+     parameters (commit to Git)
+   - Details: `colly-ui-parameters-api.md`
 
-2. **Effective Set API** - получение ES с метаданными:
-   - Colly вычисляет для каждого параметра три атрибута:
-     - `originalValue` - значение до применения UI Override
-     - `state` - состояние параметра (uncommitted/committed/untouched)
-     - `value` - целевое значение параметра
-   - Детали: `colly-effective-set-api.md`
+2. **Effective Set API** - retrieves the ES with metadata:
+   - Colly computes three attributes for each parameter:
+     - `originalValue` - the value before the UI Override is applied
+     - `state` - the parameter state (uncommitted/committed/untouched)
+     - `value` - the target parameter value
+   - Details: `colly-effective-set-api.md`
 
-3. **Версионирование и конфликты**:
-   - Использование Git commit hash и HTTP ETag
-   - Оптимистичная блокировка (412 Precondition Failed)
-   - Обработка конфликтов при Git push (409 Conflict)
-   - Детали: `colly-versioning-conflicts.md`
+3. **Versioning and conflicts:**
+   - Use of Git commit hash and HTTP ETag
+   - Optimistic locking (412 Precondition Failed)
+   - Conflict handling on Git push (409 Conflict)
+   - Details: `colly-versioning-conflicts.md`
 
-**Особенности Option 4:**
+**Properties of Option 4:**
 
-- Не использует ParamSet механизм
-- Не требует ассоциаций ParamSet в `env_definition.yml`
-- Упрощенная структура хранения (3 файла вместо множества ParamSet)
-- UI отправляет все параметры (включая закоммиченные) в `request.parameters`
-- Colly отображает `state`, `value`, `originalValue` для пользователя
+- Does not use the ParamSet mechanism
+- Does not require ParamSet associations in `env_definition.yml`
+- Simpler storage layout (3 files instead of many ParamSets)
+- The UI sends all parameters (including already-committed ones) in `request.parameters`
+- Colly exposes `state`, `value`, and `originalValue` for the user
 
-#### Сравнение Опций
+#### Comparison of options
 
-| Критерий                                   | Option 1. Env Specific Parameters Override                | Option 2. Env Instance Override                                                      | Option 3. Effective Set Override                                                                | Option 4. UI Override Files                      |
-|:-------------------------------------------|:----------------------------------------------------------|:-------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------|:-------------------------------------------------|
-| **Время применения изменений**             | Дольше - требуется `env_build` + `generate_effective_set` | Среднее - требуется `generate_effective_set`                                         | Мгновенно - изменения применяются сразу                                                         | Среднее - требуется `generate_effective_set`     |
-| **Сложность реализации**                   | Средняя                                                   | Высокая                                                                              | Высокая                                                                                         | Низкая                                           |
-| **Риск рассинхронизации**                  | Низкий - оверрайды в одном месте (ParamSet)               | Средний - оверрайды в двух местах (ParamSet + Application/Namespace)                 | Высокий - оверрайды в трех местах (ParamSet + Application/Namespace + ES)                       | Низкий - оверрайды в одном месте (ui-overrides/) |
-| **Использование ParamSet**                 | Да                                                        | Да                                                                                   | Да                                                                                              | Нет                                              |
-| **Изменения в Inventory**                  | Да - ассоциация ParamSet                                  | Да - ассоциация ParamSet + мерж в Application/Namespace                              | Да - ассоциация ParamSet + мерж в Application/Namespace + мерж в ES                             | Нет                                              |
-| **Изменения в EnvGene**                    | Calculator + валидация в env_build                        | Calculator + валидация в env_build + мерж в объекты                                  | Calculator + валидация в env_build + мерж в объекты + мерж в ES                                 | Только Calculator                                |
-| **Tracking оригинальных значений**         | Нет                                                       | Нет                                                                                  | Нет                                                                                             | Да - через ui-override-original-values.yaml      |
-| **Поддержка uncommitted изменений в UI**   | Нет                                                       | Нет                                                                                  | Нет                                                                                             | Да - через request.parameters                    |
+| Criterion                                  | Option 1. Env Specific Parameters Override                 | Option 2. Env Instance Override                                                       | Option 3. Effective Set Override                                                                 | Option 4. UI Override Files                         |
+|:-------------------------------------------|:-----------------------------------------------------------|:--------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------|:----------------------------------------------------|
+| **Time to apply changes**                  | Slowest - requires `env_build` + `generate_effective_set`  | Medium - requires `generate_effective_set`                                            | Instant - changes apply immediately                                                              | Medium - requires `generate_effective_set`          |
+| **Implementation complexity**              | Medium                                                     | High                                                                                  | High                                                                                             | Low                                                 |
+| **Drift risk**                             | Low - overrides stored in one place (ParamSet)             | Medium - overrides stored in two places (ParamSet + Application/Namespace)            | High - overrides stored in three places (ParamSet + Application/Namespace + ES)                  | Low - overrides stored in one place (ui-overrides/) |
+| **Uses ParamSet**                          | Yes                                                        | Yes                                                                                   | Yes                                                                                              | No                                                  |
+| **Inventory changes**                      | Yes - ParamSet association                                 | Yes - ParamSet association + merge into Application/Namespace                         | Yes - ParamSet association + merge into Application/Namespace + merge into ES                    | No                                                  |
+| **EnvGene changes**                        | Calculator + validation in env_build                       | Calculator + validation in env_build + merge into objects                             | Calculator + validation in env_build + merge into objects + merge into ES                        | Calculator only                                     |
+| **Tracking of original values**            | No                                                         | No                                                                                    | No                                                                                               | Yes - via ui-override-original-values.yaml          |
+| **Support for uncommitted UI changes**     | No                                                         | No                                                                                    | No                                                                                               | Yes - via request.parameters                        |
 
-## API документация
+## API documentation
 
-Детальное описание API для работы с UI override (Option 4) см. в следующих документах:
+For a detailed API description for working with UI override (Option 4), see the following documents:
 
 1. **`colly-ui-parameters-api.md`** - UI Parameters API
-   - GET/POST endpoints для управления UI override файлами
-   - Структура запросов и ответов
-   - Примеры использования
-   - Логика обработки по уровням (Environment/Namespace/Application)
+   - GET/POST endpoints for managing UI override files
+   - Request and response structures
+   - Usage examples
+   - Per-level processing logic (Environment/Namespace/Application)
 
 2. **`colly-effective-set-api.md`** - Effective Set API
-   - POST endpoint для получения Effective Set с метаданными
-   - Объектная модель (originalValue, state, value)
-   - Алгоритмы вычисления состояний параметров
-   - Примеры ответов
+   - POST endpoint for retrieving the Effective Set with metadata
+   - Object model (originalValue, state, value)
+   - Algorithms for computing parameter states
+   - Response examples
 
 3. **`colly-applications-api.md`** - Applications API
-   - GET endpoint для получения списка приложений в namespace
-   - Используется UI для отображения выпадающего списка приложений
+   - GET endpoint for retrieving the list of applications in a namespace
+   - Used by the UI to populate the application drop-down list
