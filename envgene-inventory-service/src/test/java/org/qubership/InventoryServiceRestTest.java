@@ -1304,6 +1304,59 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void sync_removes_deleted_cluster_from_cache() {
+        // First sync: test-cluster (solar_earth) and unreachable-cluster (solar_saturn) are loaded
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("name", hasItems("test-cluster", "unreachable-cluster"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", hasItems("env-test", "env-metadata-test", "env-1"));
+
+        // Second sync: remove test-cluster folder from git, but keep solar_earth project intact.
+        // removeDeletedProjects() will not trigger because the project still exists —
+        // only the cluster itself is gone. Bug: saveDataToCache() is never called for the removed
+        // cluster, so nothing evicts it from Redis.
+        doAnswer(invocation -> {
+            File dest = invocation.getArgument(3);
+            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+            FileUtils.deleteDirectory(new File(dest, "environments/test-cluster"));
+            return null;
+        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        // test-cluster and its environments should be removed; unreachable-cluster and env-1 must remain
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("unreachable-cluster"))
+                .body("name", not(hasItem("test-cluster")));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("env-1"))
+                .body("name", not(hasItems("env-test", "env-metadata-test")));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_applications_returns_filtered_list() {
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
