@@ -45,6 +45,9 @@ the processing logic that turns Calculator-produced Effective Set files into the
   `per-service-parameters/`) are not read.
 - **External credentials.** `external-credentials.yaml` (credential references for VALS / ESO) is
   not read. Its handling is deferred (see [Open questions](#open-questions)).
+- **Top-level keys only.** Inside `deployment-parameters.yaml`, the API reads only the top-level
+  keys other than `global` and per-service alias keys. See [Storage model](#storage-model) for
+  the file structure.
 - **Uncommitted overlay semantics.** Request body `parameters` is merged over the cached Effective
   Set as a plain recursive overlay. A `null` in the request body becomes a literal `null` value
   in the response. It is not interpreted as a deletion preview (unlike the Override UI write
@@ -95,8 +98,14 @@ global: &id001
 <service-name-2>: *id001
 ```
 
-The `global` map is referenced via YAML anchors from per-service keys, so multiple keys
-in the parsed file share the same map identity.
+In `deployment-parameters.yaml` the Calculator places the same parameter map at three positions:
+
+- At the top level, as the `<key>: <value>` entries shown above.
+- Inside the `global` key, where the parsed YAML emits an anchor (`&id001`).
+- Inside each per-service key, as an alias of `global` (`*id001`).
+
+The `global` value and per-service alias values share the same parsed-map object after YAML
+loading.
 
 `parameters.yaml` (runtime and pipeline contexts):
 
@@ -104,6 +113,8 @@ in the parsed file share the same map identity.
 <key-1>: <value-1>
 <key-N>: <value-N>
 ```
+
+`parameters.yaml` has no `global` key and no per-service aliases.
 
 UI override paramsets are part of the inventory that the Calculator consumes when generating the
 Effective Set. Once the Calculator runs, UI override values are reflected in the Effective Set files
@@ -121,7 +132,15 @@ this cache and does not read the repository directly on every request.
 
 1. Read the per-context parameters file (see [Storage model](#storage-model)) from Git for each
    (context, scope) tuple in the environment.
-2. Create or update the cache entry as a per-(context, scope) map.
+2. Extract the cached subset from the parsed file:
+   - Exclude the `global` key.
+   - Exclude any top-level key whose value is the same parsed-map object as the value of
+     `global`.
+   - Keep all remaining top-level keys.
+3. Store the extracted subset as the cache entry, keyed by `(context, scope)`.
+
+The cache is read-only for API requests. The request-body overlay must not mutate the cached
+map.
 
 ## General API rules
 
