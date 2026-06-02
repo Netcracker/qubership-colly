@@ -2,6 +2,13 @@ apiVersion: v1
 entries:
   qubership-colly:
   - apiVersion: v2
+    created: "2026-06-02T07:39:09.272680621Z"
+    digest: 35ad7a72f1bc1da92ce3eb835f00b58fdc9ecf4e0196964f21507bb1ffa82830
+    name: qubership-colly
+    urls:
+    - https://github.com/Netcracker/qubership-colly/releases/download/v5.1.1/qubership-colly-5.1.1.tgz
+    version: 5.1.1
+  - apiVersion: v2
     created: "2026-06-01T12:52:57.51353868Z"
     digest: 35320dfca9d29256fda52d8fa1b217bd3542454477ce11b6214cb159db681508
     name: qubership-colly
@@ -232,4 +239,4 @@ entries:
     urls:
     - https://github.com/Netcracker/qubership-colly/releases/download/qubership-colly-1.7.1/qubership-colly-1.7.1.tgz
     version: 1.7.1
-generated: "2026-06-01T12:52:57.51380394Z"
+generated: "2026-06-02T07:39:09.273048689Z"
