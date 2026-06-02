@@ -54,7 +54,22 @@ public class CollyStorage {
         Log.info("Projects loaded: " + projects.size());
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
         Log.info("Cloud passports loaded: " + cloudPassports.size());
+        removeDeletedClusters(cloudPassports);
         cloudPassports.forEach(this::saveDataToCache);
+    }
+
+    private void removeDeletedClusters(List<CloudPassport> currentCloudPassports) {
+        Set<String> currentClusterNames = currentCloudPassports.stream()
+                .map(CloudPassport::name)
+                .collect(Collectors.toSet());
+        clusterRepository.listAll().stream()
+                .filter(cached -> !currentClusterNames.contains(cached.getName()))
+                .forEach(deleted -> {
+                    Log.infof("Cluster %s no longer exists in git - removing from cache", deleted.getName());
+                    environmentRepository.findByClusterId(deleted.getId())
+                            .forEach(env -> environmentRepository.deleteById(env.getId()));
+                    clusterRepository.deleteById(deleted.getId());
+                });
     }
 
     private void removeDeletedProjects(List<Project> currentProjects) {

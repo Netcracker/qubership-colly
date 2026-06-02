@@ -140,3 +140,66 @@ envTemplate:
 - `CollyStorage.getUiParameters` filtering logic is correct as-is — usually no need to touch it
 - `Paramset` constructor requires 6 arguments — don't forget `sourceName` (last param)
 - `CloudPassportLoaderTest` expected data includes `sourceName` per entry — update it whenever test data changes
+
+---
+
+## Applications API — `GET /environments/{environmentId}/applications`
+
+### Overview
+
+Returns a list of application names from the Solution Descriptor (SD) for the given environment and namespace,
+filtered by the namespace's `deployPostfix`.
+
+Query param: `namespaceName` (required) — resolved to `deployPostfix` via `environment.getNamespaces()`, same as
+paramset namespace resolution. Namespace not found → 404.
+
+### SD storage and loading
+
+- `SdApplication` record (`version`, `deployPostfix`) stored as `List<SdApplication>` on `db/data/Environment.java`
+  — same pattern as the `paramsets` field, serialized as part of the Environment JSON blob in Redis.
+- SD is loaded in `CloudPassportLoader.loadSolutionDescriptor(inventoryDir)` and carried via
+  `CloudPassportEnvironment.sdApplications` (new field, empty list if SD absent/invalid).
+- SD file path: `{Inventory}/solution-descriptor/sd.yaml` (fallback: `sd.yml`).
+- Wired in `CollyStorage.saveEnvironmentToCache()` → `finalEnvironment.setSdApplications(...)`.
+- Populated during the existing `@Scheduled syncAll()` pass — no new scheduler.
+
+### Application name extraction
+
+`version` field in SD has format `"NAME:semver"` (e.g. `"postgres:1.32.6"`). App name = part before `:`.
+If no `:` present, use the whole string. Duplicates are removed with `.distinct()`.
+
+```
+app.version().contains(":") ? app.version().split(":")[0] : app.version();
+```
+
+### Model classes
+
+```
+cloudpassport/SdApplication.java              — record(version, deployPostfix); stored in Redis
+cloudpassport/envgen/SolutionDescriptor.java  — Jackson/YAML read-only model; NOT stored in Redis
+```
+
+`SolutionDescriptor` has `@JsonIgnoreProperties(ignoreUnknown = true)`. Any entry with null `version` or
+`deployPostfix` invalidates the entire SD for that environment (returns empty list + warning log).
+
+### Where things live
+
+| What                                  | Where                                                                                                                  |
+|---------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| REST endpoint                         | `InventoryServiceRest.getApplications()`                                                                               |
+| Business logic / namespace resolution | `CollyStorage.getApplications()`                                                                                       |
+| SD file loading                       | `CloudPassportLoader.loadSolutionDescriptor()`                                                                         |
+| SD data on environment                | `db/data/Environment.sdApplications`                                                                                   |
+| Test SD fixture                       | `src/test/resources/gitrepo_with_cloudpassports/environments/test-cluster/env-1/Inventory/solution-descriptor/sd.yaml` |
+
+### Test cases (`InventoryServiceRestTest`)
+
+| Test                                      | Input                                            | Expected                                        |
+|-------------------------------------------|--------------------------------------------------|-------------------------------------------------|
+| `getApplications_returnsFilteredList`     | env-1, namespace with `deployPostfix="core"`     | `["MONITORING","postgres","postgres-services"]` |
+| `getApplications_noMatchingDeployPostfix` | env-1, namespace with `deployPostfix="no-match"` | `[]` (200)                                      |
+| `getApplications_namespaceNotFound`       | env-1, unknown namespace                         | 404                                             |
+| `getApplications_noSdFile`                | env without SD fixture                           | `[]` (200)                                      |
+| `getApplications_environmentNotFound`     | random UUID                                      | 404                                             |
+
+`CloudPassportLoaderTest` — assert `sdApplications` is non-empty for env-1 after adding the SD fixture.
