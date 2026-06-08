@@ -60,7 +60,9 @@ public class AchKubernetesAgentService {
 
             Instant completedAt = Instant.MIN;
             List<DeploymentItem> deploymentItems = new ArrayList<>();
-            Map<String, List<ApplicationsVersion>> sdToApplications = applicationsVersions.stream().collect(Collectors.groupingBy(ApplicationsVersion::source));
+            Map<String, List<ApplicationsVersion>> sdToApplications = applicationsVersions.stream()
+                    .filter(appVer -> appVer.source() != null)
+                    .collect(Collectors.groupingBy(ApplicationsVersion::source));
             for (Map.Entry<String, List<ApplicationsVersion>> sdNameToAppVers : sdToApplications.entrySet()) {
                 List<ApplicationsVersion> sdApplicationsVersions = sdNameToAppVers.getValue();
                 if (sdApplicationsVersions.isEmpty()) {
