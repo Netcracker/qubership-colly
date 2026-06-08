@@ -1,0 +1,2 @@
+env-metadata-test-core: /environments/test-cluster/env-metadata-test/effective-set/runtime/core
+env-metadata-test-bss: /environments/test-cluster/env-metadata-test/effective-set/runtime/bss

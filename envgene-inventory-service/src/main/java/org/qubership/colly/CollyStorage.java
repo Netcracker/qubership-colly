@@ -1,26 +1,39 @@
 package org.qubership.colly;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
 import org.qubership.colly.db.data.*;
+import org.qubership.colly.dto.EffectiveSetResponseDto;
 import org.qubership.colly.dto.PatchEnvironmentDto;
 import org.qubership.colly.dto.SetUiParametersDto;
 import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class CollyStorage {
+
+    private static final Set<String> VALID_CONTEXTS = Set.of("deployment", "runtime", "pipeline");
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+
+    private final ConcurrentHashMap<String, Map<String, Object>> effectiveSetCache = new ConcurrentHashMap<>();
 
     private final ClusterRepository clusterRepository;
     private final EnvironmentRepository environmentRepository;
@@ -48,6 +61,7 @@ public class CollyStorage {
     @Scheduled(cron = "{colly.eis.cron.schedule}")
     void syncAll() {
         Log.info("Task for loading data from git has started");
+        effectiveSetCache.clear();
         List<Project> projects = projectRepoLoader.loadProjects();
         removeDeletedProjects(projects);
         projects.forEach(projectRepository::persist);
@@ -94,6 +108,7 @@ public class CollyStorage {
         if (project == null) {
             throw new NotFoundException("Project is not found. ID=" + projectId);
         }
+        effectiveSetCache.clear();
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(List.of(project));
         Log.info("Cloud passports loaded: " + cloudPassports.size());
         cloudPassports.forEach(this::saveDataToCache);
@@ -167,6 +182,7 @@ public class CollyStorage {
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
         finalEnvironment.setSdApplications(cloudPassportEnvironment.sdApplications());
+        finalEnvironment.setEffectiveSetPath(cloudPassportEnvironment.effectiveSetPath());
         finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
         finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());
 
@@ -252,6 +268,143 @@ public class CollyStorage {
 
     public Environment getEnvironment(String id) {
         return environmentRepository.findById(id);
+    }
+
+    public EffectiveSetResponseDto getEffectiveSet(String environmentId, String context,
+                                                   String namespaceName, String applicationName, Map<String, Object> requestParameters) {
+
+        if (!VALID_CONTEXTS.contains(context)) {
+            throw new BadRequestException("context must be one of: deployment, runtime, pipeline");
+        }
+
+        boolean isPipeline = "pipeline".equals(context);
+        if (isPipeline) {
+            if (namespaceName != null || applicationName != null) {
+                throw new BadRequestException("namespaceName and applicationName must not be present for context=pipeline");
+            }
+        } else {
+            if (namespaceName == null || namespaceName.isBlank()) {
+                throw new BadRequestException("namespaceName is required for context=" + context);
+            }
+            if (applicationName == null || applicationName.isBlank()) {
+                throw new BadRequestException("applicationName is required for context=" + context);
+            }
+        }
+
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        String deployPostfix = null;
+        if (!isPipeline) {
+            deployPostfix = environment.getNamespaces().stream()
+                    .filter(ns -> namespaceName.equals(ns.getName()))
+                    .map(Namespace::getDeployPostfix)
+                    .findFirst()
+                    .orElseThrow(() -> new NotFoundException(
+                            "Namespace '" + namespaceName + "' not found in environment " + environmentId));
+
+            String dp = deployPostfix;
+            boolean appExists = environment.getSdApplications().stream()
+                    .anyMatch(app -> dp.equals(app.deployPostfix())
+                            && applicationName.equals(app.version().contains(":") ? app.version().split(":")[0] : app.version()));
+            if (!appExists) {
+                throw new NotFoundException(
+                        "Application '" + applicationName + "' not found for namespace '" + namespaceName + "'");
+            }
+        }
+
+        Path filePath = resolveEffectiveSetFilePath(environment.getEffectiveSetPath(), context, deployPostfix, applicationName);
+        String cacheKey = environmentId + ":" + context + ":" + deployPostfix + ":" + applicationName;
+
+        Map<String, Object> cached = effectiveSetCache.computeIfAbsent(cacheKey,
+                k -> readEffectiveSetFile(filePath, context));
+
+        Map<String, Object> merged = deepCopy(cached);
+        if (requestParameters != null) {
+            mergeInto(merged, requestParameters);
+        }
+
+        return new EffectiveSetResponseDto(context, environmentId, namespaceName, applicationName, wrapMap(merged));
+    }
+
+    private static Path resolveEffectiveSetFilePath(String root, String context, String deployPostfix, String applicationName) {
+        Path r = Path.of(root);
+        return switch (context) {
+            case "deployment" -> r.resolve("deployment").resolve(deployPostfix).resolve(applicationName)
+                    .resolve("values").resolve("deployment-parameters.yaml");
+            case "runtime" -> r.resolve("runtime").resolve(deployPostfix).resolve(applicationName)
+                    .resolve("parameters.yaml");
+            case "pipeline" -> r.resolve("pipeline").resolve("parameters.yaml");
+            default -> throw new IllegalStateException("Unexpected context: " + context);
+        };
+    }
+
+    private static Map<String, Object> readEffectiveSetFile(Path filePath, String context) {
+        if (!Files.isRegularFile(filePath)) {
+            return Collections.emptyMap();
+        }
+        try {
+            Map<String, Object> raw = YAML_MAPPER.readValue(filePath.toFile(), Map.class);
+            return "deployment".equals(context) ? filterGlobalAliases(raw) : raw;
+        } catch (IOException e) {
+            Log.errorf("Failed to read effective-set file %s: %s", filePath, e.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
+    private static Map<String, Object> filterGlobalAliases(Map<String, Object> raw) {
+        Object globalVal = raw.get("global");
+        Map<String, Object> filtered = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : raw.entrySet()) {
+            if ("global".equals(entry.getKey())) continue;
+            if (globalVal != null && entry.getValue() == globalVal) continue;
+            filtered.put(entry.getKey(), entry.getValue());
+        }
+        return filtered;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> deepCopy(Map<String, Object> source) {
+        Map<String, Object> copy = new LinkedHashMap<>(source.size());
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            Object val = entry.getValue();
+            copy.put(entry.getKey(), val instanceof Map ? deepCopy((Map<String, Object>) val) : val);
+        }
+        return copy;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void mergeInto(Map<String, Object> target, Map<String, Object> overlay) {
+        for (Map.Entry<String, Object> entry : overlay.entrySet()) {
+            String key = entry.getKey();
+            Object overlayVal = entry.getValue();
+            if (overlayVal instanceof Map && target.get(key) instanceof Map) {
+                mergeInto((Map<String, Object>) target.get(key), (Map<String, Object>) overlayVal);
+            } else {
+                target.put(key, overlayVal);
+            }
+        }
+    }
+
+    private static Map<String, Object> wrapMap(Map<String, Object> params) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            result.put(entry.getKey(), wrapValue(entry.getValue()));
+        }
+        return result;
+    }
+
+    private static Map<String, Object> wrapValue(Object value) {
+        if (value instanceof Map<?, ?>) {
+            return Map.of("_type", "container", "_data", wrapMap((Map<String, Object>) value));
+        }
+        Map<String, Object> leafData = new LinkedHashMap<>();
+        leafData.put("value", value);
+        leafData.put("state", "ui_override_untouched");
+        leafData.put("originalValue", value);
+        return Map.of("_type", "leaf", "_data", leafData);
     }
 
     public Cluster getCluster(String id) {
