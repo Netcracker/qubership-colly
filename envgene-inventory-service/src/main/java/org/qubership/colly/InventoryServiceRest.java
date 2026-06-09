@@ -18,6 +18,7 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.*;
 import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.services.EffectiveSetCalculator;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,14 +31,17 @@ public class InventoryServiceRest {
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
+    private final EffectiveSetCalculator effectiveSetCalculator;
 
     @Inject
     public InventoryServiceRest(CollyStorage collyStorage,
                                 SecurityIdentity securityIdentity,
-                                DtoMapper dtoMapper) {
+                                DtoMapper dtoMapper,
+                                EffectiveSetCalculator effectiveSetCalculator) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.dtoMapper = dtoMapper;
+        this.effectiveSetCalculator = effectiveSetCalculator;
     }
 
     @GET
@@ -705,7 +709,7 @@ public class InventoryServiceRest {
             @QueryParam("applicationName") String applicationName,
             EffectiveSetRequestDto request
     ) {
-        return collyStorage.getEffectiveSet(environmentId, context, namespaceName, applicationName,
+        return effectiveSetCalculator.getEffectiveSet(environmentId, context, namespaceName, applicationName,
                 request != null ? request.parameters() : null);
     }
 
