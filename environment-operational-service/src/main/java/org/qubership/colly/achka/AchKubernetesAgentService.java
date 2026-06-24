@@ -60,7 +60,9 @@ public class AchKubernetesAgentService {
 
             Instant completedAt = Instant.MIN;
             List<DeploymentItem> deploymentItems = new ArrayList<>();
-            Map<String, List<ApplicationsVersion>> sdToApplications = applicationsVersions.stream().collect(Collectors.groupingBy(ApplicationsVersion::source));
+            Map<String, List<ApplicationsVersion>> sdToApplications = applicationsVersions.stream()
+                    .filter(appVer -> appVer.source() != null)
+                    .collect(Collectors.groupingBy(ApplicationsVersion::source));
             for (Map.Entry<String, List<ApplicationsVersion>> sdNameToAppVers : sdToApplications.entrySet()) {
                 List<ApplicationsVersion> sdApplicationsVersions = sdNameToAppVers.getValue();
                 if (sdApplicationsVersions.isEmpty()) {
@@ -77,7 +79,8 @@ public class AchKubernetesAgentService {
                 DeploymentItemType type = calculateSdType(sdNameToAppVers);
                 deploymentItems.add(new DeploymentItem(sdNameToAppVers.getKey(), status, type));
             }
-            deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
+            if (!deploymentItems.isEmpty())
+                deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
         }
         return deploymentOperations;
     }
