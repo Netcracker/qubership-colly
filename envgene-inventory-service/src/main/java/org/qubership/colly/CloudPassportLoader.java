@@ -73,31 +73,48 @@ public class CloudPassportLoader {
     }
 
     private List<GitInfo> cloneGitRepositories(List<Project> projects) {
-
-        File directory = new File(cloudPassportFolder);
-
-        try {
-            if (directory.exists()) {
-                FileUtils.deleteDirectory(directory);
-            }
-        } catch (IOException e) {
-            Log.error("Impossible to start git cloning. Failed to clean directory: " + cloudPassportFolder, e);
-            return Collections.emptyList();
-        }
+        new File(cloudPassportFolder).mkdirs();
+        cleanupTmpDirectories();
 
         List<GitInfo> result = new ArrayList<>();
         int index = 1;
         for (Project project : projects) {
-
             for (InstanceRepository instanceRepository : project.instanceRepositories()) {
-                String folderNameToClone = cloudPassportFolder + "/" + index;
+                String tmpFolder = cloudPassportFolder + "/" + index + "-tmp";
+                String stableFolder = cloudPassportFolder + "/" + index;
                 String token = gitService.resolveToken(instanceRepository.token(), instanceRepository.region());
-                gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), token, new File(folderNameToClone));
-                result.add(new GitInfo(instanceRepository, folderNameToClone, project.id()));
+                gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), token, new File(tmpFolder));
+                try {
+                    FileUtils.deleteDirectory(new File(stableFolder));
+                    Files.move(Path.of(tmpFolder), Path.of(stableFolder));
+                } catch (IOException e) {
+                    Log.errorf("Failed to replace stable directory %s, skipping repo %s",
+                            stableFolder, instanceRepository.url());
+                    try {
+                        FileUtils.deleteDirectory(new File(tmpFolder));
+                    } catch (IOException ignored) {
+                    }
+                    index++;
+                    continue;
+                }
+                result.add(new GitInfo(instanceRepository, stableFolder, project.id()));
                 index++;
             }
         }
         return result;
+    }
+
+    private void cleanupTmpDirectories() {
+        try (Stream<Path> children = Files.list(Path.of(cloudPassportFolder))) {
+            children.filter(p -> p.getFileName().toString().endsWith("-tmp"))
+                    .forEach(p -> {
+                        try {
+                            FileUtils.deleteDirectory(p.toFile());
+                        } catch (IOException ignored) {
+                        }
+                    });
+        } catch (IOException ignored) {
+        }
     }
 
     private CloudPassport processYamlFilesInClusterFolder(GitInfo gitInfo, Path cloudPassportFolderPath, Path clusterFolderPath) {
@@ -246,9 +263,11 @@ public class CloudPassportLoader {
             CmApproach cmApproach = inventory.deployer() != null ? CmApproach.CMDB : CmApproach.NO_CMDB;
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             List<SdApplication> sdApplications = loadSolutionDescriptor(envDevinitionPath.getParent());
+            String effectiveSetPath = environmentPath.resolve("effective-set").toString();
             return new CloudPassportEnvironment(environmentName, description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
-                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications);
+                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications,
+                    effectiveSetPath);
         } catch (IOException e) {
             Log.error("Error loading environment from " + environmentPath, e);
             return null;

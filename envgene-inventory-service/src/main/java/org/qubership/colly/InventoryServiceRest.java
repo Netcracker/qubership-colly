@@ -18,6 +18,7 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.*;
 import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.services.EffectiveSetCalculator;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,14 +31,17 @@ public class InventoryServiceRest {
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
+    private final EffectiveSetCalculator effectiveSetCalculator;
 
     @Inject
     public InventoryServiceRest(CollyStorage collyStorage,
                                 SecurityIdentity securityIdentity,
-                                DtoMapper dtoMapper) {
+                                DtoMapper dtoMapper,
+                                EffectiveSetCalculator effectiveSetCalculator) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.dtoMapper = dtoMapper;
+        this.effectiveSetCalculator = effectiveSetCalculator;
     }
 
     @GET
@@ -685,6 +689,28 @@ public class InventoryServiceRest {
             SetUiParametersDto uiParametersDto
     ) {
         collyStorage.setUiParameters(environmentId, namespaceName, applicationName, uiParametersDto);
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments/{environmentId}/effective-set")
+    @Operation(
+            summary = "Get effective set with parameter metadata",
+            description = "Returns the Effective Set of parameters for the given environment and context, enriched with per-parameter metadata (state, value, originalValue). Not yet implemented."
+    )
+    @APIResponse(responseCode = "200", description = "Effective Set successfully assembled")
+    @APIResponse(responseCode = "400", description = "Bad request – missing or invalid query parameters")
+    @APIResponse(responseCode = "404", description = "Environment, namespace or application not found")
+    public EffectiveSetResponseDto getEffectiveSet(
+            @PathParam("environmentId") String environmentId,
+            @QueryParam("context") String context,
+            @QueryParam("namespaceName") String namespaceName,
+            @QueryParam("applicationName") String applicationName,
+            EffectiveSetRequestDto request
+    ) {
+        return effectiveSetCalculator.getEffectiveSet(environmentId, context, namespaceName, applicationName,
+                request != null ? request.parameters() : null);
     }
 
     @GET
