@@ -156,7 +156,7 @@ public class CloudPassportLoader {
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
-        String argoUrl = null;
+        String argoUrl;
         String achkaUrl = "https://ach-kubernetes-agent-devops-toolkit." + cloud.cloudPublicHost();
         DevopsData devops = cloudPassportData.devops();
         if (Objects.nonNull(devops)) {
@@ -164,6 +164,10 @@ public class CloudPassportLoader {
             if (devops.achkaUrl() != null) {
                 achkaUrl = devops.achkaUrl();
             }
+        } else {
+            ArgocdData argocd = cloudPassportData.argocd();
+            argoUrl = argocd != null ? argocd.argocdUrl() : null;
+            achkaUrl = argocd != null ? argocd.achkaUrl() : achkaUrl;
         }
         Log.infof("Cloud Deployer URL: %s. Cloud Argo URL: %s, Achka URL: %s", cloud.cloudCmdbUrl(), argoUrl, achkaUrl);
         String dbaasUrl = null;

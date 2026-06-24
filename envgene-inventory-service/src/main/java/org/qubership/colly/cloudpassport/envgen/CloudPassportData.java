@@ -7,5 +7,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public record CloudPassportData(CloudData cloud,
                                 CSEData cse,
                                 DBaaSData dbaas,
-                                DevopsData devops) {
+                                DevopsData devops,
+                                ArgocdData argocd) {
 }
