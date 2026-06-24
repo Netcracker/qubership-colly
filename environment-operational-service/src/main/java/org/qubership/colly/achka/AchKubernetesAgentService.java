@@ -63,6 +63,10 @@ public class AchKubernetesAgentService {
             Map<String, List<ApplicationsVersion>> sdToApplications = applicationsVersions.stream()
                     .filter(appVer -> appVer.source() != null)
                     .collect(Collectors.groupingBy(ApplicationsVersion::source));
+            if (sdToApplications.isEmpty()) {
+                Log.warn("No applications found for deployment session id: " + entry);
+                continue;
+            }
             for (Map.Entry<String, List<ApplicationsVersion>> sdNameToAppVers : sdToApplications.entrySet()) {
                 List<ApplicationsVersion> sdApplicationsVersions = sdNameToAppVers.getValue();
                 if (sdApplicationsVersions.isEmpty()) {
