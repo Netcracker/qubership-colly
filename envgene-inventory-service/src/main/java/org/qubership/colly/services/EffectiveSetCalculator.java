@@ -1,7 +1,5 @@
 package org.qubership.colly.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -13,7 +11,17 @@ import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.data.ParamsetContext;
 import org.qubership.colly.dto.EffectiveSetResponseDto;
 
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.nodes.MappingNode;
+import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.NodeTuple;
+import org.yaml.snakeyaml.nodes.ScalarNode;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -26,8 +34,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class EffectiveSetCalculator {
 
-    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
-
+    private static final String GLOBAL_KEY = "global";
     private final ConcurrentHashMap<String, Map<String, Object>> effectiveSetCache = new ConcurrentHashMap<>();
 
     private final EnvironmentRepository environmentRepository;
@@ -112,28 +119,68 @@ public class EffectiveSetCalculator {
         };
     }
 
+    @SuppressWarnings("unchecked")
     private static Map<String, Object> readEffectiveSetFile(Path filePath, ParamsetContext ctx) {
         if (!Files.isRegularFile(filePath)) {
             return Collections.emptyMap();
         }
-        try {
-            Map<String, Object> raw = YAML_MAPPER.readValue(filePath.toFile(), Map.class);
-            return ctx == ParamsetContext.DEPLOYMENT ? filterGlobalAliases(raw) : raw;
+        try (InputStream in = Files.newInputStream(filePath)) {
+            if (ctx != ParamsetContext.DEPLOYMENT) {
+                Object loaded = new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
+                return loaded instanceof Map ? (Map<String, Object>) loaded : Collections.emptyMap();
+            }
+            return readDeploymentFileStrippingAliases(in);
         } catch (IOException e) {
             Log.errorf("Failed to read effective-set file %s: %s", filePath, e.getMessage());
             return Collections.emptyMap();
         }
     }
 
-    private static Map<String, Object> filterGlobalAliases(Map<String, Object> raw) {
-        Object globalVal = raw.get("global");
-        Map<String, Object> filtered = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : raw.entrySet()) {
-            if ("global".equals(entry.getKey())) continue;
-            if (globalVal != null && entry.getValue() == globalVal) continue;
-            filtered.put(entry.getKey(), entry.getValue());
+    /**
+     * Parses a deployment YAML file and strips the GLOBAL_KEY key plus every top-level key
+     * that is a YAML alias of GLOBAL_KEY (i.e. written as {@code service-X: *globalAnchor}).
+     * <p>
+     * SnakeYAML's compose() resolves alias references: after composing, an alias node and
+     * its anchor become the same Node object. We use that reference identity to identify
+     * alias keys without comparing values.
+     */
+    private static Map<String, Object> readDeploymentFileStrippingAliases(InputStream in) {
+        NodeConstructor ctor = new NodeConstructor();
+        Node root = new Yaml(ctor).compose(new InputStreamReader(in));
+        if (!(root instanceof MappingNode mapping)) {
+            return Collections.emptyMap();
         }
-        return filtered;
+
+        // Find the Node that GLOBAL_KEY maps to; aliases of it share the same Node reference.
+        Node globalNode = null;
+        for (NodeTuple tuple : mapping.getValue()) {
+            if (tuple.getKeyNode() instanceof ScalarNode key && GLOBAL_KEY.equals(key.getValue())) {
+                globalNode = tuple.getValueNode();
+                break;
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (NodeTuple tuple : mapping.getValue()) {
+            if (!(tuple.getKeyNode() instanceof ScalarNode key)) continue;
+            if (GLOBAL_KEY.equals(key.getValue())) continue;
+            if (globalNode != null && tuple.getValueNode() == globalNode) continue; // alias of global
+            result.put(key.getValue(), ctor.build(tuple.getValueNode()));
+        }
+        return result;
+    }
+
+    /**
+     * Exposes SafeConstructor.constructObject so we can build individual value nodes.
+     */
+    private static final class NodeConstructor extends SafeConstructor {
+        NodeConstructor() {
+            super(new LoaderOptions());
+        }
+
+        Object build(Node node) {
+            return constructObject(node);
+        }
     }
 
     @SuppressWarnings("unchecked")

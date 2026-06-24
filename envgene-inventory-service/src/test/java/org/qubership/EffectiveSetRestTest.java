@@ -98,6 +98,31 @@ class EffectiveSetRestTest {
     }
 
     @Test
+    void deployment_yaml_alias_keys_excluded() {
+        // deployment-parameters.yaml has `global: &id001 {...}` followed by
+        // `service-1: *id001` ... `service-8: *id001`.
+        // filterGlobalAliases must exclude all alias keys, not just "global" itself.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters", not(hasKey("service-1")))
+                .body("parameters", not(hasKey("service-2")))
+                .body("parameters", not(hasKey("service-3")))
+                .body("parameters", not(hasKey("service-4")))
+                .body("parameters", not(hasKey("service-5")))
+                .body("parameters", not(hasKey("service-6")))
+                .body("parameters", not(hasKey("service-7")))
+                .body("parameters", not(hasKey("service-8")))
+                .body("parameters", hasKey("PARAMETER_1")); // flat keys must still be present
+    }
+
+    @Test
     void deployment_mergesRequestBody() {
         String id = syncAndGetEnvId("env-metadata-test");
         given()
