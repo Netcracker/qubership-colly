@@ -63,10 +63,6 @@ public class AchKubernetesAgentService {
             Map<String, List<ApplicationsVersion>> sdToApplications = applicationsVersions.stream()
                     .filter(appVer -> appVer.source() != null)
                     .collect(Collectors.groupingBy(ApplicationsVersion::source));
-            if (sdToApplications.isEmpty()) {
-                Log.warn("No applications found for deployment session id: " + entry);
-                continue;
-            }
             for (Map.Entry<String, List<ApplicationsVersion>> sdNameToAppVers : sdToApplications.entrySet()) {
                 List<ApplicationsVersion> sdApplicationsVersions = sdNameToAppVers.getValue();
                 if (sdApplicationsVersions.isEmpty()) {
@@ -83,7 +79,8 @@ public class AchKubernetesAgentService {
                 DeploymentItemType type = calculateSdType(sdNameToAppVers);
                 deploymentItems.add(new DeploymentItem(sdNameToAppVers.getKey(), status, type));
             }
-            deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
+            if (!deploymentItems.isEmpty())
+                deploymentOperations.add(new DeploymentOperation(completedAt, deploymentItems));
         }
         return deploymentOperations;
     }
