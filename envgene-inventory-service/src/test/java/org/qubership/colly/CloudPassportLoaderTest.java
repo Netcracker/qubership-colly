@@ -191,8 +191,8 @@ class CloudPassportLoaderTest {
                 "https://dashboard.example.com",
                 "https://dbaas.example.com",
                 "https://deployer.example.com",
-                "https://argo.example.com",
-                "https://ach-kubernetes-agent-devops-toolkit.gr7.eu-west-1.eks.amazonaws.com",
+                "https://argo-url-from-argocd.example.com",
+                "https://achka-url-from-argocd.example.com",
                 null
         )));
     }
@@ -309,7 +309,7 @@ class CloudPassportLoaderTest {
         CloudData cloud = new CloudData(null, null, "tokenKey", null,
                 null, null, null, null);
 
-        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
+        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null, null);
 
         String credsYaml = """
                 tokenKey:
@@ -327,7 +327,7 @@ class CloudPassportLoaderTest {
         CloudData cloud = new CloudData(null, null, "missingKey", null,
                 null, null, null, null);
 
-        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null);
+        CloudPassportData passportData = new CloudPassportData(cloud, null, null, null, null);
 
         String yaml = """
                 anotherKey:
