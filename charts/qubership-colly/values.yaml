@@ -5,7 +5,7 @@ MANAGED_BY: Helm
 colly:
   global:
   envgeneInventoryService:
-    image: ghcr.io/netcracker/envgene-inventory-service:latest
+    image: ghcr.io/netcracker/envgene-inventory-service:5.1.2
     serviceName: envgene-inventory-service
     projectRepoUrl:
     projectRepoGitToken: fff
@@ -28,7 +28,7 @@ colly:
     ports:
       http: 8080
   environmentOperationalService:
-    image: ghcr.io/netcracker/environment-operational-service:latest
+    image: ghcr.io/netcracker/environment-operational-service:5.1.2
     serviceName: environment-operational-service
     cronSchedule: 0 0/1 * * * ?
     idp:
