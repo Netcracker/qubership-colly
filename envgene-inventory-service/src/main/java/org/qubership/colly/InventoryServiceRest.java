@@ -654,7 +654,7 @@ public class InventoryServiceRest {
     @Operation(
             summary = "Get UI parameters for environment",
             description = "Retrieves UI parameters for a specific environment from all paramsets defined in the envTemplate. " +
-                    "Parameters are grouped by context (DEPLOYMENT, RUNTIME, PIPELINE) and scoped by level: " +
+                    "Parameters are grouped by context (deployment, runtime, pipeline) and scoped by level: " +
                     "no query params → environment level; namespaceName → namespace level; namespaceName + applicationName → application level. " +
                     "Requires authentication."
     )
@@ -737,7 +737,7 @@ public class InventoryServiceRest {
             @QueryParam("namespaceName") String namespaceName,
             @Parameter(description = "Application name. Required for `deployment` and `runtime` contexts.", example = "my-app")
             @QueryParam("applicationName") String applicationName,
-            @RequestBody(description = "Uncommitted UI parameters. Pass the full current UI state including already-committed values. `parameters` may be omitted or empty.", required = true)
+            @RequestBody(description = "Uncommitted UI parameters. Pass the full current UI state including already-committed values. `parameters` may be omitted or empty.")
             EffectiveSetRequestDto request
     ) {
         return effectiveSetCalculator.getEffectiveSet(environmentId, context, namespaceName, applicationName,
