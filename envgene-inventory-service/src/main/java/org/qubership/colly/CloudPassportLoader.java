@@ -92,7 +92,8 @@ public class CloudPassportLoader {
                             stableFolder, instanceRepository.url());
                     try {
                         FileUtils.deleteDirectory(new File(tmpFolder));
-                    } catch (IOException ignored) {
+                    } catch (IOException ex) {
+                        Log.warnf("Failed to delete tmp directory %s after failed replacement: %s", tmpFolder, ex.getMessage());
                     }
                     index++;
                     continue;
@@ -110,10 +111,12 @@ public class CloudPassportLoader {
                     .forEach(p -> {
                         try {
                             FileUtils.deleteDirectory(p.toFile());
-                        } catch (IOException ignored) {
+                        } catch (IOException e) {
+                            Log.warnf("Failed to delete stale tmp directory %s: %s", p, e.getMessage());
                         }
                     });
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            Log.warnf("Failed to list cloud passport folder for tmp cleanup %s: %s", cloudPassportFolder, e.getMessage());
         }
     }
 

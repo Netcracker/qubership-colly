@@ -185,7 +185,7 @@ public class EffectiveSetCalculator {
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> deepCopy(Map<String, Object> source) {
-        Map<String, Object> copy = new LinkedHashMap<>(source.size());
+        Map<String, Object> copy = LinkedHashMap.newLinkedHashMap(source.size());
         for (Map.Entry<String, Object> entry : source.entrySet()) {
             Object val = entry.getValue();
             copy.put(entry.getKey(), val instanceof Map ? deepCopy((Map<String, Object>) val) : val);
