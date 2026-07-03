@@ -174,6 +174,7 @@ public class CollyStorage {
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
         finalEnvironment.setSdApplications(cloudPassportEnvironment.sdApplications());
         finalEnvironment.setEffectiveSetPath(cloudPassportEnvironment.effectiveSetPath());
+        finalEnvironment.setEffectiveSetHistoryUrl(cloudPassportEnvironment.effectiveSetHistoryUrl());
         finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
         finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());
 

@@ -116,5 +116,12 @@ public record EnvironmentDto(
                 enumeration = {"cmdb", "noCmdb"},
                 examples = "noCmdb"
         )
-        CmApproach cmApproach) {
+        CmApproach cmApproach,
+
+        @Schema(
+                description = "URL to the effective-set commit history in the instance repository",
+                examples = "https://git.example.com/repo/commits/main/environments/my-cluster/my-env/effective-set",
+                nullable = true
+        )
+        String effectiveSetHistoryUrl) {
 }
