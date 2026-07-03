@@ -74,9 +74,9 @@ public class ParamsetService {
      */
     private List<Paramset> parseParamsetFile(String paramsetName, String deployPostfix, ParamsetContext paramsetContext,
                                              Path inventoryDir) {
-        Path paramsetFilePath = inventoryDir.resolve("parameters").resolve(paramsetName + ".yaml");
-        if (!Files.isRegularFile(paramsetFilePath)) {
-            Log.warn("Paramset file not found: " + paramsetFilePath);
+        Path paramsetFilePath = resolveParamsetFilePath(inventoryDir, paramsetName);
+        if (paramsetFilePath == null) {
+            Log.warnf("Paramset file '%s' not found in env-level, cluster-level, or global-level parameters", paramsetName);
             return List.of();
         }
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -111,6 +111,18 @@ public class ParamsetService {
             Log.error("Error reading paramset file: " + paramsetFilePath, e);
             return List.of();
         }
+    }
+
+    // Fallback hierarchy: <env>/Inventory/parameters/ → <cluster>/parameters/ → environments/parameters/
+    private Path resolveParamsetFilePath(Path inventoryDir, String paramsetName) {
+        String fileName = paramsetName + ".yaml";
+        Path envLevel = inventoryDir.resolve("parameters").resolve(fileName);
+        if (Files.isRegularFile(envLevel)) return envLevel;
+        Path clusterLevel = inventoryDir.getParent().getParent().resolve("parameters").resolve(fileName);
+        if (Files.isRegularFile(clusterLevel)) return clusterLevel;
+        Path globalLevel = inventoryDir.getParent().getParent().getParent().resolve("parameters").resolve(fileName);
+        if (Files.isRegularFile(globalLevel)) return globalLevel;
+        return null;
     }
 
     public void writeParamsetFile(Path inventoryDir, ParamsetTarget target,

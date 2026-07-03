@@ -604,7 +604,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.deployment.ENV_GLOBAL_PARAM", equalTo("global level value"))
                 .body("parameters.runtime", anEmptyMap())
                 .body("parameters.pipeline", anEmptyMap());
     }
@@ -887,7 +887,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.deployment.ENV_GLOBAL_PARAM", equalTo("global level value"))
                 .body("parameters.runtime", anEmptyMap())
                 .body("parameters.pipeline", anEmptyMap());
 

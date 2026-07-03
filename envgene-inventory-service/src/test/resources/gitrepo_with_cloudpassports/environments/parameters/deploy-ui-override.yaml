@@ -1,0 +1,4 @@
+name: deploy-ui-override
+parameters:
+  ENV_GLOBAL_PARAM: "global level value"
+applications: [ ]
