@@ -257,6 +257,7 @@ class InventoryServiceRestTest {
                 .body("effectiveAccessGroups", contains("group1", "group2", "group3"))
                 .body("sspStandalone", equalTo(true))
                 .body("cmApproach", equalTo("CMDB"))
+                .body("effectiveSetHistoryUrl", equalTo("gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/effective-set"))
                 .body("namespaces", containsInAnyOrder(
                         allOf(
                                 hasEntry("name", "test-ns"),

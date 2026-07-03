@@ -38,6 +38,7 @@ public class Environment {
     private List<Paramset> paramsets;
     private List<SdApplication> sdApplications;
     private String effectiveSetPath;
+    private String effectiveSetHistoryUrl;
     private boolean sspStandalone;
     private CmApproach cmApproach;
 

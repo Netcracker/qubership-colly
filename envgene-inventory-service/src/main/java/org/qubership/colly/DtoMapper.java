@@ -36,7 +36,8 @@ public class DtoMapper {
                 environment.getAccessGroups(),
                 environment.getEffectiveAccessGroups(),
                 environment.isSspStandalone(),
-                environment.getCmApproach()
+                environment.getCmApproach(),
+                environment.getEffectiveSetHistoryUrl()
         );
     }
 

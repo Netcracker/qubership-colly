@@ -123,7 +123,7 @@ public class CloudPassportLoader {
     private CloudPassport processYamlFilesInClusterFolder(GitInfo gitInfo, Path cloudPassportFolderPath, Path clusterFolderPath) {
         Log.info("Loading Cloud Passport from " + cloudPassportFolderPath);
         String clusterName = clusterFolderPath.getFileName().toString();
-        Set<CloudPassportEnvironment> environments = processEnvironmentsInClusterFolder(clusterFolderPath);
+        Set<CloudPassportEnvironment> environments = processEnvironmentsInClusterFolder(clusterFolderPath, gitInfo, clusterName);
         CloudPassportData cloudPassportData;
         try (Stream<Path> paths = Files.list(cloudPassportFolderPath)) {
             cloudPassportData = paths
@@ -197,12 +197,12 @@ public class CloudPassportLoader {
                 cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl, achkaUrl, cloud.region());
     }
 
-    private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {
+    private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath, GitInfo gitInfo, String clusterName) {
         try (Stream<Path> paths = Files.walk(clusterFolderPath)) {
             return paths.filter(Files::isDirectory)
                     .map(path -> path.resolve(ENV_DEFINITION_YML_FILENAME))
                     .filter(Files::isRegularFile)
-                    .map(this::processEnvDefinition)
+                    .map(path -> processEnvDefinition(path, gitInfo, clusterName))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
         } catch (Exception e) {
@@ -211,7 +211,7 @@ public class CloudPassportLoader {
         return Collections.emptySet();
     }
 
-    private CloudPassportEnvironment processEnvDefinition(Path envDevinitionPath) {
+    private CloudPassportEnvironment processEnvDefinition(Path envDevinitionPath, GitInfo gitInfo, String clusterName) {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         Path environmentPath = envDevinitionPath.getParent().getParent();
         List<CloudPassportNamespace> namespaces = Collections.emptyList();
@@ -271,10 +271,17 @@ public class CloudPassportLoader {
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             List<SdApplication> sdApplications = loadSolutionDescriptor(envDevinitionPath.getParent());
             String effectiveSetPath = environmentPath.resolve("effective-set").toString();
+            String effectiveSetHistoryUrl = gitInfo != null && gitInfo.instanceRepository() != null
+                    ? "%s/commits/%s/environments/%s/%s/effective-set".formatted(
+                    gitInfo.instanceRepository().url(),
+                    Objects.requireNonNullElse(gitInfo.instanceRepository().branch(), "HEAD"),
+                    clusterName,
+                    environmentName)
+                    : null;
             return new CloudPassportEnvironment(environmentName, description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
                     accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications,
-                    effectiveSetPath);
+                    effectiveSetPath, effectiveSetHistoryUrl);
         } catch (IOException e) {
             Log.error("Error loading environment from " + environmentPath, e);
             return null;
