@@ -1,0 +1,6 @@
+name: bss-my-app-deploy-ui-override
+parameters: { }
+applications:
+  - appName: "my-app"
+    parameters:
+      BSS_MY_APP_CLUSTER_PARAM: "cluster level value"

@@ -53,7 +53,10 @@ class CloudPassportLoaderTest {
                             null,
                             List.of(),
                             List.of(),
-                            List.of(new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value"), "bss-deploy-ui-override")),
+                            List.of(
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.NAMESPACE, "bss", null, Map.of("CORE_DEPLOY_PARAMETER", "some value"), "bss-deploy-ui-override"),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.APPLICATION, "bss", "my-app", Map.of("BSS_MY_APP_CLUSTER_PARAM", "cluster level value"), "bss-my-app-deploy-ui-override"),
+                                    new Paramset(ParamsetContext.DEPLOYMENT, ParamsetLevel.ENVIRONMENT, "cloud", null, Map.of("ENV_GLOBAL_PARAM", "global level value"), "deploy-ui-override")),
                             false,
                             CmApproach.NO_CMDB,
                             List.of(),
