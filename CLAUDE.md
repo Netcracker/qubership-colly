@@ -78,6 +78,23 @@ record Paramset(
 `sourceName` is the key into the `env_definition.yml` list and is used by `UpdateEnvironmentService` to know which
 file owns each in-memory paramset. Always pass it — `null` is only acceptable in legacy tests that predate this field.
 
+### Paramset file lookup — 3-level fallback (READ path only)
+
+When loading a paramset by name, `ParamsetService.resolveParamsetFilePath` tries three locations in order and
+stops at the first hit:
+
+| Priority | Path                                     | Scope       |
+|----------|------------------------------------------|-------------|
+| 1        | `<env>/Inventory/parameters/<name>.yaml` | environment |
+| 2        | `<cluster>/parameters/<name>.yaml`       | cluster     |
+| 3        | `environments/parameters/<name>.yaml`    | global      |
+
+A paramset found at cluster level is shared by all environments in that cluster that reference it by name.
+A paramset found at global level is shared across all clusters.
+
+**The WRITE path does not follow this hierarchy** — `writeParamsetFile` and `removeKeysFromParamsetFile`
+always target the environment-level `Inventory/parameters/` directory.
+
 ### READ vs WRITE path — different logic
 
 - **GET `/ui-parameters`** → reads ALL paramset files from `envTemplate` (any file name)
@@ -99,8 +116,11 @@ Done in `ParamsetService.resolveParamsetTarget`. If namespace not found → `Not
 
 ### Adding a new paramset to a test
 
-1. Create a YAML file in `src/test/resources/gitrepo_with_cloudpassports/test-cluster/env-X/Inventory/parameters/`
-2. Reference it in `env-X/Inventory/env_definition.yml` under the correct section and deployPostfix
+1. Create a YAML file at the appropriate level:
+    - env-level: `src/test/resources/gitrepo_with_cloudpassports/environments/test-cluster/env-X/Inventory/parameters/`
+    - cluster-level: `src/test/resources/gitrepo_with_cloudpassports/environments/test-cluster/parameters/`
+    - global-level: `src/test/resources/gitrepo_with_cloudpassports/environments/parameters/`
+2. Reference the paramset name in `env-X/Inventory/env_definition.yml` under the correct section and deployPostfix
 3. Update `CloudPassportLoaderTest` expected data to include the new paramsets
 4. Write the test against `/colly/v2/inventory-service/environments/{id}/ui-parameters`
 
