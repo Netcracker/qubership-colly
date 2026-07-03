@@ -10,5 +10,6 @@ applications:
     deployPostfix: "core"
   - version: "postgres:1.32.6"
     deployPostfix: "postgresql-dbaas"
+    additionalField: 42
   - version: "application-2:13.21.1"
     deployPostfix: "core"
