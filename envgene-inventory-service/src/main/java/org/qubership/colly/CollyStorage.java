@@ -15,6 +15,7 @@ import org.qubership.colly.dto.SetUiParametersDto;
 import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
+import org.qubership.colly.services.EffectiveSetCalculator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,13 +30,15 @@ public class CollyStorage {
     private final UpdateEnvironmentService updateEnvironmentService;
     private final ProjectRepoLoader projectRepoLoader;
     private final ParamsetService paramsetService;
+    private final EffectiveSetCalculator effectiveSetCalculator;
 
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
             EnvironmentRepository environmentRepository, ProjectRepository projectRepository,
             CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService,
-            ProjectRepoLoader projectRepoLoader, ParamsetService paramsetService) {
+            ProjectRepoLoader projectRepoLoader, ParamsetService paramsetService,
+            EffectiveSetCalculator effectiveSetCalculator) {
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.projectRepository = projectRepository;
@@ -43,11 +46,13 @@ public class CollyStorage {
         this.updateEnvironmentService = updateEnvironmentService;
         this.projectRepoLoader = projectRepoLoader;
         this.paramsetService = paramsetService;
+        this.effectiveSetCalculator = effectiveSetCalculator;
     }
 
     @Scheduled(cron = "{colly.eis.cron.schedule}")
     void syncAll() {
         Log.info("Task for loading data from git has started");
+        effectiveSetCalculator.clearCache();
         List<Project> projects = projectRepoLoader.loadProjects();
         removeDeletedProjects(projects);
         projects.forEach(projectRepository::persist);
@@ -94,6 +99,7 @@ public class CollyStorage {
         if (project == null) {
             throw new NotFoundException("Project is not found. ID=" + projectId);
         }
+        effectiveSetCalculator.clearCache();
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(List.of(project));
         Log.info("Cloud passports loaded: " + cloudPassports.size());
         cloudPassports.forEach(this::saveDataToCache);
@@ -167,6 +173,7 @@ public class CollyStorage {
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
         finalEnvironment.setSdApplications(cloudPassportEnvironment.sdApplications());
+        finalEnvironment.setEffectiveSetPath(cloudPassportEnvironment.effectiveSetPath());
         finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
         finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());
 

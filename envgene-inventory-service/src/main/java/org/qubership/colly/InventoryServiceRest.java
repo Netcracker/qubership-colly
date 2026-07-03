@@ -18,6 +18,7 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.dto.*;
 import org.qubership.colly.projectrepo.Project;
+import org.qubership.colly.services.EffectiveSetCalculator;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,14 +31,17 @@ public class InventoryServiceRest {
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
+    private final EffectiveSetCalculator effectiveSetCalculator;
 
     @Inject
     public InventoryServiceRest(CollyStorage collyStorage,
                                 SecurityIdentity securityIdentity,
-                                DtoMapper dtoMapper) {
+                                DtoMapper dtoMapper,
+                                EffectiveSetCalculator effectiveSetCalculator) {
         this.collyStorage = collyStorage;
         this.securityIdentity = securityIdentity;
         this.dtoMapper = dtoMapper;
+        this.effectiveSetCalculator = effectiveSetCalculator;
     }
 
     @GET
@@ -650,7 +654,7 @@ public class InventoryServiceRest {
     @Operation(
             summary = "Get UI parameters for environment",
             description = "Retrieves UI parameters for a specific environment from all paramsets defined in the envTemplate. " +
-                    "Parameters are grouped by context (DEPLOYMENT, RUNTIME, PIPELINE) and scoped by level: " +
+                    "Parameters are grouped by context (deployment, runtime, pipeline) and scoped by level: " +
                     "no query params → environment level; namespaceName → namespace level; namespaceName + applicationName → application level. " +
                     "Requires authentication."
     )
@@ -685,6 +689,59 @@ public class InventoryServiceRest {
             SetUiParametersDto uiParametersDto
     ) {
         collyStorage.setUiParameters(environmentId, namespaceName, applicationName, uiParametersDto);
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/environments/{environmentId}/effective-set")
+    @Operation(
+            summary = "Get effective set with parameter metadata",
+            description = """
+                    Returns the Effective Set of parameters for the given environment and context, enriched with per-parameter metadata (`state`, `value`, `originalValue`).
+
+                    Each parameter in the response is wrapped in an `EffectiveSetParameter` node:
+                    ```
+                    {
+                      "_type": "leaf" | "container",
+                      "_data": {
+                        "value": <current value after merging all sources>,
+                        "state": "ui_override_untouched" | "ui_override_uncommitted" | "ui_override_committed",
+                        "originalValue": <value before any UI Override>
+                      }
+                    }
+                    ```
+                    Container nodes have the same `_type`/`_data` structure where `_data` holds nested `EffectiveSetParameter` nodes instead of `value`/`state`/`originalValue`.
+
+                    **State semantics:**
+                    - `ui_override_untouched` – parameter was not changed via UI Override
+                    - `ui_override_uncommitted` – changed in UI but not yet committed to Git
+                    - `ui_override_committed` – changed in UI and committed to Git
+
+                    **Context rules:**
+                    - `deployment` and `runtime` require `namespaceName` and `applicationName`
+                    - `pipeline` must not include `namespaceName` or `applicationName`
+                    """
+    )
+    @APIResponse(responseCode = "200", description = "Effective Set successfully assembled")
+    @APIResponse(responseCode = "400", description = "Bad request – missing or invalid query parameters (e.g. unknown context, missing namespaceName for deployment/runtime context)")
+    @APIResponse(responseCode = "404", description = "Environment, namespace or application not found")
+    @APIResponse(responseCode = "401", description = "Unauthorized – authentication required")
+    @APIResponse(responseCode = "500", description = "Internal server error")
+    public EffectiveSetResponseDto getEffectiveSet(
+            @Parameter(description = "UUID of the environment", example = "550e8400-e29b-41d4-a716-446655440000", required = true)
+            @PathParam("environmentId") String environmentId,
+            @Parameter(description = "Parameter context: `deployment`, `runtime`, or `pipeline`", example = "deployment", required = true)
+            @QueryParam("context") String context,
+            @Parameter(description = "Namespace name. Required for `deployment` and `runtime` contexts.", example = "env-01-core")
+            @QueryParam("namespaceName") String namespaceName,
+            @Parameter(description = "Application name. Required for `deployment` and `runtime` contexts.", example = "my-app")
+            @QueryParam("applicationName") String applicationName,
+            @RequestBody(description = "Uncommitted UI parameters. Pass the full current UI state including already-committed values. `parameters` may be omitted or empty.")
+            EffectiveSetRequestDto request
+    ) {
+        return effectiveSetCalculator.getEffectiveSet(environmentId, context, namespaceName, applicationName,
+                request != null ? request.parameters() : null);
     }
 
     @GET

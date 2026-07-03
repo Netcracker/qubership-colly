@@ -37,6 +37,7 @@ public class Environment {
     private List<Namespace> namespaces;
     private List<Paramset> paramsets;
     private List<SdApplication> sdApplications;
+    private String effectiveSetPath;
     private boolean sspStandalone;
     private CmApproach cmApproach;
 

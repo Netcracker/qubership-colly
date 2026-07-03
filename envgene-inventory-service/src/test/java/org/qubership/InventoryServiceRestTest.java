@@ -578,9 +578,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.ENV_DEPLOY_PARAMETER", equalTo("some value"))
-                .body("parameters.RUNTIME.ENV_RUNTIME_PARAMETER", equalTo("some value"))
-                .body("parameters.PIPELINE.ENV_PIPELINE_PARAMETER", equalTo("some value"));
+                .body("parameters.deployment.ENV_DEPLOY_PARAMETER", equalTo("some value"))
+                .body("parameters.runtime.ENV_RUNTIME_PARAMETER", equalTo("some value"))
+                .body("parameters.pipeline.ENV_PIPELINE_PARAMETER", equalTo("some value"));
     }
 
 
@@ -604,9 +604,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -618,10 +618,10 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.CORE_DEPLOY_PARAMETER", equalTo("some value"))
-                .body("parameters.DEPLOYMENT.CORE_DEPLOY_PARAMETER_2.SECOND_LEVEL_KEY", equalTo("some value"))
-                .body("parameters.RUNTIME.CORE_RUNTIME_PARAMETER", equalTo("some value3"))
-                .body("parameters.PIPELINE.CORE_PIPELINE_PARAMETER", equalTo("some value2"));
+                .body("parameters.deployment.CORE_DEPLOY_PARAMETER", equalTo("some value"))
+                .body("parameters.deployment.CORE_DEPLOY_PARAMETER_2.SECOND_LEVEL_KEY", equalTo("some value"))
+                .body("parameters.runtime.CORE_RUNTIME_PARAMETER", equalTo("some value3"))
+                .body("parameters.pipeline.CORE_PIPELINE_PARAMETER", equalTo("some value2"));
     }
 
     @Test
@@ -644,9 +644,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-bss")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -658,9 +658,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("foo"))
-                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("barManual"))
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment.MY_APP_DEPLOY_PARAMETER", equalTo("foo"))
+                .body("parameters.runtime.MY_APP_RUNTIME_PARAMETER", equalTo("barManual"))
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -672,8 +672,8 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-second-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"))
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"))
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -685,7 +685,7 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"MY_APP_DEPLOY_PARAMETER\":\"barUpdated\"}" +
+                        "\"deployment\":{\"MY_APP_DEPLOY_PARAMETER\":\"barUpdated\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
@@ -695,13 +695,13 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("barUpdated"));
+                .body("parameters.deployment.MY_APP_DEPLOY_PARAMETER", equalTo("barUpdated"));
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-second-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"));
+                .body("parameters.deployment.MY_APP_DEPLOY_PARAMETER", equalTo("bar2"));
 
         Cluster cluster = clusterRepository.listAll().stream()
                 .filter(c -> c.getName().equals("test-cluster"))
@@ -719,9 +719,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-bss&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -733,9 +733,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"))
+                .body("parameters.deployment.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"))
                 // ui-override params are still present
-                .body("parameters.DEPLOYMENT.CORE_DEPLOY_PARAMETER", equalTo("some value"));
+                .body("parameters.deployment.CORE_DEPLOY_PARAMETER", equalTo("some value"));
     }
 
     @Test
@@ -750,13 +750,13 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"));
+                .body("parameters.deployment.GENERIC_NAMESPACE_PARAM", equalTo("namespace value"));
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.GENERIC_APP_PARAM", equalTo("app value"));
+                .body("parameters.deployment.GENERIC_APP_PARAM", equalTo("app value"));
     }
 
     @Test
@@ -771,13 +771,13 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.PARAM", equalTo("namespace value"));
+                .body("parameters.deployment.PARAM", equalTo("namespace value"));
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.PARAM", equalTo("app value"));
+                .body("parameters.deployment.PARAM", equalTo("app value"));
     }
 
     @Test
@@ -790,7 +790,7 @@ class InventoryServiceRestTest {
         given()
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
-                        "\"parameters\": {\"DEPLOYMENT\":{\"LATE_PARAM\":\"api-value-1\"}}}")
+                        "\"parameters\": {\"deployment\":{\"LATE_PARAM\":\"api-value-1\"}}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(204);
@@ -799,7 +799,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("api-value-1"));
+                .body("parameters.deployment.LATE_PARAM", equalTo("api-value-1"));
 
         // 2. Second sync: inject late-paramset into env_definition.yml (after core-second-param, i.e. last in core list).
         //    late-paramset.yaml pre-exists in the repo and declares LATE_PARAM="from-late-paramset".
@@ -830,14 +830,14 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("from-late-paramset"));
+                .body("parameters.deployment.LATE_PARAM", equalTo("from-late-paramset"));
 
         // 3. POST LATE_PARAM="api-value-2" → updateParamset removes ALL NAMESPACE/core/DEPLOYMENT paramsets
         //    from memory (including late-paramset) and appends the ui-override entry at the END → ui-override wins
         given()
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
-                        "\"parameters\": {\"DEPLOYMENT\":{\"LATE_PARAM\":\"api-value-2\"}}}")
+                        "\"parameters\": {\"deployment\":{\"LATE_PARAM\":\"api-value-2\"}}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(204);
@@ -846,7 +846,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.LATE_PARAM", equalTo("api-value-2"));
+                .body("parameters.deployment.LATE_PARAM", equalTo("api-value-2"));
     }
 
     @Test
@@ -861,7 +861,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.DUPLICATE_PARAM", equalTo("second value"));
+                .body("parameters.deployment.DUPLICATE_PARAM", equalTo("second value"));
     }
 
     @Test
@@ -873,9 +873,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=invalid_app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -887,17 +887,17 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.CORE_DEPLOY_PARAMETER", equalTo("some value"))
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment.CORE_DEPLOY_PARAMETER", equalTo("some value"))
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -909,17 +909,17 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
 
         given()
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap())
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap())
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -931,9 +931,9 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_ENV_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_ENV_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_ENV_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"deployment\":{\"NEW_ENV_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_ENV_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"pipeline\":{\"NEW_ENV_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
@@ -944,9 +944,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.NEW_ENV_DEPLOY_PARAMETER", equalTo("some value1"))
-                .body("parameters.RUNTIME.NEW_ENV_RUNTIME_PARAMETER", equalTo("some value2"))
-                .body("parameters.PIPELINE.NEW_ENV_PIPELINE_PARAMETER", equalTo("some value3"));
+                .body("parameters.deployment.NEW_ENV_DEPLOY_PARAMETER", equalTo("some value1"))
+                .body("parameters.runtime.NEW_ENV_RUNTIME_PARAMETER", equalTo("some value2"))
+                .body("parameters.pipeline.NEW_ENV_PIPELINE_PARAMETER", equalTo("some value3"));
 
     }
 
@@ -957,9 +957,9 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_ENV_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_ENV_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_ENV_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"deployment\":{\"NEW_ENV_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_ENV_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"pipeline\":{\"NEW_ENV_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/non-existent-env/ui-parameters")
                 .then()
@@ -999,9 +999,9 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_ENV_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_ENV_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_ENV_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"deployment\":{\"NEW_ENV_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_ENV_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"pipeline\":{\"NEW_ENV_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
@@ -1011,9 +1011,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.NEW_ENV_DEPLOY_PARAMETER", equalTo("some value1"))
-                .body("parameters.RUNTIME.NEW_ENV_RUNTIME_PARAMETER", equalTo("some value2"))
-                .body("parameters.PIPELINE.NEW_ENV_PIPELINE_PARAMETER", equalTo("some value3"));
+                .body("parameters.deployment.NEW_ENV_DEPLOY_PARAMETER", equalTo("some value1"))
+                .body("parameters.runtime.NEW_ENV_RUNTIME_PARAMETER", equalTo("some value2"))
+                .body("parameters.pipeline.NEW_ENV_PIPELINE_PARAMETER", equalTo("some value3"));
 
 
     }
@@ -1028,8 +1028,8 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}" +
+                        "\"deployment\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
                 .then()
@@ -1040,9 +1040,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=demo-k8s")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.NEW_NS_DEPLOY_PARAMETER", equalTo("some value1"))
-                .body("parameters.RUNTIME.NEW_NS_RUNTIME_PARAMETER", equalTo("some value2"))
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment.NEW_NS_DEPLOY_PARAMETER", equalTo("some value1"))
+                .body("parameters.runtime.NEW_NS_RUNTIME_PARAMETER", equalTo("some value2"))
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -1054,9 +1054,9 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"deployment\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"pipeline\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=non-existent-ns")
                 .then()
@@ -1072,8 +1072,8 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}" +
+                        "\"deployment\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
@@ -1084,9 +1084,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT.NEW_NS_DEPLOY_PARAMETER", equalTo("some value1"))
-                .body("parameters.RUNTIME.NEW_NS_RUNTIME_PARAMETER", equalTo("some value2"))
-                .body("parameters.PIPELINE", anEmptyMap());
+                .body("parameters.deployment.NEW_NS_DEPLOY_PARAMETER", equalTo("some value1"))
+                .body("parameters.runtime.NEW_NS_RUNTIME_PARAMETER", equalTo("some value2"))
+                .body("parameters.pipeline", anEmptyMap());
     }
 
     @Test
@@ -1098,7 +1098,7 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"RUNTIME\":{\"MY_APP_RUNTIME_PARAMETER\":\"barRestUpdated\"}" +
+                        "\"runtime\":{\"MY_APP_RUNTIME_PARAMETER\":\"barRestUpdated\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
@@ -1108,7 +1108,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
                 .statusCode(200)
-                .body("parameters.RUNTIME.MY_APP_RUNTIME_PARAMETER", equalTo("barRestUpdated"));
+                .body("parameters.runtime.MY_APP_RUNTIME_PARAMETER", equalTo("barRestUpdated"));
 
         Cluster cluster = clusterRepository.listAll().stream()
                 .filter(c -> c.getName().equals("test-cluster"))
@@ -1126,9 +1126,9 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"deployment\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"pipeline\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
                 .then()
@@ -1144,9 +1144,9 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
-                        "\"RUNTIME\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
-                        "\"PIPELINE\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
+                        "\"deployment\":{\"NEW_NS_DEPLOY_PARAMETER\":\"some value1\"}," +
+                        "\"runtime\":{\"NEW_NS_RUNTIME_PARAMETER\":\"some value2\"}," +
+                        "\"pipeline\":{\"NEW_NS_PIPELINE_PARAMETER\":\"some value3\"}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
@@ -1162,8 +1162,8 @@ class InventoryServiceRestTest {
                 .contentType("application/json")
                 .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
                         "\"parameters\": {" +
-                        "\"DEPLOYMENT\":{}," +
-                        "\"RUNTIME\":{}" +
+                        "\"deployment\":{}," +
+                        "\"runtime\":{}" +
                         "}}")
                 .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
@@ -1173,8 +1173,8 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body("parameters.DEPLOYMENT", anEmptyMap())
-                .body("parameters.RUNTIME", anEmptyMap());
+                .body("parameters.deployment", anEmptyMap())
+                .body("parameters.runtime", anEmptyMap());
     }
 
 
@@ -1364,7 +1364,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body(".", containsInAnyOrder("MONITORING", "postgres", "postgres-services"));
+                .body(".", containsInAnyOrder("MONITORING", "postgres", "postgres-services", "application-2"));
     }
 
     @Test
