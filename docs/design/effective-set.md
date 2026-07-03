@@ -196,6 +196,7 @@ Response body:
   "environmentId": "<uuid>",
   "namespaceName": "<string>",   // present for `deployment` and `runtime` only
   "applicationName": "<string>", // present for `deployment` and `runtime` only
+  "effectiveSetHistoryUrl": "<string>",
   "parameters": {
     "<key>": { "_type": "...", "_data": { ... } }
   }
@@ -203,6 +204,14 @@ Response body:
 ```
 
 - `parameters` is the Effective Set with each parameter wrapped as `EffectiveSetParameter`.
+- `effectiveSetHistoryUrl` is the Git web URL of the commit history of the environment's
+  Effective Set folder:
+  `<instance-repository-url>/-/commits/<branch>/environments/<cluster>/<environment>/effective-set`.
+  - `<instance-repository-url>` and `<branch>` come from the environment's instance repository
+    registration (`url` without the `.git` suffix, and `branch`; see
+    [Project configuration](../PROJECT_CONFIGURATION.md)).
+  - `environments/<cluster>/<environment>/effective-set` is the environment's Effective Set
+    folder (see [Storage model](#storage-model)).
 
 **EffectiveSetParameter shape:**
 
@@ -346,6 +355,7 @@ Response body:
   "environmentId": "550e8400-e29b-41d4-a716-446655440000",
   "namespaceName": "env-01-core",
   "applicationName": "my-app",
+  "effectiveSetHistoryUrl": "https://git.example.com/env-instances/-/commits/master/environments/cluster-01/env-01/effective-set",
   "parameters": {
     "backupDaemon": {
       "_type": "container",
@@ -399,6 +409,7 @@ namespace but never built by the Calculator) and the request body is empty:
   "environmentId": "550e8400-e29b-41d4-a716-446655440000",
   "namespaceName": "env-01-core",
   "applicationName": "my-app",
+  "effectiveSetHistoryUrl": "https://git.example.com/env-instances/-/commits/master/environments/cluster-01/env-01/effective-set",
   "parameters": {}
 }
 ```
@@ -425,8 +436,11 @@ namespace but never built by the Calculator) and the request body is empty:
    - For primitives and lists, set `_type = "leaf"` and `_data = { value, state, originalValue }`.
    - For objects, set `_type = "container"` and `_data` recursively.
    - For every leaf, set `state = "ui_override_untouched"` and `originalValue = value`.
-6. Return the wrapped result along with `context`, `environmentId`, and (for `deployment`
-   and `runtime`) `namespaceName` and `applicationName`.
+6. Build `effectiveSetHistoryUrl` from the environment's instance repository registration
+   (`url`, `branch`) and the environment's Effective Set folder path (see
+   [Response and request bodies](#response-and-request-bodies) for the URL layout).
+7. Return the wrapped result along with `context`, `environmentId`, `effectiveSetHistoryUrl`, and
+   (for `deployment` and `runtime`) `namespaceName` and `applicationName`.
 
 ## Open questions
 
