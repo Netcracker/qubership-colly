@@ -5,7 +5,7 @@ MANAGED_BY: Helm
 colly:
   global:
   envgeneInventoryService:
-    image: ghcr.io/andyroode/envgene-inventory-service:latest
+    image: ghcr.io/netcracker/envgene-inventory-service:feature-add-pipeline
     serviceName: envgene-inventory-service
     projectRepoUrl: ${PROJECT_GIT_REPO_URL_EXAMPLE}
     projectRepoGitToken: ${GH_TOKEN_EXAMPLE}
@@ -34,7 +34,7 @@ colly:
           alb.ingress.kubernetes.io/scheme: internet-facing
           alb.ingress.kubernetes.io/target-type: ip
   environmentOperationalService:
-    image: ghcr.io/andyroode/environment-operational-service:latest
+    image: ghcr.io/netcracker/environment-operational-service:feature-add-pipeline
     serviceName: environment-operational-service
     cronSchedule: 0 0/1 * * * ?
     cloudCoreSupport: false
@@ -59,7 +59,7 @@ colly:
         name: Failed Deployments
         query: count(kube_deployment_status_replicas_unavailable{namespace=~"{namespace}"})
   uiService:
-    image: ghcr.io/andyroode/ui-service:latest
+    image: ghcr.io/netcracker/ui-service:feature-add-pipeline
     serviceName: ui-service
     uiEnabled: true
     idp:
