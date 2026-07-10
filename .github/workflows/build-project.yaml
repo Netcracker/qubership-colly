@@ -1,12 +1,8 @@
+# Image-only workflow (manual). Push builds use build_deploy_pipeline.yaml.
 name: Build Images
 on:
-  push:
   workflow_dispatch:
     inputs:
-      tags:
-        description: 'Additional tags for Docker images (comma separated)'
-        required: false
-        default: ''
       dry-run:
         description: 'If true, the workflow will run in dry-run mode without pushing images'
         required: false
@@ -48,7 +44,7 @@ jobs:
     outputs:
       components: ${{ steps.load_component.outputs.components }}
       platforms: ${{ steps.load_component.outputs.platforms }}
-      metadata: "${{ steps.metadata.outputs.result }}"
+      metadata: "${{ steps.calculate_image_tag.outputs.tags }}"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -57,7 +53,7 @@ jobs:
         id: load_component
         shell: bash
         run: |
-          verify=$(cat "$GITHUB_WORKSPACE/.github/docker-dev-config.json" | jq '
+          verify=$(cat "$GITHUB_WORKSPACE/.github/config/docker-dev-config.json" | jq '
             def verify_structure:
               .components as $components
               | .platforms as $platforms
@@ -68,25 +64,35 @@ jobs:
             | if . then true else false end
           ')
           if [ "${verify}" == "true" ]; then
-            echo "✅ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is valid"
-            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
-            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+            echo "✅ $GITHUB_WORKSPACE/.github/config/docker-dev-config.json file is valid"
+            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/config/docker-dev-config.json")
+            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/config/docker-dev-config.json")
           else
-            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid"
-            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
+            echo "❗ $GITHUB_WORKSPACE/.github/config/docker-dev-config.json file is invalid"
+            echo "❗ $GITHUB_WORKSPACE/.github/config/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
           echo "components=${components}" >> "$GITHUB_OUTPUT"
           echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
-      - name: Calculate tags for images
-        uses: netcracker/qubership-workflow-hub/actions/metadata-action@v2.0.11
-        id: metadata
-        with:
-          short-sha: 11
-          extra-tags: ${{ github.event.inputs.tags }}
-          dry-run: ${{ inputs.dry-run }}
-          configuration-path: .github/metadata-action-config.yml
+      - name: Calculate branch image tag
+        id: calculate_image_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.ref_type }}" != "branch" ]; then
+            echo "::error::Dev builds use branch refs only (no git tags like 1.2.3)"
+            exit 1
+          fi
+          ref_name="${{ github.ref_name }}"
+          if [ "$ref_name" = "main" ]; then
+            echo "value=latest" >> "$GITHUB_OUTPUT"
+            echo "tags=latest, main" >> "$GITHUB_OUTPUT"
+          else
+            image_tag=$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed 's|/|-|g' | sed 's|_|-|g')
+            echo "value=${image_tag}" >> "$GITHUB_OUTPUT"
+            echo "tags=${image_tag}" >> "$GITHUB_OUTPUT"
+          fi
 
   build:
     name: Build Docker Images

@@ -12,6 +12,13 @@
 name: Lint Code Base
 
 on:
+  workflow_call:
+    inputs:
+      full_scan:
+        type: boolean
+        default: false
+        required: false
+        description: "Lint all codebase"
   push:
     branches:
       - '**'

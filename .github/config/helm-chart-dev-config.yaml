@@ -1,0 +1,14 @@
+---
+# Fork CI: image refs use ghcr.io/<repository-owner>/... — latest on main, {branch-with-hyphens} on other branches.
+# build_deploy_pipeline.yaml updates values via .github/scripts/build_deploy/update-chart-values.sh
+# (replaces owner and tag in values.yaml regardless of the current owner prefix).
+# On fork builds, updated values.yaml is committed back to the current branch (not a release-* branch).
+# Other ${VAR} placeholders stay unresolved in values.yaml and are substituted at deploy time.
+charts:
+  - name: qubership-colly
+    chart_file: charts/qubership-colly/Chart.yaml
+    values_file: charts/qubership-colly/values.yaml
+    image:
+      - ghcr.io/${owner}/envgene-inventory-service:${tag}
+      - ghcr.io/${owner}/environment-operational-service:${tag}
+      - ghcr.io/${owner}/ui-service:${tag}

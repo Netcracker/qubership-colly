@@ -1,0 +1,44 @@
+# GitHub repository settings for Deploy Colly workflow
+# Settings → Secrets and variables → Actions
+#
+# ── Deploy Colly workflow inputs ─────────────────────────────────────────────
+# ref — branch or tag to checkout (chart source: charts/qubership-colly/):
+#   Branch examples: main, feature/my-fix
+#   Tag examples:    latest, feature-my-fix
+#   Branch if value is "main" or contains "/"; otherwise treated as a tag.
+#
+# image-tag — optional Docker tag override (leave empty to use refs from values.yaml)
+# helm-dry-run — render manifests only, do not apply
+#
+# Build workflow (build_deploy_pipeline.yaml) manual run:
+#   Build — build and publish Docker images, update chart values.yaml
+#   Deploy — deploy to EKS (optionally after Build)
+#   deploy-ref — branch or tag for Deploy; empty = current branch
+# Push (commit) runs Build only.
+#
+# ── Secrets (substituted at deploy time only) ────────────────────────────────
+# Names must match ${...} placeholders in charts/qubership-colly/values.yaml
+#
+# PROJECT_GIT_REPO_URL_EXAMPLE     Git URL of project configuration repo
+# GH_TOKEN_EXAMPLE                 Git token for project configuration repo
+# K8S_KEYCLOAK_EXAMPLE             Keycloak OIDC URL (all services idp.url)
+# REDIS_HOST_EXAMPLE               Redis connection URL
+# REDIS_HOST_ADMIN                 Redis username
+# REDIS_HOST_PASSWORD              Redis password
+# COLLY_UI_HEALTHCHECK_USERNAME    Keycloak user for post-deploy environments API check
+# COLLY_UI_HEALTHCHECK_PASSWORD    Keycloak password for post-deploy environments API check
+# COLLY_UI_HEALTHCHECK_CLIENT_SECRET (optional) OIDC client secret when client is confidential
+#
+# ── Already used by deploy workflow ──────────────────────────────────────────
+# AWS_ACCESS_KEY_ID                (secret)
+# AWS_SECRET_ACCESS_KEY            (secret)
+# AWS_REGION                       (variable, default us-east-1 in workflow)
+# TF_VAR_EKS_NEW_CLUSTERNAME       (variable, optional override)
+# TF_VAR_COLLY_INSTALL_NAMESPACE   (variable, optional override)
+# COLLY_HELM_RELEASE               (variable, optional; default = install namespace)
+# COLLY_HELM_EXTRA_ARGS            (variable, optional extra helm args)
+# COLLY_CLOUD_PUBLIC_HOST          (variable, optional public ingress host)
+# COLLY_UI_INGRESS_NAME            (variable, default ui-service-http — ingress for post-deploy curl check)
+# COLLY_UI_INGRESS_HEALTH_PATH     (variable, default /q/health/live — path for curl check, no auth)
+# COLLY_UI_INGRESS_API_PATH        (variable, default /colly/v2/ui-service/environments — authenticated API check)
+# COLLY_UI_HEALTHCHECK_CLIENT_ID   (variable, default colly — OIDC client for password grant)

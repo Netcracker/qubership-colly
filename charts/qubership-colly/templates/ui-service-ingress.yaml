@@ -16,11 +16,10 @@ metadata:
   {{- end }}
 spec:
   rules:
-    - host: "{{ .Values.colly.uiService.serviceName }}-{{ .Values.NAMESPACE }}.{{ .Values.CLOUD_PUBLIC_HOST}}"
-      http:
+    - http:
         paths:
           - path: /
-            pathType: ImplementationSpecific
+            pathType: Prefix
             backend:
               service:
                 port:

@@ -72,14 +72,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Add repository variables to env
+        env:
+          VARS_JSON: ${{ toJson(vars) }}
+        run: |
+          echo "${VARS_JSON}" | jq -r 'to_entries|map("\(.key)=\(.value)")|.[]' >> "$GITHUB_ENV"
+
       - name: "Update versions in values"
         id: update-versions
         uses: netcracker/qubership-workflow-hub/actions/helm-charts-release@v1.0.3
         with:
           release-version: ${{ inputs.release }}
-          config-file: .github/helm-chart-release-config.yaml
-        env:
-          ${{ insert }}: ${{ vars }}
+          config-file: .github/config/helm-chart-release-config.yaml
 
   tag:
     needs: [prepare-chart-release]
@@ -133,7 +137,7 @@ jobs:
         id: load_component
         shell: bash
         run: |
-          verify=$(cat "$GITHUB_WORKSPACE/.github/docker-dev-config.json" | jq '
+          verify=$(cat "$GITHUB_WORKSPACE/.github/config/docker-dev-config.json" | jq '
             def verify_structure:
               .components as $components
               | .platforms as $platforms
@@ -144,12 +148,12 @@ jobs:
             | if . then true else false end
           ')
           if [ "${verify}" == "true" ]; then
-            echo "✅ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is valid"
-            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
-            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+            echo "✅ $GITHUB_WORKSPACE/.github/config/docker-dev-config.json file is valid"
+            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/config/docker-dev-config.json")
+            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/config/docker-dev-config.json")
           else
-            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid"
-            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
+            echo "❗ $GITHUB_WORKSPACE/.github/config/docker-dev-config.json file is invalid"
+            echo "❗ $GITHUB_WORKSPACE/.github/config/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
           echo "components=${components}" >> "$GITHUB_OUTPUT"

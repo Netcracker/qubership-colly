@@ -3,6 +3,7 @@
 name: Conventional Commits PR Check
 
 on:
+  workflow_call:
   pull_request:
     types:
       - opened

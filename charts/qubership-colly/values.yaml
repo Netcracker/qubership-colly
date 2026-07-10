@@ -1,44 +1,51 @@
 ---
-CLOUD_PUBLIC_HOST: fff
-NAMESPACE: qubership-colly
+CLOUD_PUBLIC_HOST:
+NAMESPACE: qubership-colly-test
 MANAGED_BY: Helm
 colly:
   global:
   envgeneInventoryService:
-    image: ghcr.io/netcracker/envgene-inventory-service:latest
+    image: ghcr.io/andyroode/envgene-inventory-service:latest
     serviceName: envgene-inventory-service
-    projectRepoUrl:
-    projectRepoGitToken: fff
-    gitTokens: [ ]
-    # gitTokens:
-    #   - region: cn
-    #     token: ghp_token_for_cn
+    projectRepoUrl: ${PROJECT_GIT_REPO_URL_EXAMPLE}
+    projectRepoGitToken: ${GH_TOKEN_EXAMPLE}
+    # gitTokens: [ ]
+    gitTokens:
+       - region: cn
+         token: ${GH_TOKEN_EXAMPLE}
     #   - region: mb
     #     token: ghp_token_for_mb
     cronSchedule: 0 0/2 * * * ?
     cloudCoreSupport: false
     idp:
-      url:
+      url: ${K8S_KEYCLOAK_EXAMPLE}
       clientId: envgene-inventory-service
       clientSecret:
     redis:
-      hosts: redis://redis:6379
-      username: ""
-      password: ""
+      hosts: ${REDIS_HOST_EXAMPLE}
+      username: ${REDIS_HOST_ADMIN}
+      password: ${REDIS_HOST_PASSWORD}
     ports:
       http: 8080
+    ingress:
+      className: alb
+      http:
+        annotations:
+          alb.ingress.kubernetes.io/scheme: internet-facing
+          alb.ingress.kubernetes.io/target-type: ip
   environmentOperationalService:
-    image: ghcr.io/netcracker/environment-operational-service:latest
+    image: ghcr.io/andyroode/environment-operational-service:latest
     serviceName: environment-operational-service
     cronSchedule: 0 0/1 * * * ?
+    cloudCoreSupport: false
     idp:
-      url:
+      url: ${K8S_KEYCLOAK_EXAMPLE}
       clientId: environment-operational-service
       clientSecret:
     redis:
-      hosts: redis://redis:6379
-      username: ""
-      password: ""
+      hosts: ${REDIS_HOST_EXAMPLE}
+      username: ${REDIS_HOST_ADMIN}
+      password: ${REDIS_HOST_PASSWORD}
     sdPatterns:
       product: "(?i)product"
       project: "(?i)project"
@@ -52,14 +59,14 @@ colly:
         name: Failed Deployments
         query: count(kube_deployment_status_replicas_unavailable{namespace=~"{namespace}"})
   uiService:
-    image: ghcr.io/netcracker/ui-service:latest
+    image: ghcr.io/andyroode/ui-service:latest
     serviceName: ui-service
-    uiEnabled: false
+    uiEnabled: true
     idp:
-      url:
-      clientId: ui-service
+      url: ${K8S_KEYCLOAK_EXAMPLE}
+      clientId: colly
     ports:
-      http: 8080
+      http: 3000
     ingress:
       className: alb
       http:

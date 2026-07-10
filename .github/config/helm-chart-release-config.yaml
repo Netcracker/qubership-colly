@@ -6,3 +6,4 @@ charts:
     image:
       - ghcr.io/netcracker/envgene-inventory-service:${release}
       - ghcr.io/netcracker/environment-operational-service:${release}
+      - ghcr.io/netcracker/ui-service:${release}

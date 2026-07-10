@@ -2,9 +2,9 @@
 name: "Link Checker"
 
 on:
-  push: null
-  repository_dispatch: null
-  workflow_dispatch: null
+  workflow_call:
+  push:
+  workflow_dispatch:
   pull_request:
     branches: [main]
 permissions:
