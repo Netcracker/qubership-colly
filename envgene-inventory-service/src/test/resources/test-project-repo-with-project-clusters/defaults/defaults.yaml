@@ -1,0 +1,7 @@
+clusters:
+  owners:
+    - global-owner
+  roAdGroups:
+    - global-ro
+  rwAdGroups:
+    - global-rw

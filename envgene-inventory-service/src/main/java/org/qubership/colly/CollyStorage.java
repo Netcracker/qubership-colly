@@ -7,10 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
-import org.qubership.colly.cloudpassport.CloudPassport;
-import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
-import org.qubership.colly.cloudpassport.CloudPassportNamespace;
-import org.qubership.colly.cloudpassport.Paramset;
+import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.ProjectRepository;
@@ -20,6 +17,7 @@ import org.qubership.colly.dto.SetUiParametersDto;
 import org.qubership.colly.dto.UiParametersDto;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
+import org.qubership.colly.services.EffectiveSetCalculator;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,6 +33,7 @@ public class CollyStorage {
     private final UpdateEnvironmentService updateEnvironmentService;
     private final ProjectRepoLoader projectRepoLoader;
     private final ParamsetService paramsetService;
+    private final EffectiveSetCalculator effectiveSetCalculator;
     private final AtomicBoolean syncRunning = new AtomicBoolean(false);
 
     CollyStorage() {
@@ -52,7 +51,8 @@ public class CollyStorage {
             ClusterRepository clusterRepository,
             EnvironmentRepository environmentRepository, ProjectRepository projectRepository,
             CloudPassportLoader cloudPassportLoader, UpdateEnvironmentService updateEnvironmentService,
-            ProjectRepoLoader projectRepoLoader, ParamsetService paramsetService) {
+            ProjectRepoLoader projectRepoLoader, ParamsetService paramsetService,
+            EffectiveSetCalculator effectiveSetCalculator) {
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.projectRepository = projectRepository;
@@ -60,6 +60,7 @@ public class CollyStorage {
         this.updateEnvironmentService = updateEnvironmentService;
         this.projectRepoLoader = projectRepoLoader;
         this.paramsetService = paramsetService;
+        this.effectiveSetCalculator = effectiveSetCalculator;
     }
 
     void onStart(@Observes StartupEvent event) {
@@ -76,15 +77,29 @@ public class CollyStorage {
         }
         try {
             Log.info("Task for loading data from git has started");
-            List<Project> projects = projectRepoLoader.loadProjects();
+            effectiveSetCalculator.clearCache();List<Project> projects = projectRepoLoader.loadProjects();
             removeDeletedProjects(projects);projects.forEach(projectRepository::persist);
             Log.info("Projects loaded: " + projects.size());
             List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
-            Log.info("Cloud passports loaded: " + cloudPassports.size());
+            Log.info("Cloud passports loaded: " + cloudPassports.size());removeDeletedClusters(cloudPassports);
             cloudPassports.forEach(this::saveDataToCache);
         } finally {
             syncRunning.set(false);
         }
+    }
+
+    private void removeDeletedClusters(List<CloudPassport> currentCloudPassports) {
+        Set<String> currentClusterNames = currentCloudPassports.stream()
+                .map(CloudPassport::name)
+                .collect(Collectors.toSet());
+        clusterRepository.listAll().stream()
+                .filter(cached -> !currentClusterNames.contains(cached.getName()))
+                .forEach(deleted -> {
+                    Log.infof("Cluster %s no longer exists in git - removing from cache", deleted.getName());
+                    environmentRepository.findByClusterId(deleted.getId())
+                            .forEach(env -> environmentRepository.deleteById(env.getId()));
+                    clusterRepository.deleteById(deleted.getId());
+                });
     }
 
     private void removeDeletedProjects(List<Project> currentProjects) {
@@ -109,6 +124,7 @@ public class CollyStorage {
         if (project == null) {
             throw new NotFoundException("Project is not found. ID=" + projectId);
         }
+        effectiveSetCalculator.clearCache();
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(List.of(project));
         Log.info("Cloud passports loaded: " + cloudPassports.size());
         cloudPassports.forEach(this::saveDataToCache);
@@ -181,6 +197,11 @@ public class CollyStorage {
         finalEnvironment.setAccessGroups(cloudPassportEnvironment.accessGroups());
         finalEnvironment.setEffectiveAccessGroups(cloudPassportEnvironment.effectiveAccessGroups());
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
+        finalEnvironment.setSdApplications(cloudPassportEnvironment.sdApplications());
+        finalEnvironment.setEffectiveSetPath(cloudPassportEnvironment.effectiveSetPath());
+        finalEnvironment.setEffectiveSetHistoryUrl(cloudPassportEnvironment.effectiveSetHistoryUrl());
+        finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
+        finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());
 
         Log.infof("Environment %s has been loaded from CloudPassport", finalEnvironment.getName());
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));
@@ -270,6 +291,32 @@ public class CollyStorage {
         return clusterRepository.findById(id);
     }
 
+
+    public List<String> getApplications(String environmentId, String namespaceName) {
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        String deployPostfix = environment.getNamespaces().stream()
+                .filter(ns -> ns.getName().equals(namespaceName))
+                .map(Namespace::getDeployPostfix)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(
+                        "Namespace '" + namespaceName + "' not found in environment id=" + environmentId));
+
+        List<SdApplication> apps = environment.getSdApplications();
+        if (apps.isEmpty()) {
+            Log.warnf("No SD data for environment %s — returning empty list", environmentId);
+            return Collections.emptyList();
+        }
+
+        return apps.stream()
+                .filter(app -> deployPostfix.equals(app.deployPostfix()))
+                .map(app -> app.version().contains(":") ? app.version().split(":")[0] : app.version())
+                .distinct()
+                .toList();
+    }
 
     public UiParametersDto getUiParameters(String environmentId, String namespaceName, String applicationName) {
         Environment environment = environmentRepository.findById(environmentId);

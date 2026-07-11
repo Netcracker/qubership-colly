@@ -1,0 +1,43 @@
+metadata:
+  description: "description from metadata"
+  owners: [ "owner from metadata" ]
+  labels: [ "label1", "label2" ]
+  teams: [ "team-from-metadata" ]
+  status: "IN_USE"
+  expirationDate: "2025-12-31"
+  type: "DESIGN_TIME"
+  role: "QA"
+  accessGroups: [ "group1", "group2" ]
+  effectiveAccessGroups: [ "group1", "group2", "group3" ]
+  ssp_standalone: true
+inventory:
+  environmentName: "env-metadata-test"
+  description: "description from inventory"
+  owners: "owner from inventory"
+  tenantName: "Applications"
+  deployer: "https://deployer.example.com"
+envTemplate:
+  name: "env-template-test"
+  envSpecificParamsets: # deployment paramsetContext
+    core:
+      - core-deploy-ui-override
+      - core-my-app-deploy-ui-override
+      - core-mixed-paramset
+      - mixed-paramset-same-parameter
+      - core-first-param
+      - core-second-param
+      - core-my-second-app-deploy-ui-override
+    cloud:
+      - deploy-ui-override
+  envSpecificTechnicalParamsets: # runtime paramsetContext
+    core:
+      - core-runtime-ui-override
+      - core-my-app-runtime-ui-override
+      - core-my-app-runtime-manual-params
+    cloud:
+      - runtime-ui-override
+  envSpecificE2EParamsets: # pipeline paramsetContext
+    core:
+      - core-pipeline-ui-override
+    cloud:
+      - pipeline-ui-override

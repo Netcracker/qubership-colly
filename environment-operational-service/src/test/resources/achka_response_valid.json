@@ -40,6 +40,15 @@
         "deploy_status": "SUCCESS",
         "deploy_date": 1756700000
       }
+    ],
+    "some-session-id-3": [
+      {
+        "app_version": "app-d:3.0.0",
+        "source": null,
+        "ticket_id": "TICKET-003",
+        "deploy_status": "SUCCESS",
+        "deploy_date": 1756700000
+      }
     ]
   }
 }

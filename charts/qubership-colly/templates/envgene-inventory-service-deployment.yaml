@@ -50,11 +50,18 @@ spec:
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
             - name: COLLY_EIS_PROJECT_REPO_URL
               value: {{ .Values.colly.envgeneInventoryService.projectRepoUrl }}
-            - name: COLLY_EIS_GIT_TOKEN
+            - name: COLLY_EIS_PROJECT_REPO_GIT_TOKEN
               valueFrom:
                 secretKeyRef:
-                  key: gitToken
+                  key: projectRepoGitToken
                   name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
+            {{- range .Values.colly.envgeneInventoryService.gitTokens }}
+            - name: COLLY_EIS_GIT_TOKENS_{{ .region | upper }}
+              valueFrom:
+                secretKeyRef:
+                  key: gitToken-{{ .region }}
+                  name: {{ $.Values.colly.envgeneInventoryService.serviceName }}-secret
+            {{- end }}
             - name: COLLY_EIS_CRON_SCHEDULE
               value: {{ .Values.colly.envgeneInventoryService.cronSchedule }}
             - name: QUARKUS_OIDC_AUTH_SERVER_URL

@@ -1,6 +1,7 @@
 package org.qubership.colly.dto;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.qubership.colly.db.data.CmApproach;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
 
@@ -102,5 +103,25 @@ public record EnvironmentDto(
                 examples = "[\"developers\", \"qa-team\", \"admins\"]",
                 nullable = true
         )
-        List<String> effectiveAccessGroups) {
+        List<String> effectiveAccessGroups,
+
+        @Schema(
+                description = "SSP status of the environment",
+                nullable = true
+        )
+        boolean sspStandalone,
+
+        @Schema(
+                description = "Configuration management approach used for this environment",
+                enumeration = {"cmdb", "noCmdb"},
+                examples = "noCmdb"
+        )
+        CmApproach cmApproach,
+
+        @Schema(
+                description = "URL to the effective-set commit history in the instance repository",
+                examples = "https://git.example.com/repo/commits/main/environments/my-cluster/my-env/effective-set",
+                nullable = true
+        )
+        String effectiveSetHistoryUrl) {
 }

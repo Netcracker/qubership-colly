@@ -1,0 +1,9 @@
+---
+version: 1.5
+cloud:
+  CLOUD_API_HOST: outside.example.com
+  CLOUD_API_PORT: "443"
+  CLOUD_DEPLOY_TOKEN: cloud-deploy-sa-token
+  CLOUD_PUBLIC_HOST: outside.example.com
+  CLOUD_PROTOCOL: https
+  CLOUD_DASHBOARD_URL: https://dashboard.outside.example.com

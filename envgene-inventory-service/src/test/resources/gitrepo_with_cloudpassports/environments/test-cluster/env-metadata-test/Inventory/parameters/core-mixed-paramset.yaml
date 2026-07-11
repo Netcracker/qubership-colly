@@ -1,0 +1,7 @@
+name: core-mixed-paramset
+parameters:
+  GENERIC_NAMESPACE_PARAM: "namespace value"
+applications:
+  - appName: "my-app"
+    parameters:
+      GENERIC_APP_PARAM: "app value"

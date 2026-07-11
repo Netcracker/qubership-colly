@@ -1,12 +1,10 @@
 package org.qubership.colly.dto;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.qubership.colly.projectrepo.ClusterPlatform;
-import org.qubership.colly.projectrepo.ProjectType;
 
 import java.util.List;
 
-@Schema(description = "Project information containing all project details and associated resources")
+@Schema(description = "Project information containing project details and associated resources")
 public record ProjectDto(
         @Schema(
                 description = "Unique identifier of the project",
@@ -23,37 +21,10 @@ public record ProjectDto(
         String name,
 
         @Schema(
-                description = "Type of the project",
-                enumeration = {"PRODUCT", "PROJECT"},
-                required = true
-        )
-        ProjectType type,
-
-        @Schema(
-                description = "Name of the customer/organization owning this project",
-                examples = "Acme Corporation",
-                nullable = true
-        )
-        String customerName,
-
-        @Schema(
                 description = "List of instance repositories associated with the project",
                 nullable = true
         )
         List<InstanceRepositoryDto> instanceRepositories,
-
-        @Schema(
-                description = "List of CI/CD pipelines configured for the project",
-                nullable = true
-        )
-        List<PipelineDto> pipelines,
-
-        @Schema(
-                description = "Target cluster platform for deployment",
-                enumeration = {"OCP", "K8S"},
-                nullable = true
-        )
-        ClusterPlatform clusterPlatform,
 
         @Schema(
                 description = "Template repository configuration",
@@ -61,23 +32,6 @@ public record ProjectDto(
         )
         TemplateRepositoryDto templateRepository,
 
-        @Schema(
-                description = "List of access groups that have permissions to this project",
-                examples = "[\"developers\", \"admins\"]",
-                nullable = true
-        )
-        List<String> accessGroups,
-        @Schema(
-                description = "Default cluster configuration for the project",
-                nullable = true
-        )
-        ClusterDefaultsDto clusterDefaults,
-        @Schema(
-                description = "Name of the maven repository. Can be used for cloud passport generation",
-                examples = "dev.global.mvn.group",
-                nullable = true
-        )
-        String mavenRepoName,
         @Schema(
                 description = "List of git group URLs for the project, each with a region and URL",
                 nullable = true

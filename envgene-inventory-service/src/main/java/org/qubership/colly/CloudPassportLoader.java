@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.cloudpassport.envgen.*;
+import org.qubership.colly.db.data.CmApproach;
 import org.qubership.colly.db.data.EnvironmentStatus;
 import org.qubership.colly.db.data.EnvironmentType;
 import org.qubership.colly.projectrepo.InstanceRepository;
@@ -34,6 +35,7 @@ public class CloudPassportLoader {
     public static final String NAMESPACE_YML_FILENAME = "namespace.yml";
     public static final String MONITORING_TYPE_VICTORIA_DB = "VictoriaDB";
     private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
+    private static final String ENVIRONMENTS_FOLDER = "environments";
     @Inject
     GitService gitService;
 
@@ -51,7 +53,12 @@ public class CloudPassportLoader {
         }
         List<CloudPassport> cloudPassports = new ArrayList<>();
         for (GitInfo gitInfo : gitInfos) {
-            try (Stream<Path> paths = Files.walk(Paths.get(gitInfo.folderName()))) {
+            Path environmentsDir = Paths.get(gitInfo.folderName()).resolve(ENVIRONMENTS_FOLDER);
+            if (!Files.isDirectory(environmentsDir)) {
+                Log.error("Environments folder not found in " + gitInfo.folderName() + ", Instance Repository=" + gitInfo.instanceRepository().url());
+                continue;
+            }
+            try (Stream<Path> paths = Files.walk(environmentsDir)) {
                 cloudPassports.addAll(paths.filter(Files::isDirectory)
                         .map(path -> path.resolve(CLOUD_PASSPORT_FOLDER))
                         .filter(Files::isDirectory)
@@ -59,43 +66,64 @@ public class CloudPassportLoader {
                         .filter(Objects::nonNull)
                         .toList());
             } catch (Exception e) {
-                Log.error("Error loading CloudPassports from " + dir, e);
+                Log.error("Error loading CloudPassports from " + environmentsDir, e);
             }
         }
         return cloudPassports;
     }
 
     private List<GitInfo> cloneGitRepositories(List<Project> projects) {
-
-        File directory = new File(cloudPassportFolder);
-
-        try {
-            if (directory.exists()) {
-                FileUtils.deleteDirectory(directory);
-            }
-        } catch (IOException e) {
-            Log.error("Impossible to start git cloning. Failed to clean directory: " + cloudPassportFolder, e);
-            return Collections.emptyList();
-        }
+        new File(cloudPassportFolder).mkdirs();
+        cleanupTmpDirectories();
 
         List<GitInfo> result = new ArrayList<>();
         int index = 1;
         for (Project project : projects) {
-
             for (InstanceRepository instanceRepository : project.instanceRepositories()) {
-                String folderNameToClone = cloudPassportFolder + "/" + index;
-                gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), instanceRepository.token(), new File(folderNameToClone));
-                result.add(new GitInfo(instanceRepository, folderNameToClone, project.id()));
+                String tmpFolder = cloudPassportFolder + "/" + index + "-tmp";
+                String stableFolder = cloudPassportFolder + "/" + index;
+                String token = gitService.resolveToken(instanceRepository.token(), instanceRepository.region());
+                gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), token, new File(tmpFolder));
+                try {
+                    FileUtils.deleteDirectory(new File(stableFolder));
+                    Files.move(Path.of(tmpFolder), Path.of(stableFolder));
+                } catch (IOException e) {
+                    Log.errorf("Failed to replace stable directory %s, skipping repo %s",
+                            stableFolder, instanceRepository.url());
+                    try {
+                        FileUtils.deleteDirectory(new File(tmpFolder));
+                    } catch (IOException ex) {
+                        Log.warnf("Failed to delete tmp directory %s after failed replacement: %s", tmpFolder, ex.getMessage());
+                    }
+                    index++;
+                    continue;
+                }
+                result.add(new GitInfo(instanceRepository, stableFolder, project.id()));
                 index++;
             }
         }
         return result;
     }
 
+    private void cleanupTmpDirectories() {
+        try (Stream<Path> children = Files.list(Path.of(cloudPassportFolder))) {
+            children.filter(p -> p.getFileName().toString().endsWith("-tmp"))
+                    .forEach(p -> {
+                        try {
+                            FileUtils.deleteDirectory(p.toFile());
+                        } catch (IOException e) {
+                            Log.warnf("Failed to delete stale tmp directory %s: %s", p, e.getMessage());
+                        }
+                    });
+        } catch (IOException e) {
+            Log.warnf("Failed to list cloud passport folder for tmp cleanup %s: %s", cloudPassportFolder, e.getMessage());
+        }
+    }
+
     private CloudPassport processYamlFilesInClusterFolder(GitInfo gitInfo, Path cloudPassportFolderPath, Path clusterFolderPath) {
         Log.info("Loading Cloud Passport from " + cloudPassportFolderPath);
         String clusterName = clusterFolderPath.getFileName().toString();
-        Set<CloudPassportEnvironment> environments = processEnvironmentsInClusterFolder(clusterFolderPath);
+        Set<CloudPassportEnvironment> environments = processEnvironmentsInClusterFolder(clusterFolderPath, gitInfo, clusterName);
         CloudPassportData cloudPassportData;
         try (Stream<Path> paths = Files.list(cloudPassportFolderPath)) {
             cloudPassportData = paths
@@ -148,7 +176,7 @@ public class CloudPassportLoader {
             }
         }
         Log.info("Monitoring URI: " + monitoringUri);
-        String argoUrl = null;
+        String argoUrl;
         String achkaUrl = "https://ach-kubernetes-agent-devops-toolkit." + cloud.cloudPublicHost();
         DevopsData devops = cloudPassportData.devops();
         if (Objects.nonNull(devops)) {
@@ -156,6 +184,10 @@ public class CloudPassportLoader {
             if (devops.achkaUrl() != null) {
                 achkaUrl = devops.achkaUrl();
             }
+        } else {
+            ArgocdData argocd = cloudPassportData.argocd();
+            argoUrl = argocd != null ? argocd.argocdUrl() : null;
+            achkaUrl = argocd != null ? argocd.achkaUrl() : achkaUrl;
         }
         Log.infof("Cloud Deployer URL: %s. Cloud Argo URL: %s, Achka URL: %s", cloud.cloudCmdbUrl(), argoUrl, achkaUrl);
         String dbaasUrl = null;
@@ -165,12 +197,12 @@ public class CloudPassportLoader {
                 cloud.cloudDashboardUrl(), dbaasUrl, cloud.cloudCmdbUrl(), argoUrl, achkaUrl, cloud.region());
     }
 
-    private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath) {
+    private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath, GitInfo gitInfo, String clusterName) {
         try (Stream<Path> paths = Files.walk(clusterFolderPath)) {
             return paths.filter(Files::isDirectory)
                     .map(path -> path.resolve(ENV_DEFINITION_YML_FILENAME))
                     .filter(Files::isRegularFile)
-                    .map(this::processEnvDefinition)
+                    .map(path -> processEnvDefinition(path, gitInfo, clusterName))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
         } catch (Exception e) {
@@ -179,7 +211,7 @@ public class CloudPassportLoader {
         return Collections.emptySet();
     }
 
-    private CloudPassportEnvironment processEnvDefinition(Path envDevinitionPath) {
+    private CloudPassportEnvironment processEnvDefinition(Path envDevinitionPath, GitInfo gitInfo, String clusterName) {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         Path environmentPath = envDevinitionPath.getParent().getParent();
         List<CloudPassportNamespace> namespaces = Collections.emptyList();
@@ -200,44 +232,89 @@ public class CloudPassportLoader {
             if (inventory == null) {
                 return null;
             }
-            InventoryMetadata inventoryMetadata = inventory.getMetadata();
-            String description = inventoryMetadata == null || inventoryMetadata.description() == null
-                    ? inventory.getDescription()
-                    : inventoryMetadata.description();
-            List<String> owners = inventoryMetadata == null || inventoryMetadata.owners() == null
-                    ? inventory.getOwners() == null ? List.of() : List.of(inventory.getOwners())
-                    : inventoryMetadata.owners();
-            List<String> labels = inventoryMetadata == null || inventoryMetadata.labels() == null
+            EnvDefinitionMetadata envDefinitionMetadata = envDefinition.metadata();
+            String description = envDefinitionMetadata == null || envDefinitionMetadata.description() == null
+                    ? inventory.description()
+                    : envDefinitionMetadata.description();
+            List<String> owners = envDefinitionMetadata == null || envDefinitionMetadata.owners() == null
+                    ? inventory.owners() == null ? List.of() : List.of(inventory.owners())
+                    : envDefinitionMetadata.owners();
+            List<String> labels = envDefinitionMetadata == null || envDefinitionMetadata.labels() == null
                     ? List.of()
-                    : inventoryMetadata.labels();
-            List<String> teams = inventoryMetadata == null || inventoryMetadata.teams() == null
+                    : envDefinitionMetadata.labels();
+            List<String> teams = envDefinitionMetadata == null || envDefinitionMetadata.teams() == null
                     ? List.of()
-                    : inventoryMetadata.teams();
-            EnvironmentStatus environmentStatus = inventoryMetadata == null || inventoryMetadata.status() == null
+                    : envDefinitionMetadata.teams();
+            EnvironmentStatus environmentStatus = envDefinitionMetadata == null || envDefinitionMetadata.status() == null
                     ? EnvironmentStatus.FREE
-                    : EnvironmentStatus.valueOf(inventoryMetadata.status());
-            LocalDate expirationDate = inventoryMetadata == null || inventoryMetadata.expirationDate() == null
+                    : EnvironmentStatus.valueOf(envDefinitionMetadata.status());
+            LocalDate expirationDate = envDefinitionMetadata == null || envDefinitionMetadata.expirationDate() == null
                     ? null
-                    : LocalDate.parse(inventoryMetadata.expirationDate());
-            EnvironmentType type = inventoryMetadata == null || inventoryMetadata.type() == null
+                    : LocalDate.parse(envDefinitionMetadata.expirationDate());
+            EnvironmentType type = envDefinitionMetadata == null || envDefinitionMetadata.type() == null
                     ? EnvironmentType.ENVIRONMENT
-                    : EnvironmentType.valueOf(inventoryMetadata.type());
-            String role = inventoryMetadata == null
+                    : EnvironmentType.valueOf(envDefinitionMetadata.type());
+            String role = envDefinitionMetadata == null
                     ? null
-                    : inventoryMetadata.role();
-            List<String> accessGroups = inventoryMetadata == null || inventoryMetadata.accessGroups() == null
+                    : envDefinitionMetadata.role();
+            List<String> accessGroups = envDefinitionMetadata == null || envDefinitionMetadata.accessGroups() == null
                     ? List.of()
-                    : inventoryMetadata.accessGroups();
-            List<String> effectiveAccessGroups = inventoryMetadata == null || inventoryMetadata.effectiveAccessGroups() == null
+                    : envDefinitionMetadata.accessGroups();
+            List<String> effectiveAccessGroups = envDefinitionMetadata == null || envDefinitionMetadata.effectiveAccessGroups() == null
                     ? List.of()
-                    : inventoryMetadata.effectiveAccessGroups();
+                    : envDefinitionMetadata.effectiveAccessGroups();
+            boolean sspStandalone = envDefinitionMetadata != null && Boolean.TRUE.equals(envDefinitionMetadata.sspStandalone());
+            String environmentName = StringUtils.isNotBlank(inventory.environmentName())
+                    ? inventory.environmentName()
+                    : environmentPath.getFileName().toString();
+            CmApproach cmApproach = inventory.deployer() != null ? CmApproach.CMDB : CmApproach.NO_CMDB;
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
-            return new CloudPassportEnvironment(inventory.getEnvironmentName(), description, namespaces,
+            List<SdApplication> sdApplications = loadSolutionDescriptor(envDevinitionPath.getParent());
+            String effectiveSetPath = environmentPath.resolve("effective-set").toString();
+            String effectiveSetHistoryUrl = gitInfo != null && gitInfo.instanceRepository() != null
+                    ? "%s/commits/%s/environments/%s/%s/effective-set".formatted(
+                    gitInfo.instanceRepository().url(),
+                    Objects.requireNonNullElse(gitInfo.instanceRepository().branch(), "HEAD"),
+                    clusterName,
+                    environmentName)
+                    : null;
+            return new CloudPassportEnvironment(environmentName, description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
-                    accessGroups, effectiveAccessGroups, paramsets);
+                    accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications,
+                    effectiveSetPath, effectiveSetHistoryUrl);
         } catch (IOException e) {
             Log.error("Error loading environment from " + environmentPath, e);
             return null;
+        }
+    }
+
+    private List<SdApplication> loadSolutionDescriptor(Path inventoryDir) {
+        Path sdPath = inventoryDir.resolve("solution-descriptor/sd.yaml");
+        if (!Files.isRegularFile(sdPath)) {
+            sdPath = inventoryDir.resolve("solution-descriptor/sd.yml");
+        }
+        if (!Files.isRegularFile(sdPath)) {
+            return Collections.emptyList();
+        }
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try {
+            SolutionDescriptor sd = mapper.readValue(sdPath.toFile(), SolutionDescriptor.class);
+            if (sd.applications() == null || sd.applications().isEmpty()) {
+                Log.warnf("SD at %s has no 'applications' section — skipping", sdPath);
+                return Collections.emptyList();
+            }
+            List<SdApplication> result = new ArrayList<>();
+            for (SdApplication app : sd.applications()) {
+                if (app.version() == null || app.deployPostfix() == null) {
+                    Log.warnf("SD at %s has application entry with missing version or deployPostfix — discarding SD", sdPath);
+                    return Collections.emptyList();
+                }
+                result.add(app);
+            }
+            return result;
+        } catch (Exception e) {
+            Log.warnf("Failed to parse SD at %s: %s", sdPath, e.getMessage());
+            return Collections.emptyList();
         }
     }
 
