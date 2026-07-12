@@ -8,7 +8,6 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.ClusterInfo;
@@ -47,13 +46,12 @@ public class CollyStorage {
                         EnvironmentRepository environmentRepository,
                         EnvironmentMapper environmentMapper,
                         ClusterSyncLock clusterSyncLock,
-                        @RestClient EnvgeneInventoryServiceRest envgeneInventoryServiceRest,
-                        @ConfigProperty(name = "colly.environment-operational-service.cluster-resource-loader.thread-pool-size") int threadPoolSize) {
+                        @RestClient EnvgeneInventoryServiceRest envgeneInventoryServiceRest) {
         this.clusterResourcesLoader = clusterResourcesLoader;
         this.clusterRepository = clusterRepository;
         this.environmentRepository = environmentRepository;
         this.envgeneInventoryServiceRest = envgeneInventoryServiceRest;
-        this.executor = Executors.newFixedThreadPool(threadPoolSize);
+        this.executor = Executors.newVirtualThreadPerTaskExecutor();
         this.environmentMapper = environmentMapper;
         this.clusterSyncLock = clusterSyncLock;
     }
@@ -68,7 +66,7 @@ public class CollyStorage {
 
     @Scheduled(cron = "{colly.environment-operational-service.cron.schedule}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void syncAllClusters() {
-        Log.info("Task for loading resources from clusters has started");
+        Log.info("Task for sync resources from clusters has started");
         Date startTime = new Date();
         List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
         List<String> clusterNames = clusterInfos.stream().map(ClusterInfo::name).toList();
@@ -76,7 +74,11 @@ public class CollyStorage {
 
         List<CompletableFuture<Void>> futures = clusterInfos.stream()
                 .map(clusterInfo -> CompletableFuture.runAsync(
-                        () -> syncClusterWithLock(clusterInfo), executor))
+                                () -> syncClusterWithLock(clusterInfo), executor)
+                        .exceptionally(e -> {
+                            Log.error("Sync failed for cluster " + clusterInfo.name() + " (id=" + clusterInfo.id() + ")", e);
+                            return null;
+                        }))
                 .toList();
 
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
@@ -88,8 +90,7 @@ public class CollyStorage {
 
         Date loadCompleteTime = new Date();
         long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
-        Log.info("Task for loading resources from clusters has completed.");
-        Log.info("Loading Duration =" + loadingDuration + " ms");
+        Log.info("Task for sync resources from clusters has completed. Duration = " + loadingDuration + "ms");
     }
 
     void syncCluster(String clusterId) {

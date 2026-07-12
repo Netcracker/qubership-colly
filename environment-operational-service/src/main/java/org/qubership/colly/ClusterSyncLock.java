@@ -4,6 +4,7 @@ import io.quarkus.logging.Log;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.keys.KeyCommands;
 import io.quarkus.redis.datasource.value.ValueCommands;
+import io.vertx.mutiny.redis.client.Response;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -16,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Prevents concurrent sync of the same cluster across threads and service instances.
  * <p>
  * Lock key: lock:sync:cluster:{clusterId}
- * Implementation: SETNX + EXPIRE (non-atomic but acceptable — TTL >> max sync duration).
+ * Implementation: atomic SET key value NX PX ttl.
  */
 @ApplicationScoped
 public class ClusterSyncLock {
@@ -39,7 +40,9 @@ public class ClusterSyncLock {
 
     /**
      * Atomically acquires a lock for the given cluster.
-     * Uses SETNX to prevent concurrent acquisition, then sets TTL to prevent eternal lock on crash.
+     * Issues a single SET key value NX PX ttl command, so the key and its expiry are
+     * set in one round-trip — a crash between acquiring and setting a TTL (the old
+     * SETNX + EXPIRE two-step) can no longer leave a lock with no expiry.
      *
      * @param clusterId cluster identifier
      * @param ttl       lock expiration (should be > max expected sync duration)
@@ -48,9 +51,9 @@ public class ClusterSyncLock {
     public boolean tryAcquire(String clusterId, Duration ttl) {
         String key = LOCK_KEY_PREFIX + clusterId;
         String ownerId = UUID.randomUUID().toString();
-        boolean acquired = valueCommands().setnx(key, ownerId);
+        Response response = redisDataSource.execute("SET", key, ownerId, "NX", "PX", String.valueOf(ttl.toMillis()));
+        boolean acquired = response != null;
         if (acquired) {
-            keyCommands().expire(key, ttl);
             activeOwnerIds.put(clusterId, ownerId);
             Log.debugf("Lock acquired for cluster %s (owner=%s)", clusterId, ownerId);
         } else {
