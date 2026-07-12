@@ -44,6 +44,7 @@ public class CollyStorage {
         this.updateEnvironmentService = null;
         this.projectRepoLoader = null;
         this.paramsetService = null;
+        this.effectiveSetCalculator = null;
     }
 
     @Inject

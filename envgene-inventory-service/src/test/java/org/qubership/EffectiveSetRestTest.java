@@ -1,19 +1,16 @@
 package org.qubership;
 
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.qubership.colly.GitService;
+import org.qubership.colly.MockGitService;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Environment;
 
-import java.io.File;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -32,24 +29,14 @@ class EffectiveSetRestTest {
     private static final String APP = "application-2";
     private static final String NS_UNKNOWN = "no-such-namespace";
 
-    @InjectMock
-    GitService gitService;
-
+    @Inject
+    MockGitService gitService;
     @Inject
     EnvironmentRepository environmentRepository;
 
     @BeforeEach
     void setUp() {
-        org.mockito.Mockito.doAnswer(inv -> {
-            FileUtils.copyDirectory(
-                    new File("src/test/resources/" + inv.getArgument(0)),
-                    inv.getArgument(3));
-            return null;
-        }).when(gitService).cloneRepository(
-                org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any());
+        gitService.reset();
     }
 
     private String syncAndGetEnvId(String envName) {

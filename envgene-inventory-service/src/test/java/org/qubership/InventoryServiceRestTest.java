@@ -798,9 +798,8 @@ class InventoryServiceRestTest {
         //    late-paramset.yaml pre-exists in the repo and declares LATE_PARAM="from-late-paramset".
         //    core-deploy-ui-override.yaml is reverted to its original content (no LATE_PARAM) by the clone.
         //    After reload, late-paramset is the last for core/DEPLOYMENT → it wins over ui-override.
-        doAnswer(invocation -> {
-            String repoName = invocation.getArgument(0);
-            File dest = invocation.getArgument(3);
+
+        mockGitService.setCloneAction((repoName, dest) -> {
             FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
             if ("gitrepo_with_cloudpassports".equals(repoName)) {
                 File envDef = new File(dest, "environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
@@ -811,8 +810,7 @@ class InventoryServiceRestTest {
                 );
                 FileUtils.writeStringToFile(envDef, content, "UTF-8");
             }
-            return null;
-        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+        });
 
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
@@ -1314,13 +1312,10 @@ class InventoryServiceRestTest {
         // removeDeletedProjects() will not trigger because the project still exists —
         // only the cluster itself is gone. Bug: saveDataToCache() is never called for the removed
         // cluster, so nothing evicts it from Redis.
-        doAnswer(invocation -> {
-            File dest = invocation.getArgument(3);
-            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+        mockGitService.setCloneAction((url, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + url), dest);
             FileUtils.deleteDirectory(new File(dest, "environments/test-cluster"));
-            return null;
-        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
-
+        });
         given()
                 .when().post("/colly/v2/inventory-service/manual-sync")
                 .then()
