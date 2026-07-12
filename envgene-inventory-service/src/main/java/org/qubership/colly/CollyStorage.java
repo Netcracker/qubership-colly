@@ -36,17 +36,6 @@ public class CollyStorage {
     private final EffectiveSetCalculator effectiveSetCalculator;
     private final AtomicBoolean syncRunning = new AtomicBoolean(false);
 
-    CollyStorage() {
-        this.clusterRepository = null;
-        this.environmentRepository = null;
-        this.projectRepository = null;
-        this.cloudPassportLoader = null;
-        this.updateEnvironmentService = null;
-        this.projectRepoLoader = null;
-        this.paramsetService = null;
-        this.effectiveSetCalculator = null;
-    }
-
     @Inject
     public CollyStorage(
             ClusterRepository clusterRepository,
@@ -78,11 +67,14 @@ public class CollyStorage {
         }
         try {
             Log.info("Task for loading data from git has started");
-            effectiveSetCalculator.clearCache();List<Project> projects = projectRepoLoader.loadProjects();
-            removeDeletedProjects(projects);projects.forEach(projectRepository::persist);
+            effectiveSetCalculator.clearCache();
+            List<Project> projects = projectRepoLoader.loadProjects();
+            removeDeletedProjects(projects);
+            projects.forEach(projectRepository::persist);
             Log.info("Projects loaded: " + projects.size());
             List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
-            Log.info("Cloud passports loaded: " + cloudPassports.size());removeDeletedClusters(cloudPassports);
+            Log.info("Cloud passports loaded: " + cloudPassports.size());
+            removeDeletedClusters(cloudPassports);
             cloudPassports.forEach(this::saveDataToCache);
         } finally {
             syncRunning.set(false);

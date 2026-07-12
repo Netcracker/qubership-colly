@@ -2,7 +2,7 @@ package org.qubership.colly;
 
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.component.QuarkusComponentTest;
+import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.db.ClusterRepository;
@@ -21,7 +21,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
 
-@QuarkusComponentTest
+@QuarkusTest
 class CollyStorageStartupTest {
 
     @Inject
