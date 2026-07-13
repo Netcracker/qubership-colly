@@ -67,6 +67,7 @@ public class CollyStorage {
         }
         try {
             Log.info("Task for loading data from git has started");
+            Date startTime = new Date();
             effectiveSetCalculator.clearCache();
             List<Project> projects = projectRepoLoader.loadProjects();
             removeDeletedProjects(projects);
@@ -76,6 +77,9 @@ public class CollyStorage {
             Log.info("Cloud passports loaded: " + cloudPassports.size());
             removeDeletedClusters(cloudPassports);
             cloudPassports.forEach(this::saveDataToCache);
+            Date loadCompleteTime = new Date();
+            long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
+            Log.info("Task for loading data from git has completed. Duration = " + loadingDuration + "ms");
         } finally {
             syncRunning.set(false);
         }
