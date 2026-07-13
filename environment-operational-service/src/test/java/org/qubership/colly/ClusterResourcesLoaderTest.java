@@ -270,6 +270,60 @@ class ClusterResourcesLoaderTest {
     }
 
     @Test
+    void namespace_list_failure_does_not_reset_existing_namespace_status() throws ApiException {
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                "example.com", Set.of(createEnvForTests("env-flaky-namespace-list",
+                List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME)))), null, "https://achka.cloud.example.com");
+        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME));
+
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
+        List<Environment> envs = environmentRepository.findByName("env-flaky-namespace-list");
+        Environment testEnv = envs.stream().filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
+        List<Namespace> allNamespaces = namespaceRepository.findByEnvironmentId(testEnv.getId());
+        assertThat(allNamespaces, hasItems(
+                allOf(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("existsInK8s", equalTo(true)))));
+
+        CoreV1Api.APIlistNamespaceRequest nsRequest = mock(CoreV1Api.APIlistNamespaceRequest.class);
+        when(coreV1Api.listNamespace()).thenReturn(nsRequest);
+        when(nsRequest.execute()).thenThrow(new ApiException());
+
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
+        List<Namespace> allNamespacesAfterFailure = namespaceRepository.findByEnvironmentId(testEnv.getId());
+        assertThat(allNamespacesAfterFailure, hasItems(
+                allOf(hasProperty("name", equalTo(NAMESPACE_NAME)), hasProperty("existsInK8s", equalTo(true)))));
+    }
+
+    @Test
+    void config_map_failure_in_one_namespace_does_not_abort_rest_of_cluster() throws ApiException {
+        ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
+                "example.com", Set.of(
+                createEnvForTests("env-broken-configmap", List.of(new CloudPassportNamespace(NAMESPACE_NAME, NAMESPACE_NAME))),
+                createEnvForTests("env-ok-configmap", List.of(new CloudPassportNamespace(NAMESPACE_NAME_2, NAMESPACE_NAME_2)))
+        ), null, "https://achka.cloud.example.com");
+        mockNamespaceLoading(CLUSTER_NAME, List.of(NAMESPACE_NAME, NAMESPACE_NAME_2));
+
+        CoreV1Api.APIlistNamespacedConfigMapRequest brokenConfigMapRequest = mock(CoreV1Api.APIlistNamespacedConfigMapRequest.class);
+        when(coreV1Api.listNamespacedConfigMap(NAMESPACE_NAME)).thenReturn(brokenConfigMapRequest);
+        when(brokenConfigMapRequest.fieldSelector(any())).thenReturn(brokenConfigMapRequest);
+        when(brokenConfigMapRequest.execute()).thenThrow(new ApiException());
+
+        V1ConfigMap configMap = new V1ConfigMap()
+                .metadata(new V1ObjectMeta().name("versions").uid("configmap-uid").creationTimestamp(DATE_2024))
+                .data(Map.of("solution-descriptors-summary", "MyVersion 1.0.0"));
+        mockConfigMaps(List.of(configMap), NAMESPACE_NAME_2);
+
+        clusterResourcesLoader.loadClusterResources(coreV1Api, clusterInfo);
+
+        Environment brokenEnv = environmentRepository.findByName("env-broken-configmap").stream()
+                .filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
+        assertThat(brokenEnv.getCleanInstallationDate(), nullValue());
+
+        Environment okEnv = environmentRepository.findByName("env-ok-configmap").stream()
+                .filter(e -> CLUSTER_ID.equals(e.getClusterId())).findFirst().orElseThrow();
+        assertThat(okEnv.getCleanInstallationDate(), equalTo(DATE_2024.toInstant()));
+    }
+
+    @Test
     void load_namespace_that_created_after_first_loading() throws ApiException {
         ClusterInfo clusterInfo = new ClusterInfo(CLUSTER_ID, CLUSTER_NAME, "42", "https://api.example.com",
                 "example.com", Set.of(createEnvForTests("env-with-new-namespace",

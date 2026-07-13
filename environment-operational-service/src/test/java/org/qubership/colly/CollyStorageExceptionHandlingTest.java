@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.qubership.colly.cloudpassport.ClusterInfo;
@@ -31,6 +32,14 @@ class CollyStorageExceptionHandlingTest {
 
     @InjectMock
     ClusterResourcesLoader clusterResourcesLoader;
+
+    @InjectMock
+    ClusterSyncLock clusterSyncLock;
+
+    @BeforeEach
+    void setUp() {
+        when(clusterSyncLock.tryAcquire(any(), any())).thenReturn(true);
+    }
 
     @Test
     void syncAllClusters_shouldContinueExecutionWhenSomeClustersFail() throws InterruptedException {

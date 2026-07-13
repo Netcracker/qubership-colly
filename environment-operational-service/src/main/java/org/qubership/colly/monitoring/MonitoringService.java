@@ -5,12 +5,14 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithParentName;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.emptyMap;
 
@@ -20,6 +22,12 @@ public class MonitoringService {
     @Inject
     MonitoringParams monitoringParams;
 
+    @ConfigProperty(name = "colly.environment-operational-service.monitoring-client.connect-timeout-ms", defaultValue = "3000")
+    long connectTimeoutMs;
+
+    @ConfigProperty(name = "colly.environment-operational-service.monitoring-client.read-timeout-ms", defaultValue = "5000")
+    long readTimeoutMs;
+
     public Map<String, String> loadMonitoringData(String monitoringUri, String environmentName, String clusterName, List<String> namespaceNames) {
         if (monitoringUri == null) {
             return emptyMap();
@@ -27,7 +35,11 @@ public class MonitoringService {
         MonitoringClient monitoringClient;
         HashMap<String, String> result = new HashMap<>();
         try {
-            monitoringClient = RestClientBuilder.newBuilder().baseUri(monitoringUri).build(MonitoringClient.class);
+            monitoringClient = RestClientBuilder.newBuilder()
+                    .baseUri(monitoringUri)
+                    .connectTimeout(connectTimeoutMs, TimeUnit.MILLISECONDS)
+                    .readTimeout(readTimeoutMs, TimeUnit.MILLISECONDS)
+                    .build(MonitoringClient.class);
 
             Collection<MonitoringParam> monitoringParams = this.monitoringParams.allMonitoringParams().values();
             if (monitoringParams.isEmpty()) {
