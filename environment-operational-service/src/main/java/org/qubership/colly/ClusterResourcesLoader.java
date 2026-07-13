@@ -110,13 +110,15 @@ public class ClusterResourcesLoader {
         Log.info("Start loading environments for cluster " + cluster.getName());
         CoreV1Api.APIlistNamespaceRequest apilistNamespaceRequest = coreV1Api.listNamespace();
         Map<String, V1Namespace> k8sNamespaces;
+        boolean namespaceListLoaded = true;
         try {
             V1NamespaceList list = apilistNamespaceRequest.execute();
             k8sNamespaces = list.getItems().stream().collect(Collectors.toMap(v1Namespace -> getNameSafely(v1Namespace.getMetadata()), Function.identity()));
             cluster.setLastSuccessfulSyncAt(Instant.now());
         } catch (ApiException e) {
             k8sNamespaces = new HashMap<>();
-            Log.error("Can't load namespaces from cluster " + cluster.getName() + ". " + e.getMessage());
+            namespaceListLoaded = false;
+            Log.error("Can't load namespaces from cluster " + cluster.getName() + ". Existing namespace statuses will be kept as-is this round. " + e.getMessage());
         }
 
         List<Environment> envs = new ArrayList<>();
@@ -146,8 +148,14 @@ public class ClusterResourcesLoader {
                 if (namespace == null) {
                     namespace = createNamespace(cloudPassportNamespace, cluster, environment);
                 }
-                namespace.setExistsInK8s(v1Namespace != null);
+                if (namespaceListLoaded) {
+                    namespace.setExistsInK8s(v1Namespace != null);
+                }
                 namespaceRepository.save(namespace);
+                if (!namespaceListLoaded) {
+                    Log.warn("Namespace list could not be loaded for cluster " + cluster.getName() + " this round. Skipping k8s-dependent checks for namespace " + namespace.getName() + ".");
+                    continue;
+                }
                 if (!namespace.getExistsInK8s()) {
                     Log.warn("Namespace " + namespace.getName() + " does not exist in k8s. Skipping it.");
                     continue;
@@ -199,7 +207,8 @@ public class ClusterResourcesLoader {
         try {
             configMapList = request.execute();
         } catch (ApiException e) {
-            throw new IllegalStateException(e);
+            Log.error("Can't load config map " + versionsConfigMapName + " from namespace " + namespaceName + ". " + e.getMessage());
+            return null;
         }
         if (configMapList.getItems().isEmpty()) {
             Log.warn("No config map with name=" + versionsConfigMapName + " found in namespace " + namespaceName);
