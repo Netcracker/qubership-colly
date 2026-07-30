@@ -9,3 +9,7 @@ cloud:
 cse:
   MONITORING_TYPE: VictoriaDB
   MONITORING_NAMESPACE: victoria
+devops:
+  SOME_DEVOPS_URL: https://devops.example.com
+argocd:
+  ARGOCD_URL: https://argo-url-from-argocd.example.com
