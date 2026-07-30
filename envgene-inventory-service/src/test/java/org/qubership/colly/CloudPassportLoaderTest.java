@@ -140,7 +140,7 @@ class CloudPassportLoaderTest {
             null,
             null,
             null,
-            null,
+            "https://argo-url-from-argocd.example.com",
             "https://ach-kubernetes-agent-devops-toolkit.unreachable.url",
             null
     );
@@ -312,7 +312,6 @@ class CloudPassportLoaderTest {
 
         assertThat(result.dbaas().apiDBaaSAddress(), equalTo("https://dbaas.example.com"));
         assertThat(result.devops().argocdUrl(), equalTo("https://argo.example.com"));
-
     }
 
     @Test
