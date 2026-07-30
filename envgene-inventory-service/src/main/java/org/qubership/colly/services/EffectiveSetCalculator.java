@@ -5,10 +5,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.data.ParamsetContext;
+import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.dto.EffectiveSetResponseDto;
 
 import org.yaml.snakeyaml.LoaderOptions;
@@ -101,6 +103,7 @@ public class EffectiveSetCalculator {
                 k -> readEffectiveSetFile(filePath, ctx));
 
         Map<String, Object> merged = deepCopy(cached);
+        mergeApplicableParamsets(merged, environment, ctx, deployPostfix, applicationName);
         if (requestParameters != null) {
             mergeInto(merged, requestParameters);
         }
@@ -116,6 +119,33 @@ public class EffectiveSetCalculator {
             case RUNTIME -> r.resolve(ctx.key()).resolve(deployPostfix).resolve(applicationName)
                     .resolve("parameters.yaml");
             case PIPELINE -> r.resolve(ctx.key()).resolve("parameters.yaml");
+        };
+    }
+
+    /**
+     * Layers the environment's persisted paramsets (env/namespace/application-level UI overrides
+     * already saved via POST /ui-parameters) on top of the raw effective-set file content, in
+     * increasing order of specificity so an application-level override wins over a namespace one,
+     * which in turn wins over an environment-level one.
+     */
+    private static void mergeApplicableParamsets(Map<String, Object> target, Environment environment,
+                                                 ParamsetContext ctx, String deployPostfix, String applicationName) {
+        for (ParamsetLevel level : new ParamsetLevel[]{ParamsetLevel.ENVIRONMENT, ParamsetLevel.NAMESPACE, ParamsetLevel.APPLICATION}) {
+            for (Paramset paramset : environment.getParamsets()) {
+                if (paramset.paramsetContext() == ctx && paramset.level() == level
+                        && paramsetApplies(paramset, deployPostfix, applicationName)) {
+                    mergeInto(target, paramset.parameters());
+                }
+            }
+        }
+    }
+
+    private static boolean paramsetApplies(Paramset paramset, String deployPostfix, String applicationName) {
+        return switch (paramset.level()) {
+            case ENVIRONMENT -> true;
+            case NAMESPACE -> deployPostfix != null && deployPostfix.equals(paramset.deployPostfix());
+            case APPLICATION -> deployPostfix != null && deployPostfix.equals(paramset.deployPostfix())
+                    && applicationName != null && applicationName.equals(paramset.applicationName());
         };
     }
 

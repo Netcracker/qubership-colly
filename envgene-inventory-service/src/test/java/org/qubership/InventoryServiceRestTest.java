@@ -1346,7 +1346,7 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=test-ns")
                 .then()
                 .statusCode(200)
-                .body(".", containsInAnyOrder("MONITORING", "postgres", "postgres-services", "application-2"));
+                .body(".", containsInAnyOrder("MONITORING", "postgres", "postgres-services", "my-app"));
     }
 
     @Test

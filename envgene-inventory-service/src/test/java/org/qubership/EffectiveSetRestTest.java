@@ -26,7 +26,7 @@ class EffectiveSetRestTest {
     private static final String ES = BASE + "/environments/{id}/effective-set";
 
     private static final String NS_CORE = "test-ns";
-    private static final String APP = "application-2";
+    private static final String APP = "my-app";
     private static final String NS_UNKNOWN = "no-such-namespace";
 
     @Inject
@@ -139,10 +139,111 @@ class EffectiveSetRestTest {
                 .body("parameters.PARAMETER_1._data.value", nullValue());
     }
 
+    // ── deployment: applicable paramsets merged in ──────────────────────────
+
+    @Test
+    void deployment_mergesEnvironmentAndNamespaceLevelParamsets() {
+        // ENV_DEPLOY_PARAMETER comes from the "cloud" (ENVIRONMENT-level) deploy-ui-override paramset.
+        // CORE_DEPLOY_PARAMETER(_2) comes from the "core" (NAMESPACE-level) core-deploy-ui-override paramset.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.ENV_DEPLOY_PARAMETER._data.value", equalTo("some value"))
+                .body("parameters.MY_APP_DEPLOY_PARAMETER._data.value", equalTo("foo"))
+                .body("parameters.CORE_MY_APP_CLUSTER_PARAM._data.value", equalTo("cluster level value"))
+                .body("parameters.CORE_DEPLOY_PARAMETER._data.value", equalTo("some value"))
+                .body("parameters.CORE_DEPLOY_PARAMETER_2._type", equalTo("container"))
+                .body("parameters.CORE_DEPLOY_PARAMETER_2._data.SECOND_LEVEL_KEY._data.value", equalTo("some value"))
+                // file-based data must still be present alongside the merged paramsets
+                .body("parameters.PARAMETER_1._data.value", equalTo("xbmfqlzrtk"));
+    }
+
+    @Test
+    void deployment_applicationLevelParamsetAppliesToMatchingApplication() {
+        // core-mixed-paramset defines GENERIC_NAMESPACE_PARAM at NAMESPACE level (applies to any app in "core")
+        // and GENERIC_APP_PARAM / MY_APP_DEPLOY_PARAMETER at APPLICATION level for appName "my-app" — since
+        // APP == "my-app", both must be present.
+        // core-my-second-app-deploy-ui-override defines the SAME key MY_APP_DEPLOY_PARAMETER ("bar2") but scoped
+        // to a different application ("my-second-app") — that value must not win; "my-app"'s own value ("foo") must.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.GENERIC_NAMESPACE_PARAM._data.value", equalTo("namespace value"))
+                .body("parameters.GENERIC_APP_PARAM._data.value", equalTo("app value"))
+                .body("parameters.MY_APP_DEPLOY_PARAMETER._data.value", equalTo("foo"));
+    }
+
+    @Test
+    void deployment_applicationLevelParamsetOverridesNamespaceLevelOnSameKey() {
+        // mixed-paramset-same-parameter sets PARAM at both NAMESPACE level ("namespace value") and, for
+        // appName "my-app", at APPLICATION level ("app value") — the more specific APPLICATION-level value
+        // must win the merge.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.PARAM._data.value", equalTo("app value"));
+    }
+
+    @Test
+    void deployment_paramsetValue_canStillBeOverriddenByRequestBody() {
+        // Uncommitted request-body parameters must win over the persisted paramset value —
+        // paramsets are part of "the Effective Set", the request body overlays on top of it.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"parameters\":{\"CORE_DEPLOY_PARAMETER\":\"overridden-by-request\"}}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.CORE_DEPLOY_PARAMETER._data.value", equalTo("overridden-by-request"));
+    }
+
+    @Test
+    void deployment_onKeyCollisionBetweenParamsets_laterOneInEnvDefinitionWins() {
+        // DUPLICATE_PARAM is set by both core-first-param ("first value") and core-second-param
+        // ("second value"); core-second-param is listed after core-first-param under envSpecificParamsets.core
+        // in env_definition.yml, so it must win.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.DUPLICATE_PARAM._data.value", equalTo("second value"));
+    }
+
     // ── runtime ─────────────────────────────────────────────────────────────
 
     @Test
-    void runtime_returnsEmptyWhenNoData() {
+    void runtime_returnsApplicableParamsets_whenNoEffectiveSetFile() {
+        // No runtime/effective-set file exists for NS_CORE/APP, but the environment-, namespace- and
+        // (since APP == "my-app") application-level runtime paramsets configured in env_definition.yml still apply.
+        // MY_APP_RUNTIME_PARAMETER is set by both core-my-app-runtime-ui-override ("bar") and
+        // core-my-app-runtime-manual-params ("barManual"); the latter is listed later under
+        // envSpecificTechnicalParamsets.core, so it must win.
         String id = syncAndGetEnvId("env-metadata-test");
         given()
                 .contentType(ContentType.JSON)
@@ -153,7 +254,9 @@ class EffectiveSetRestTest {
                 .when().post(ES, id)
                 .then().statusCode(200)
                 .body("context", equalTo("runtime"))
-                .body("parameters", anEmptyMap());
+                .body("parameters.ENV_RUNTIME_PARAMETER._data.value", equalTo("some value"))
+                .body("parameters.CORE_RUNTIME_PARAMETER._data.value", equalTo("some value3"))
+                .body("parameters.MY_APP_RUNTIME_PARAMETER._data.value", equalTo("barManual"));
     }
 
     // ── pipeline ─────────────────────────────────────────────────────────────
@@ -171,6 +274,21 @@ class EffectiveSetRestTest {
                 .body("namespaceName", nullValue())
                 .body("applicationName", nullValue())
                 .body("parameters", not(anEmptyMap()));
+    }
+
+    @Test
+    void pipeline_mergesEnvironmentLevelParamsetOnly() {
+        // ENV_PIPELINE_PARAMETER ("cloud" / ENVIRONMENT-level) applies to pipeline context, but
+        // CORE_PIPELINE_PARAMETER ("core" / NAMESPACE-level) must not — pipeline has no namespace.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", "pipeline")
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.ENV_PIPELINE_PARAMETER._data.value", equalTo("some value"))
+                .body("parameters", not(hasKey("CORE_PIPELINE_PARAMETER")));
     }
 
     @Test
