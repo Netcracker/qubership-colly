@@ -1,0 +1,6 @@
+name: global-my-app-deploy-ui-override
+parameters: { }
+applications:
+  - appName: "my-app"
+    parameters:
+      CORE_MY_APP_CLUSTER_PARAM: "cluster level value"
