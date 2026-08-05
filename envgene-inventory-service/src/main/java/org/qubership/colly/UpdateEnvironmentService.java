@@ -140,7 +140,8 @@ public class UpdateEnvironmentService {
         String commitMessage = commitInfo.commitMessage() != null
                 ? commitInfo.commitMessage()
                 : "Update UI parameters for " + environment.getName();
-        gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, null, commitInfo.username(), commitInfo.email());
+        String token = gitService.resolveToken(gitInfo.instanceRepository().token(), gitInfo.instanceRepository().region());
+        gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, token, commitInfo.username(), commitInfo.email());
 
         return updatedParamsets;
     }
@@ -159,7 +160,8 @@ public class UpdateEnvironmentService {
         } catch (IOException e) {
             throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
         }
-        gitService.commitAndPush(gitRepoPath.toFile(), "Update environment " + environmentUpdate.getName());
+        String token = gitService.resolveToken(gitInfo.instanceRepository().token(), gitInfo.instanceRepository().region());
+        gitService.commitAndPush(gitRepoPath.toFile(), "Update environment " + environmentUpdate.getName(), token, null, null);
 
         return environmentUpdate;
     }
