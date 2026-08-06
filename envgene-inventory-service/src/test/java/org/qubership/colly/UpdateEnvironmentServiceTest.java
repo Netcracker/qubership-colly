@@ -31,6 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusComponentTest
 class UpdateEnvironmentServiceTest {
@@ -94,7 +95,20 @@ class UpdateEnvironmentServiceTest {
         assertEquals("Dev", envDefinition.metadata().role());
         assertThat(envDefinition.metadata().status(), is("IN_USE"));
         assertThat(envDefinition.metadata().expirationDate(), is("2025-12-31"));
-        verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), "Update environment " + testEnvironment.getName());
+        verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(),
+                "Update environment " + testEnvironment.getName(), null, null, null);
+    }
+
+    @Test
+    void updateEnvironment_shouldResolveTokenFromClusterInstanceRepository() {
+        // testCluster's GitInfo carries InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")
+        when(gitService.resolveToken("42", "cn")).thenReturn("resolved-token");
+
+        updateEnvironmentService.updateEnvironment(testCluster, testEnvironment);
+
+        verify(gitService).resolveToken("42", "cn");
+        verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(),
+                "Update environment " + testEnvironment.getName(), "resolved-token", null, null);
     }
 
     @Test
@@ -147,6 +161,23 @@ class UpdateEnvironmentServiceTest {
         assertThat(runtimeFile, equalTo(expectedRuntimeParamset));
 
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(), commitInfo.commitMessage(), null, commitInfo.username(), commitInfo.email());
+    }
+
+    @Test
+    void updateParamset_shouldResolveTokenFromClusterInstanceRepository() {
+        // testCluster's GitInfo carries InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")
+        when(gitService.resolveToken("42", "cn")).thenReturn("resolved-token");
+
+        Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);
+        params.put(ParamsetContext.DEPLOYMENT, Map.of("SOME_PARAM", "value"));
+        CommitInfoDto commitInfo = new CommitInfoDto("commit", "user", "user@test.com");
+
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.NAMESPACE, "core"), null, params, commitInfo);
+
+        verify(gitService).resolveToken("42", "cn");
+        verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(),
+                commitInfo.commitMessage(), "resolved-token", commitInfo.username(), commitInfo.email());
     }
 
     @Test
