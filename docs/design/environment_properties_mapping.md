@@ -20,6 +20,7 @@
 | Environment  | `accessGroups`          | `[]`             | list of strings                                                                                             | instance     | `metadata.accessGroups`                                                              | Groups that have access to the Environment          |
 | Environment  | `effectiveAccessGroups` | `[]`             | list of strings                                                                                             | instance     | `metadata.effectiveAccessGroups`                                                     | Computed access groups (includes inherited groups)  |
 | Environment  | `sspStandalone`         | `false`          | boolean                                                                                                     | instance     | `metadata.ssp_standalone`                                                            | Whether the Environment runs in standalone SSP mode |
+| Environment  | `cmApproach`            |                  | enum [`CMDB`, `NO_CMDB`]                                                                                    | instance     | calculated based on `inventory.deployer`                                             | CMDB or noCMDB approach is used for environment     |
 | Cluster      | `description`           | `""`             | string                                                                                                      | instance     | **TBD**                                                                              | Free-form Cluster description                       |
 
 ## env_definition.yml example
@@ -28,8 +29,7 @@
 repository.
 
 `inventory.environmentName` is optional. When omitted, the environment name is taken from the `<environment>` folder
-name
-(i.e. the parent directory of the `Inventory` folder).
+name (i.e. the parent directory of the `Inventory` folder).
 
 ```yaml
 metadata:
