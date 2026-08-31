@@ -110,7 +110,7 @@ public class ParamsetService {
 
             return result;
         } catch (IOException e) {
-            Log.error("Error reading paramset file: " + paramsetFilePath, e);
+            Log.errorf("Error reading paramset file: %s. %s", paramsetFilePath, e.getMessage());
             return List.of();
         }
     }

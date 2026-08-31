@@ -77,7 +77,7 @@ public class ClusterResourcesLoader {
             CoreV1Api coreV1Api = new CoreV1Api(client);
             loadClusterResources(coreV1Api, clusterInfo);
         } catch (RuntimeException | IOException e) {
-            Log.error("Can't load resources from cluster " + clusterInfo.name(), e);
+            Log.errorf("Can't load resources from cluster %s. %s", clusterInfo.name(), e.getMessage());
         }
     }
 
