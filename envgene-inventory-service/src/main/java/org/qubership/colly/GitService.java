@@ -51,6 +51,7 @@ public class GitService {
                         .setURI(repositoryUrl)
                         .setBranch(branch)
                         .setDirectory(destinationPath)
+                        .setDepth(1)
                         .setCredentialsProvider(credentialsProvider)
                         .call();
             } else {
@@ -58,6 +59,7 @@ public class GitService {
                         .setURI(repositoryUrl)
                         .setBranch(branch)
                         .setDirectory(destinationPath)
+                        .setDepth(1)
                         .call();
             }
         } catch (GitAPIException e) {
