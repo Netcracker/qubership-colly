@@ -41,7 +41,7 @@ public class ProjectRepoLoader {
                 FileUtils.deleteDirectory(directory);
             }
         } catch (IOException e) {
-            Log.error("Impossible to start git cloning. Failed to clean directory: " + projectRepoFolder, e);
+            Log.errorf("Impossible to start git cloning. Failed to clean directory: %s. %s", projectRepoFolder, e.getMessage());
             return null;
         }
 
@@ -78,7 +78,7 @@ public class ProjectRepoLoader {
                     convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId),
                     projectEntity.gitGroupUrls() == null ? List.of() : projectEntity.gitGroupUrls());
         } catch (Exception e) {
-            Log.error("Can't read project data from file: " + parametersFilePath, e);
+            Log.errorf("Can't read project with id %s from file: %s. %s", projectId, parametersFilePath, e.getMessage());
             return null;
         }
     }

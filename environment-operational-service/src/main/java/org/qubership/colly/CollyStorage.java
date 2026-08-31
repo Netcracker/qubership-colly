@@ -76,7 +76,7 @@ public class CollyStorage {
                 .map(clusterInfo -> CompletableFuture.runAsync(
                                 () -> syncClusterWithLock(clusterInfo), executor)
                         .exceptionally(e -> {
-                            Log.error("Sync failed for cluster " + clusterInfo.name() + " (id=" + clusterInfo.id() + ")", e);
+                            Log.errorf("Sync failed for cluster %s (id=%s). %s", clusterInfo.name(), clusterInfo.id(), e.getMessage());
                             return null;
                         }))
                 .toList();
@@ -85,7 +85,7 @@ public class CollyStorage {
         try {
             allFutures.join();
         } catch (Exception e) {
-            Log.error("Error occurred while loading cluster resources in parallel", e);
+            Log.errorf("Error occurred while loading cluster resources in parallel. %s", e.getMessage());
         }
 
         Date loadCompleteTime = new Date();

@@ -64,7 +64,7 @@ public class MonitoringService {
                 result.put(monitoringParam.name(), monitoringData);
             }
         } catch (Exception e) {
-            Log.error("Unable to load monitoring data from " + monitoringUri, e);
+            Log.errorf("Unable to load monitoring data from %s. %s", monitoringUri, e.getMessage());
             return emptyMap();
         }
         return result;

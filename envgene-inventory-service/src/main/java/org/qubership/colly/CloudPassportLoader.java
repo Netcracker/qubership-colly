@@ -66,7 +66,7 @@ public class CloudPassportLoader {
                         .filter(Objects::nonNull)
                         .toList());
             } catch (Exception e) {
-                Log.error("Error loading CloudPassports from " + environmentsDir, e);
+                Log.errorf("Error loading CloudPassports from %s. %s", environmentsDir, e.getMessage());
             }
         }
         return cloudPassports;
@@ -138,7 +138,7 @@ public class CloudPassportLoader {
                     .map(this::parseCloudPassportDataFile)
                     .findFirst().orElseThrow(() -> new IllegalArgumentException("Cloud passport data file with name (" + clusterName + ".yml|yaml, passport.yml|yaml) is not found in " + cloudPassportFolderPath));
         } catch (Exception e) {
-            Log.error("Error loading Cloud Passport from " + cloudPassportFolderPath, e);
+            Log.errorf("Error loading Cloud Passport from %s. %s", cloudPassportFolderPath, e.getMessage());
             return null;
         }
 
@@ -156,7 +156,7 @@ public class CloudPassportLoader {
                     .findFirst().orElseThrow(() -> new IllegalArgumentException("Cloud passport creds file with name (" + clusterName + "-creds.yml|yaml, passport-creds.yml|yaml) is not found in " + cloudPassportFolderPath));
 
         } catch (Exception e) {
-            Log.error("Error loading Cloud Passport from " + cloudPassportFolderPath, e);
+            Log.errorf("Error loading Cloud Passport from %s. %s", cloudPassportFolderPath, e.getMessage());
             return null;
         }
         CloudData cloud = cloudPassportData.cloud();
@@ -207,7 +207,7 @@ public class CloudPassportLoader {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
         } catch (Exception e) {
-            Log.error("Error loading Environments from " + clusterFolderPath, e);
+            Log.errorf("Error loading Environments from %s. %s", clusterFolderPath, e.getMessage());
         }
         return Collections.emptySet();
     }
@@ -224,7 +224,7 @@ public class CloudPassportLoader {
                     .filter(Objects::nonNull)
                     .toList();
         } catch (IOException e) {
-            Log.error("Error loading namespaces from " + environmentPath, e);
+            Log.errorf("Error loading namespaces from %s. %s", environmentPath, e.getMessage());
         }
         try (FileInputStream inputStream = new FileInputStream(envDevinitionPath.toFile())) {
             Log.info("Processing environment in folder: " + envDevinitionPath);
@@ -284,7 +284,7 @@ public class CloudPassportLoader {
                     accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications,
                     effectiveSetPath, effectiveSetHistoryUrl);
         } catch (IOException e) {
-            Log.error("Error loading environment from " + environmentPath, e);
+            Log.errorf("Error loading environment from %s. %s", environmentPath, e.getMessage());
             return null;
         }
     }
@@ -327,7 +327,7 @@ public class CloudPassportLoader {
             String deployPostfix = namespaceFilePath.getParent().getFileName().toString();
             return new CloudPassportNamespace(namespace.getName(), deployPostfix);
         } catch (IOException e) {
-            Log.error("Error reading namespace file: " + namespaceFilePath, e);
+            Log.errorf("Error reading namespace file: %s. %s", namespaceFilePath, e.getMessage());
             return null;
         }
     }
