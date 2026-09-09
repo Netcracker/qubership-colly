@@ -77,7 +77,7 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM ghcr.io/netcracker/qubership-java-base:21-alpine-latest
+FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.3.7
 
 ENV LANGUAGE='en_US:en'
 
