@@ -1,0 +1,4 @@
+inventory:
+  environmentName: "env-no-cmdb-v1-explicit-test"
+  description: "env with no deployer and noCmdbVersion=v1 explicitly"
+  noCmdbVersion: "v1"
