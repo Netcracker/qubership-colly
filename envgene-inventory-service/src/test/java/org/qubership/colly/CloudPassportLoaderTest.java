@@ -236,8 +236,12 @@ class CloudPassportLoaderTest {
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
                 List.of());
+        Project noCmdbV2Project = new Project("2", "project-2",
+                List.of(new InstanceRepository("gitrepo_with_no_cmdb_v2", "main", "99", "cn")),
+                new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
+                List.of());
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project, noCmdbV2Project));
 
         Map<String, CmApproach> cmApproachByEnv = result.stream()
                 .flatMap(cp -> cp.environments().stream())
@@ -247,6 +251,10 @@ class CloudPassportLoaderTest {
 
         assertEquals(CmApproach.CMDB, cmApproachByEnv.get("env-metadata-test"), "env-metadata-test has inventory.deployer so cmApproach should be cmdb");
         assertEquals(CmApproach.NO_CMDB, cmApproachByEnv.get("env-test"), "env-test has no inventory.deployer so cmApproach should be noCmdb");
+        assertEquals(CmApproach.NO_CMDB_V2, cmApproachByEnv.get("env-no-cmdb-v2-test"), "env-no-cmdb-v2-test has inventory.noCmdbVersion=v2 and no deployer so cmApproach should be NO_CMDB_V2");
+        assertEquals(CmApproach.NO_CMDB_V2, cmApproachByEnv.get("env-cmdb-with-v2-override-test"), "env-cmdb-with-v2-override-test has inventory.deployer set but noCmdbVersion=v2 overrides it to NO_CMDB_V2");
+        assertEquals(CmApproach.NO_CMDB, cmApproachByEnv.get("env-cmdb-with-v1-override-test"), "env-cmdb-with-v1-override-test has inventory.deployer set but noCmdbVersion=v1 overrides it to NO_CMDB");
+        assertEquals(CmApproach.NO_CMDB, cmApproachByEnv.get("env-no-cmdb-v1-explicit-test"), "env-no-cmdb-v1-explicit-test has no deployer and explicit noCmdbVersion=v1 so cmApproach should be NO_CMDB");
     }
 
     @Test
