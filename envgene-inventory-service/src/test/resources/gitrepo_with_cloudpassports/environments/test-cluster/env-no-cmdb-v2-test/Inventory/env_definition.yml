@@ -1,0 +1,4 @@
+inventory:
+  environmentName: "env-no-cmdb-v2-test"
+  description: "env for testing NO_CMDB_V2"
+  noCmdbVersion: "v2"

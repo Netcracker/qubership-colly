@@ -269,6 +269,12 @@ public class CloudPassportLoader {
                     ? inventory.environmentName()
                     : environmentPath.getFileName().toString();
             CmApproach cmApproach = inventory.deployer() != null ? CmApproach.CMDB : CmApproach.NO_CMDB;
+            if ("v2".equals(inventory.noCmdbVersion())) {
+                cmApproach = CmApproach.NO_CMDB_V2;
+            } else if ("v1".equals(inventory.noCmdbVersion())) {
+                cmApproach = CmApproach.NO_CMDB;
+            }
+
             List<Paramset> paramsets = paramsetService.parseParamsets(envDefinition.envTemplate(), envDevinitionPath.getParent());
             List<SdApplication> sdApplications = loadSolutionDescriptor(envDevinitionPath.getParent());
             String effectiveSetPath = environmentPath.resolve("effective-set").toString();

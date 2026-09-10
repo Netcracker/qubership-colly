@@ -92,7 +92,11 @@ class InventoryServiceRestTest {
                 .body("environments.flatten()", containsInAnyOrder(
                         hasEntry("name", "env-test"),
                         hasEntry("name", "env-metadata-test"),
-                        hasEntry("name", "env-1")
+                        hasEntry("name", "env-1"),
+                        hasEntry("name", "env-no-cmdb-v2-test"),
+                        hasEntry("name", "env-cmdb-with-v2-override-test"),
+                        hasEntry("name", "env-cmdb-with-v1-override-test"),
+                        hasEntry("name", "env-no-cmdb-v1-explicit-test")
                 ));
     }
 
@@ -111,7 +115,9 @@ class InventoryServiceRestTest {
                 .body("id", everyItem(notNullValue()))
                 .body("name", containsInAnyOrder("test-cluster", "unreachable-cluster"))
                 .body("find { it.name == 'test-cluster' }.environments.name",
-                        containsInAnyOrder("env-test", "env-metadata-test"))
+                        containsInAnyOrder("env-test", "env-metadata-test", "env-no-cmdb-v2-test",
+                                "env-cmdb-with-v2-override-test", "env-cmdb-with-v1-override-test",
+                                "env-no-cmdb-v1-explicit-test"))
                 .body("find { it.name == 'test-cluster' }.dashboardUrl",
                         equalTo("https://dashboard.example.com"))
                 .body("find { it.name == 'test-cluster' }.dbaasUrl",
@@ -146,8 +152,10 @@ class InventoryServiceRestTest {
                 .body("dbaasUrl", equalTo("https://dbaas.example.com"))
                 .body("deployerUrl", equalTo("https://deployer.example.com"))
                 .body("argoUrl", equalTo("https://argo.example.com"))
-                .body("environments.name", containsInAnyOrder("env-test", "env-metadata-test"))
-                .body("environments", hasSize(2));
+                .body("environments.name", containsInAnyOrder("env-test", "env-metadata-test",
+                        "env-no-cmdb-v2-test", "env-cmdb-with-v2-override-test",
+                        "env-cmdb-with-v1-override-test", "env-no-cmdb-v1-explicit-test"))
+                .body("environments", hasSize(6));
     }
 
     @Test
@@ -218,6 +226,22 @@ class InventoryServiceRestTest {
                         allOf(
                                 hasEntry("name", "env-1"),
                                 hasEntry("description", "some env for tests")
+                        ),
+                        allOf(
+                                hasEntry("name", "env-no-cmdb-v2-test"),
+                                hasEntry("cmApproach", "NO_CMDB_V2")
+                        ),
+                        allOf(
+                                hasEntry("name", "env-cmdb-with-v2-override-test"),
+                                hasEntry("cmApproach", "NO_CMDB_V2")
+                        ),
+                        allOf(
+                                hasEntry("name", "env-cmdb-with-v1-override-test"),
+                                hasEntry("cmApproach", "NO_CMDB")
+                        ),
+                        allOf(
+                                hasEntry("name", "env-no-cmdb-v1-explicit-test"),
+                                hasEntry("cmApproach", "NO_CMDB")
                         )
                 ))
                 .body("find { it.name == 'env-metadata-test' }.sspStandalone", equalTo(true))
@@ -287,7 +311,9 @@ class InventoryServiceRestTest {
                 .when().get("/colly/v2/inventory-service/environments?projectId=solar_earth")
                 .then()
                 .statusCode(200)
-                .body("name", containsInAnyOrder("env-metadata-test", "env-test"));
+                .body("name", containsInAnyOrder("env-metadata-test", "env-test",
+                        "env-no-cmdb-v2-test", "env-cmdb-with-v2-override-test",
+                        "env-cmdb-with-v1-override-test", "env-no-cmdb-v1-explicit-test"));
         given()
                 .when().get("/colly/v2/inventory-service/environments?projectId=solar_saturn")
                 .then()

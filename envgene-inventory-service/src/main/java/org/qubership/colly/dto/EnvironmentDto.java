@@ -113,8 +113,8 @@ public record EnvironmentDto(
 
         @Schema(
                 description = "Configuration management approach used for this environment",
-                enumeration = {"cmdb", "noCmdb"},
-                examples = "noCmdb"
+                enumeration = {"CMDB", "NO_CMDB", "NO_CMDB_V2"},
+                examples = "NO_CMDB"
         )
         CmApproach cmApproach,
 
