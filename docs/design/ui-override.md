@@ -14,7 +14,14 @@
   - [UI contract](#ui-contract)
   - [API reference](#api-reference)
     - [GET /api/v1/environments/{environmentId}/ui-parameters](#get-apiv1environmentsenvironmentidui-parameters)
+      - [Path parameters](#path-parameters)
+      - [Query parameters](#query-parameters)
+      - [Example GET requests](#example-get-requests)
+      - [Processing logic](#processing-logic)
     - [POST /api/v1/environments/{environmentId}/ui-parameters](#post-apiv1environmentsenvironmentidui-parameters)
+      - [Request body](#request-body)
+      - [Algorithm](#algorithm)
+      - [Example POST requests](#example-post-requests)
     - [DELETE /api/v1/environments/{environmentId}/ui-parameters](#delete-apiv1environmentsenvironmentidui-parameters)
   - [Open questions](#open-questions)
   - [Out of scope](#out-of-scope)
@@ -52,6 +59,12 @@ Each UI override is stored as one Env-Specific ParamSet per scope × context und
 `/environments/<cluster>/<environment>/Inventory/parameters/`. ParamSet name and body shape depend on scope.
 Context `deployment` maps to filename token `deploy`. `runtime` and `pipeline` are identical in both
 layers.
+
+UI override paramsets are always written to the environment-specific location above. Other paramsets
+referenced in the same environment inventory may reside at the cluster-wide or global location. When
+building the cache, Colly resolves each referenced name against the three locations in that priority order
+and keeps the single first match (see
+[Parameter sets](https://github.com/Netcracker/qubership-envgene/blob/main/docs/envgene-configs.md#parameter-sets)).
 
 **Filenames:**
 
@@ -93,14 +106,21 @@ Requirements and constraints).
 **Inventory association** in `env_definition.yml`. The UI-override paramset name is appended to a list at
 the path below, chosen by context and scope:
 
-| Context      | Path for env scope                      | Path for ns / app scope                          |
-|--------------|-----------------------------------------|--------------------------------------------------|
-| `deployment` | `envSpecificParamsets.cloud`            | `envSpecificParamsets.<deploy-postfix>`          |
-| `runtime`    | `envSpecificTechnicalParamsets.cloud`   | `envSpecificTechnicalParamsets.<deploy-postfix>` |
-| `pipeline`   | `envSpecificE2EParamsets.cloud`         | -                                                |
+| Context      | Path for env scope                                | Path for ns / app scope                                      |
+|--------------|---------------------------------------------------|--------------------------------------------------------------|
+| `deployment` | `envTemplate.envSpecificParamsets.cloud`          | `envTemplate.envSpecificParamsets.<deploy-postfix>`          |
+| `runtime`    | `envTemplate.envSpecificTechnicalParamsets.cloud` | `envTemplate.envSpecificTechnicalParamsets.<deploy-postfix>` |
+| `pipeline`   | `envTemplate.envSpecificE2EParamsets.cloud`       | -                                                            |
 
 The `cloud` key is the EnvGene convention for environment-wide entries. Namespace- and application-scope
 entries share the `<deploy-postfix>` key.
+
+EnvGene also accepts `<deploy-postfix>` keys under `envTemplate.envSpecificE2EParamsets`.
+
+Colly never writes UI-override pipeline paramsets under a `<deploy-postfix>` key.
+
+On read, however, Colly does not ignore such a paramset: a `<deploy-postfix>` pipeline paramset is loaded as
+a namespace-level paramset and returned in the `pipeline` of a namespace-scope GET.
 
 Because UI-override entries occupy the end of their lists, EnvGene's in-order merge gives them precedence
 over earlier paramsets in the same list.
@@ -115,7 +135,9 @@ from this cache and does not read the repository directly on every request.
 
 **Cache build / refresh:**
 
-1. Read the paramset files associated with the environment from Git.
+1. For each paramset name referenced by the environment's inventory, resolve the file across the
+   environment-specific, cluster-wide, and global locations and read the single first match from Git
+   (see [Storage model](#storage-model)).
 2. Validate file structure against the paramset schema.
 3. On successful validation, create or update the cache entry.
 
@@ -155,8 +177,7 @@ GET response body:
 }
 ```
 
-`pipeline` field appears only at environment scope. Each context defaults to `{}` when no contract paramset
-contributes.
+Each context defaults to `{}` when no paramset contributes.
 
 POST request body:
 
@@ -245,11 +266,12 @@ Namespace / application scope: same response body without `pipeline`.
    - For application scope, validate `applicationName` is associated with that namespace. Missing → `404`.
 3. For each context valid at this scope:
    1. Look up the paramset list at the matching path in `env_definition.yml`.
-   2. Filter the paramsets by scope:
-      - `environment`, `namespace`: paramsets whose body has `applications == []`.
-      - `application`: paramsets with `applications` containing one entry where `appName == applicationName`.
-   3. Merge in list order. Later entries override earlier ones on the same key. For application scope, merge
-      `applications[0].parameters`. Otherwise merge `parameters`.
+   2. Read the body section for the requested scope:
+      - `environment`, `namespace`: the top-level `parameters` map.
+      - `application`: the `parameters` of the `applications` entry whose `appName == applicationName`.
+      A body may hold both sections, each is read only by its own scope, so a body with both
+      `parameters` and `applications` feeds a namespace-scope read and an application-scope read.
+   3. Merge in list order. Later entries override earlier ones on the same key.
 4. Wrap the per-context maps in the response body and return.
 
 Reads are served from the cache. See [Cache](#cache) for staleness semantics.
@@ -381,6 +403,10 @@ and atomic removal of all UI-override paramsets and their inventory entries.
   remains there and the effective value falls back to it. Users cannot fully remove a key from an
   environment via UI when the key is defined in a project paramset. This variant removes the concurrency
   concern above but limits the UI's expressiveness on deletion.
+- **Cross-environment effect of DELETE on shared paramsets.** Non-UI-override paramsets can reside at the
+  cluster-wide or global location and be shared by other environments. A DELETE (`null`) that removes a key
+  from such a paramset changes those environments too. Whether Colly should edit shared files, copy them
+  into the environment before editing, or reject the operation is undecided.
 - **DELETE endpoint.** Deferred to a follow-up iteration. Atomic removal of all UI-override paramsets and
   their inventory entries for an environment needs design.
 
