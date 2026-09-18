@@ -55,8 +55,9 @@ public class ClusterRepository {
             String json = objectMapper.writeValueAsString(cluster);
             hashCommands().hset(key, "data", json);
 
-            // Create name index for fast lookup
-            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + cluster.getName();
+            // Create name index for fast lookup, scoped by project - cluster names are only
+            // unique within a project, not globally.
+            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + cluster.getGitInfo().projectId() + ":" + cluster.getName();
             valueCommands().set(nameIndexKey, cluster.getId());
 
             String projectIndexKey = CLUSTER_PROJECT_ID_INDEX_PREFIX + cluster.getGitInfo().projectId();
@@ -104,16 +105,34 @@ public class ClusterRepository {
         }
     }
 
-    public Cluster findByName(String name) {
+    public Cluster findByProjectIdAndName(String projectId, String name) {
         try {
-            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + name;
+            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + projectId + ":" + name;
             String clusterId = valueCommands().get(nameIndexKey);
             if (clusterId == null) {
                 return null;
             }
             return findById(clusterId);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find cluster by name: " + name, e);
+            throw new RuntimeException("Failed to find cluster by project id and name: " + projectId + "/" + name, e);
+        }
+    }
+
+    /**
+     * Legacy global (non-project-scoped) name lookup, kept only as a one-time adoption path for
+     * clusters persisted before the by-project name index existed. Once every cluster has been
+     * re-persisted with a scoped index entry, this becomes dead code and can be removed.
+     */
+    public Cluster findByNameLegacy(String name) {
+        try {
+            String legacyNameIndexKey = "inventory:idx:clusters:by-name:" + name;
+            String clusterId = valueCommands().get(legacyNameIndexKey);
+            if (clusterId == null) {
+                return null;
+            }
+            return findById(clusterId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to find cluster by legacy name index: " + name, e);
         }
     }
 
@@ -134,8 +153,8 @@ public class ClusterRepository {
             return;
         }
         keyCommands().del(CLUSTER_KEY_PREFIX + id);
-        keyCommands().del(CLUSTER_NAME_INDEX_PREFIX + cluster.getName());
         if (cluster.getGitInfo() != null && cluster.getGitInfo().projectId() != null) {
+            keyCommands().del(CLUSTER_NAME_INDEX_PREFIX + cluster.getGitInfo().projectId() + ":" + cluster.getName());
             String projectIndexKey = CLUSTER_PROJECT_ID_INDEX_PREFIX + cluster.getGitInfo().projectId();
             setCommands().srem(projectIndexKey, id);
         }

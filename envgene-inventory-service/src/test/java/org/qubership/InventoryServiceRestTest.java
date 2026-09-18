@@ -15,6 +15,7 @@ import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 
 import java.io.File;
+import java.io.IOException;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.allOf;
@@ -189,6 +190,101 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("name", containsInAnyOrder("unreachable-cluster"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getClusters_sameNameInTwoProjects_areKeptAsDistinctClusters() {
+        // solar_saturn's repo gets its own "test-cluster" folder, distinct from solar_earth's,
+        // reproducing two projects that legitimately each have a cluster with the same name.
+        mockGitService.setCloneAction((repoName, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_unreachable_cluster".equals(repoName)) {
+                writeMinimalClusterCloudPassport(new File(dest, "environments/test-cluster"),
+                        "saturn-region", "saturn_token_for_test_cluster");
+            }
+        });
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("test-cluster"))
+                .body("find { it.name == 'test-cluster' }.region", equalTo("cm"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("test-cluster", "unreachable-cluster"))
+                .body("find { it.name == 'test-cluster' }.region", equalTo("saturn-region"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("findAll { it.name == 'test-cluster' }", hasSize(2));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getClusters_clusterMovedBetweenProjects_onlyVisibleInNewProject() {
+        // First sync: test-cluster lives only in solar_earth's repo (base fixtures, unmodified).
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("test-cluster"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("test-cluster")));
+
+        // Simulate the move: removed from solar_earth's repo, committed with the same name into solar_saturn's repo.
+        mockGitService.setCloneAction((repoName, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_cloudpassports".equals(repoName)) {
+                FileUtils.deleteDirectory(new File(dest, "environments/test-cluster"));
+            } else if ("gitrepo_with_unreachable_cluster".equals(repoName)) {
+                writeMinimalClusterCloudPassport(new File(dest, "environments/test-cluster"),
+                        "moved-region", "moved_token_for_test_cluster");
+            }
+        });
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("test-cluster")));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("test-cluster"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("findAll { it.name == 'test-cluster' }", hasSize(1));
     }
 
     @Test
@@ -1440,6 +1536,29 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("status", equalTo("UP"));
+    }
+
+    private void writeMinimalClusterCloudPassport(File clusterDir, String region, String token) throws IOException {
+        File cloudPassportDir = new File(clusterDir, "cloud-passport");
+        FileUtils.forceMkdir(cloudPassportDir);
+        FileUtils.writeStringToFile(new File(cloudPassportDir, "passport.yml"), """
+                ---
+                version: 1.5
+                cloud:
+                  CLOUD_API_HOST: some-host.example.com
+                  CLOUD_API_PORT: "443"
+                  CLOUD_DEPLOY_TOKEN: cloud-deploy-sa-token
+                  CLOUD_PUBLIC_HOST: some-host.example.com
+                  CLOUD_PROTOCOL: https
+                  REGION: %s
+                """.formatted(region), "UTF-8");
+        FileUtils.writeStringToFile(new File(cloudPassportDir, "passport-creds.yml"), """
+                ---
+                cloud-deploy-sa-token:
+                  type: "secret"
+                  data:
+                    secret: "%s"
+                """.formatted(token), "UTF-8");
     }
 
     private @NotNull Environment prepareEnvironmentForTests(String envName) {
