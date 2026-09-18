@@ -51,16 +51,31 @@ public class ClusterRepository {
         }
 
         try {
+            String newProjectId = cluster.getGitInfo().projectId();
+
+            // Self-heal stale project membership: this id can end up assigned to a different
+            // project than before (e.g. adopted from the legacy global name index by a project
+            // other than the one it was last persisted under). Without this, the id would remain
+            // a member of the OLD project's Set forever, so both projects' cluster lists would
+            // show it.
+            Cluster previous = findById(cluster.getId());
+            if (previous != null && previous.getGitInfo() != null) {
+                String previousProjectId = previous.getGitInfo().projectId();
+                if (previousProjectId != null && !previousProjectId.equals(newProjectId)) {
+                    setCommands().srem(CLUSTER_PROJECT_ID_INDEX_PREFIX + previousProjectId, cluster.getId());
+                }
+            }
+
             String key = CLUSTER_KEY_PREFIX + cluster.getId();
             String json = objectMapper.writeValueAsString(cluster);
             hashCommands().hset(key, "data", json);
 
             // Create name index for fast lookup, scoped by project - cluster names are only
             // unique within a project, not globally.
-            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + cluster.getGitInfo().projectId() + ":" + cluster.getName();
+            String nameIndexKey = CLUSTER_NAME_INDEX_PREFIX + newProjectId + ":" + cluster.getName();
             valueCommands().set(nameIndexKey, cluster.getId());
 
-            String projectIndexKey = CLUSTER_PROJECT_ID_INDEX_PREFIX + cluster.getGitInfo().projectId();
+            String projectIndexKey = CLUSTER_PROJECT_ID_INDEX_PREFIX + newProjectId;
             setCommands().sadd(projectIndexKey, cluster.getId());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize cluster:" + cluster, e);
@@ -120,13 +135,17 @@ public class ClusterRepository {
 
     /**
      * Legacy global (non-project-scoped) name lookup, kept only as a one-time adoption path for
-     * clusters persisted before the by-project name index existed. Once every cluster has been
-     * re-persisted with a scoped index entry, this becomes dead code and can be removed.
+     * clusters persisted before the by-project name index existed. Uses GETDEL so the legacy
+     * entry is consumed atomically on first use: without this, the same stale entry could be
+     * "adopted" a second time by a different project's cluster of the same name (re-introducing
+     * the exact cross-project collision this index scoping fixes), and the orphaned key would
+     * otherwise never be cleaned up. Once every cluster has been re-persisted with a scoped index
+     * entry, this becomes dead code and can be removed.
      */
     public Cluster findByNameLegacy(String name) {
         try {
             String legacyNameIndexKey = "inventory:idx:clusters:by-name:" + name;
-            String clusterId = valueCommands().get(legacyNameIndexKey);
+            String clusterId = valueCommands().getdel(legacyNameIndexKey);
             if (clusterId == null) {
                 return null;
             }
