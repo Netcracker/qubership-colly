@@ -1,5 +1,6 @@
 package org.qubership;
 
+import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -9,12 +10,14 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.MockGitService;
+import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 
 import java.io.File;
+import java.io.IOException;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.allOf;
@@ -32,6 +35,9 @@ class InventoryServiceRestTest {
 
     @Inject
     ClusterRepository clusterRepository;
+
+    @Inject
+    RedisDataSource redisDataSource;
 
     @BeforeEach
     void setUp() {
@@ -189,6 +195,168 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("name", containsInAnyOrder("unreachable-cluster"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getClusters_sameNameInTwoProjects_areKeptAsDistinctClusters() {
+        // solar_saturn's repo gets its own "test-cluster" folder, distinct from solar_earth's,
+        // reproducing two projects that legitimately each have a cluster with the same name.
+        mockGitService.setCloneAction((repoName, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_unreachable_cluster".equals(repoName)) {
+                writeMinimalClusterCloudPassport(new File(dest, "environments/test-cluster"),
+                        "saturn-region", "saturn_token_for_test_cluster");
+            }
+        });
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("test-cluster"))
+                .body("find { it.name == 'test-cluster' }.region", equalTo("cm"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", containsInAnyOrder("test-cluster", "unreachable-cluster"))
+                .body("find { it.name == 'test-cluster' }.region", equalTo("saturn-region"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("findAll { it.name == 'test-cluster' }", hasSize(2));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getClusters_clusterMovedBetweenProjects_onlyVisibleInNewProject() {
+        // First sync: test-cluster lives only in solar_earth's repo (base fixtures, unmodified).
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("test-cluster"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("test-cluster")));
+
+        // Simulate the move: removed from solar_earth's repo, committed with the same name into solar_saturn's repo.
+        mockGitService.setCloneAction((repoName, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_cloudpassports".equals(repoName)) {
+                FileUtils.deleteDirectory(new File(dest, "environments/test-cluster"));
+            } else if ("gitrepo_with_unreachable_cluster".equals(repoName)) {
+                writeMinimalClusterCloudPassport(new File(dest, "environments/test-cluster"),
+                        "moved-region", "moved_token_for_test_cluster");
+            }
+        });
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("test-cluster")));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("test-cluster"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("findAll { it.name == 'test-cluster' }", hasSize(1));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getClusters_migrationFromLegacyNameIndex_doesNotCauseCrossProjectCollision() {
+        // Use a cluster name that appears in neither project's real fixtures, so this test's
+        // Redis side effects can't collide with "test-cluster"/"unreachable-cluster" state that
+        // other tests in this class depend on staying stable across the whole suite run (Redis
+        // isn't reset between test methods) - and so removeDeletedClusters cleans this name back
+        // out on the very next default-fixture sync, exactly like the other two new tests below.
+        String clusterName = "legacy-migrated-cluster";
+
+        // Simulate a cluster persisted by the OLD (pre-fix) code: a single cached record
+        // reachable only via the global, non-project-scoped name index - no scoped
+        // by-name:<projectId>:<name> entry yet, as if this row predates deploying the fix.
+        Cluster legacyCluster = Cluster.builder()
+                .name(clusterName)
+                .gitInfo(new GitInfo(null, null, "solar_earth"))
+                .token("legacy_token_before_fix")
+                .region("legacy-region-before-fix")
+                .build();
+        clusterRepository.persist(legacyCluster); // also writes the new scoped index + project set...
+        String legacyId = legacyCluster.getId();
+        // ...so strip those back down to a pre-fix-only state: just the record and the old global index.
+        redisDataSource.key(String.class).del("inventory:idx:clusters:by-name:solar_earth:" + clusterName);
+        redisDataSource.value(String.class, String.class).set("inventory:idx:clusters:by-name:" + clusterName, legacyId);
+
+        // Both projects now report a genuinely different cluster under that same name - the
+        // exact scenario this fix targets, except this time one side of the collision is the
+        // pre-existing legacy-indexed record above instead of a plain empty cache.
+        mockGitService.setCloneAction((repoName, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_cloudpassports".equals(repoName)) {
+                writeMinimalClusterCloudPassport(new File(dest, "environments/" + clusterName),
+                        "earth-post-migration-region", "earth_post_migration_token");
+            } else if ("gitrepo_with_unreachable_cluster".equals(repoName)) {
+                writeMinimalClusterCloudPassport(new File(dest, "environments/" + clusterName),
+                        "saturn-post-migration-region", "saturn_post_migration_token");
+            }
+        });
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        // Both projects' cluster must keep their own, non-cross-contaminated data...
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == '" + clusterName + "' }.region", equalTo("earth-post-migration-region"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == '" + clusterName + "' }.region", equalTo("saturn-post-migration-region"));
+
+        // ...as two genuinely distinct records: exactly one of them adopted the pre-existing
+        // legacy id, the other must have been created fresh - not both sharing the same id.
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("findAll { it.name == '" + clusterName + "' }", hasSize(2))
+                .body("findAll { it.name == '" + clusterName + "' }.id", hasItem(legacyId));
     }
 
     @Test
@@ -1440,6 +1608,29 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("status", equalTo("UP"));
+    }
+
+    private void writeMinimalClusterCloudPassport(File clusterDir, String region, String token) throws IOException {
+        File cloudPassportDir = new File(clusterDir, "cloud-passport");
+        FileUtils.forceMkdir(cloudPassportDir);
+        FileUtils.writeStringToFile(new File(cloudPassportDir, "passport.yml"), """
+                ---
+                version: 1.5
+                cloud:
+                  CLOUD_API_HOST: some-host.example.com
+                  CLOUD_API_PORT: "443"
+                  CLOUD_DEPLOY_TOKEN: cloud-deploy-sa-token
+                  CLOUD_PUBLIC_HOST: some-host.example.com
+                  CLOUD_PROTOCOL: https
+                  REGION: %s
+                """.formatted(region), "UTF-8");
+        FileUtils.writeStringToFile(new File(cloudPassportDir, "passport-creds.yml"), """
+                ---
+                cloud-deploy-sa-token:
+                  type: "secret"
+                  data:
+                    secret: "%s"
+                """.formatted(token), "UTF-8");
     }
 
     private @NotNull Environment prepareEnvironmentForTests(String envName) {

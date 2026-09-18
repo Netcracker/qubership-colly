@@ -86,13 +86,20 @@ public class CollyStorage {
     }
 
     private void removeDeletedClusters(List<CloudPassport> currentCloudPassports) {
-        Set<String> currentClusterNames = currentCloudPassports.stream()
-                .map(CloudPassport::name)
-                .collect(Collectors.toSet());
+        Map<String, Set<String>> currentNamesByProject = currentCloudPassports.stream()
+                .collect(Collectors.groupingBy(
+                        cp -> cp.gitInfo().projectId(),
+                        Collectors.mapping(CloudPassport::name, Collectors.toSet())));
+
         clusterRepository.listAll().stream()
-                .filter(cached -> !currentClusterNames.contains(cached.getName()))
+                .filter(cached -> {
+                    String projectId = cached.getGitInfo().projectId();
+                    Set<String> currentNames = currentNamesByProject.getOrDefault(projectId, Set.of());
+                    return !currentNames.contains(cached.getName());
+                })
                 .forEach(deleted -> {
-                    Log.infof("Cluster %s no longer exists in git - removing from cache", deleted.getName());
+                    Log.infof("Cluster %s (project %s) no longer exists in git - removing from cache",
+                            deleted.getName(), deleted.getGitInfo().projectId());
                     environmentRepository.findByClusterId(deleted.getId())
                             .forEach(env -> environmentRepository.deleteById(env.getId()));
                     clusterRepository.deleteById(deleted.getId());
@@ -128,7 +135,14 @@ public class CollyStorage {
     }
 
     private void saveDataToCache(CloudPassport cloudPassport) {
-        Cluster cluster = clusterRepository.findByName(cloudPassport.name());
+        String projectId = cloudPassport.gitInfo().projectId();
+        Cluster cluster = clusterRepository.findByProjectIdAndName(projectId, cloudPassport.name());
+        if (cluster == null) {
+            // One-time adoption path: a cluster persisted before the by-project name index
+            // existed is only findable via the legacy global index. Adopt it here so it keeps
+            // its id (and thus its environments) instead of being re-created from scratch.
+            cluster = clusterRepository.findByNameLegacy(cloudPassport.name());
+        }
         if (cluster == null) {
             cluster = Cluster.builder().build();
             cluster.setName(cloudPassport.name());
