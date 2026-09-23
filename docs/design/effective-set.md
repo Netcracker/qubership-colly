@@ -10,6 +10,7 @@
     - [Context selection](#context-selection)
     - [Scope per context](#scope-per-context)
     - [Response and request bodies](#response-and-request-bodies)
+    - [State and originalValue computation](#state-and-originalvalue-computation)
     - [Status codes](#status-codes)
   - [UI contract](#ui-contract)
   - [API reference](#api-reference)
@@ -32,9 +33,9 @@ the processing logic that turns Calculator-produced Effective Set files into the
 ## Requirements and constraints
 
 - **Performance.** Response time ≤ 300 ms.
-- **API contract.** The external API contract is preserved for forward compatibility:
-  - `state` always returns `ui_override_untouched`.
-  - `originalValue` always equals `value`.
+- **API contract.** `state` and `originalValue` are computed per parameter leaf by comparing the value across three
+  layers — the raw Effective Set file, the applicable paramsets layered on top, and the request body `parameters`
+  layered on top of that. See [State and originalValue computation](#state-and-originalvalue-computation).
 - **BG Domain (blue-green deployment) scenarios.** Effective Set retrieval for environments with
   a BG Domain object is not supported.
 - **Credentials files.** `credentials.yaml` and `collision-credentials.yaml` are not read. Their
@@ -209,13 +210,13 @@ Response body:
 ```yaml
 _type: enum[container, leaf]
 _data:
-  value: any                    # Resolved parameter value
-  state: string                 # Parameter state. Always "ui_override_untouched"
-  originalValue: any            # Always equal to `value`.
+  value: any                    # Resolved parameter value (after all three layers)
+  state: string                 # One of ui_override_untouched | ui_override_committed | ui_override_uncommitted
+  originalValue: any            # Value at the layer below the one that caused the current state; see below
 ```
 
-`value`, `state`, and `originalValue` are required in every `_data` on a `leaf` and are returned
-with the constants described above. Omitting them breaks the external contract.
+`value`, `state`, and `originalValue` are required in every `_data` on a `leaf`. Container nodes have no `value`/
+`state`/`originalValue` — only nested `EffectiveSetParameter` entries.
 
 The `_type` and `_data` underscore-prefixed names avoid collisions with user-defined parameter
 names such as `data` or `type`.
@@ -223,6 +224,35 @@ names such as `data` or `type`.
 `_type` is `leaf` when the wrapped value is a primitive (string, number, boolean, null) or a list.
 It is `container` when the wrapped value is an object, in which case `_data` recursively contains
 further `EffectiveSetParameter` entries keyed by the original parameter names.
+
+### State and originalValue computation
+
+Every parameter leaf is resolved from three ordered layers:
+
+1. **Raw layer** — the value in the Effective Set file (see [Storage model](#storage-model)), or absent if the key isn't
+   in the file.
+2. **Paramset layer** — the raw layer with the applicable paramsets merged on top (environment → namespace → application
+   specificity, see [Cache](#cache) / [Processing logic](#processing-logic)), or absent if no paramset defines the key
+   either.
+3. **Request layer** — the paramset layer with the request body `parameters` merged on top (see
+   [Response and request bodies](#response-and-request-bodies)), or absent if the key doesn't exist at any layer.
+
+`state` and `originalValue` for a leaf are computed by comparing these layers, most specific first:
+
+| Condition                                                                                         | `state`                   | `originalValue`                                 |
+|---------------------------------------------------------------------------------------------------|---------------------------|-------------------------------------------------|
+| Request layer value differs from paramset layer value, or the key is absent at the paramset layer | `ui_override_uncommitted` | paramset layer value, or `null` if absent there |
+| (else) Paramset layer value differs from raw layer value, or the key is absent at the raw layer   | `ui_override_committed`   | raw layer value, or `null` if absent there      |
+| (else)                                                                                            | `ui_override_untouched`   | equal to `value` (the raw layer value)          |
+
+In words: a parameter is **untouched** if it comes straight from the Effective Set file and nothing overrides it. It is
+**committed** if a paramset (previously saved via `POST /ui-parameters`)
+overrides it — either with a different value or as a brand-new parameter not present in the Effective Set file. It is
+**uncommitted** if the request body's `parameters` overlay (edits made in the UI but not yet saved) overrides the
+committed/raw value further — either with a different value or as a brand-new parameter.
+
+This comparison happens independently per leaf, not per top-level parameter — two keys inside the same container object
+can have different states. Container nodes themselves carry no state.
 
 ### Status codes
 
@@ -243,9 +273,12 @@ behavior is part of the contract and shapes backend semantics:
    logic](#processing-logic)). When the UI has no uncommitted edits, `parameters`
    MAY be omitted or sent as `{}`.
 
-2. **Treat `state` and `originalValue` as forward-compatible fields.** The UI MUST tolerate
-   `state == ui_override_untouched` and `originalValue == value` for every parameter and MUST
-   NOT rely on `state` or `originalValue` to drive functional behavior.
+2. **`state` and `originalValue` reflect override status.** The UI MAY use `state` to distinguish values that come
+   straight from the Effective Set (`ui_override_untouched`) from values overridden by a saved paramset
+   (`ui_override_committed`) or by the in-progress request-body edit (`ui_override_uncommitted`), and MAY use
+   `originalValue` to show what a committed or uncommitted value previously was
+   (see [State and originalValue computation](#state-and-originalvalue-computation)). New `state` values may be added in
+   the future; the UI MUST tolerate unrecognized `state` values gracefully.
 
 ## API reference
 
@@ -323,9 +356,9 @@ POST /api/v1/environments/.../ui-parameters/effective-set?context=pipeline
 
 #### Response
 
-`200 OK` example for the deployment request above. The source Effective Set contains the
-parameters shown below, and the response reflects the merge of the request body `parameters` over
-those values:
+`200 OK` example for the deployment request above. The source Effective Set contains the parameters shown below, no
+paramset overrides `backupDaemon.*`, and the request body overrides
+`resources.limits.cpu` from `"300m"` to `"400m"`:
 
 Source Effective Set:
 
@@ -376,8 +409,8 @@ Response body:
                   "_type": "leaf",
                   "_data": {
                     "value": "400m",
-                    "state": "ui_override_untouched",
-                    "originalValue": "400m"
+                    "state": "ui_override_uncommitted",
+                    "originalValue": "300m"
                   }
                 }
               }
@@ -389,6 +422,31 @@ Response body:
   }
 }
 ```
+
+`cpu` is `ui_override_uncommitted` because the request body's `"400m"` differs from the paramset layer's value (which
+equals the raw Effective Set value `"300m"`, since no paramset overrides
+`cpu`); `originalValue` is that paramset-layer value.
+
+Example of a parameter overridden by a saved paramset (not by the current request), with the same
+`backupDaemon.resources.limits.cpu` key: assume a namespace-level paramset (previously saved via
+`POST /ui-parameters`) sets it to `"500m"`, and the current request body does not mention `cpu`:
+
+```json
+{
+  "cpu": {
+    "_type": "leaf",
+    "_data": {
+      "value": "500m",
+      "state": "ui_override_committed",
+      "originalValue": "300m"
+    }
+  }
+}
+```
+
+`cpu` is `ui_override_committed` because the paramset layer's `"500m"` differs from the raw Effective Set value
+`"300m"`, and the request layer doesn't override it further (so it equals the paramset layer's value); `originalValue`
+is the raw Effective Set value.
 
 Empty response when the resolved application has no Effective Set files yet (registered in the
 namespace but never built by the Calculator) and the request body is empty:
@@ -415,24 +473,22 @@ namespace but never built by the Calculator) and the request body is empty:
    - For `deployment` and `runtime`: resolve Namespace by `namespaceName` to obtain `deployPostfix`.
      Missing → `404`. Validate `applicationName` is associated with that namespace. Missing →
      `404`.
-3. Read the cached per-(context, scope) parameter map (see [Cache](#cache)).
-4. Merge the request body `parameters` over the cached map into the working parameter map:
-   - Recursive merge for objects (per-key recursion when both sides hold an object).
-   - Full replacement for lists and primitives (request body value overrides cached value).
-   - Keys present only in `parameters` are added.
-   - Keys absent from `parameters` are kept from the cached map.
-5. Wrap each parameter as `EffectiveSetParameter`:
-   - For primitives and lists, set `_type = "leaf"` and `_data = { value, state, originalValue }`.
+3. Read the cached per- (context, scope) parameter map (see [Cache](#cache)) — this is the **raw layer**.
+4. Build the **paramset layer**: deep-copy the raw layer and merge the applicable paramsets on top (environment →
+   namespace → application specificity; recursive merge for objects, full replacement for lists and primitives; keys not
+   present in any paramset are kept from the raw layer).
+5. Build the **request layer**: deep-copy the paramset layer and merge the request body
+   `parameters` on top with the same merge rules. Keys absent from `parameters` are kept from the paramset layer.
+6. Wrap each parameter of the request layer as `EffectiveSetParameter`:
+    - For primitives and lists, set `_type = "leaf"` and `_data = { value, state, originalValue }`, computed
+      per [State and originalValue computation](#state-and-originalvalue-computation) by comparing the same key across
+      the raw, paramset, and request layers.
    - For objects, set `_type = "container"` and `_data` recursively.
-   - For every leaf, set `state = "ui_override_untouched"` and `originalValue = value`.
-6. Return the wrapped result along with `context`, `environmentId`, and (for `deployment`
+7. Return the wrapped result along with `context`, `environmentId`, and (for `deployment`
    and `runtime`) `namespaceName` and `applicationName`.
 
 ## Open questions
 
-- **`originalValue` computation.** When and how `originalValue` should diverge from `value`.
-- **`state` computation.** When and how `state` should take values other than
-  `ui_override_untouched`.
 - **Credentials files handling.** Whether and how the API should read `credentials.yaml` and
   `collision-credentials.yaml`, including masking of SOPS-encrypted values.
 - **Collision parameters handling.** Whether and how the API should read
@@ -444,7 +500,6 @@ namespace but never built by the Calculator) and the request body is empty:
 
 ## Out of scope
 
-- `state` and `originalValue` computation (see [Open questions](#open-questions)).
 - Reading `credentials.yaml`, `collision-credentials.yaml`,
   `collision-deployment-parameters.yaml`, `external-credentials.yaml` (see
   [Open questions](#open-questions)).

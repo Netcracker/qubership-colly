@@ -12,7 +12,6 @@ import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.data.ParamsetContext;
 import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.dto.EffectiveSetResponseDto;
-
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -26,10 +25,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -37,6 +33,10 @@ import java.util.stream.Collectors;
 public class EffectiveSetCalculator {
 
     private static final String GLOBAL_KEY = "global";
+    private static final String STATE_UNTOUCHED = "ui_override_untouched";
+    private static final String STATE_COMMITTED = "ui_override_committed";
+    private static final String STATE_UNCOMMITTED = "ui_override_uncommitted";
+    private static final Object ABSENT = new Object();
     private final ConcurrentHashMap<String, Map<String, Object>> effectiveSetCache = new ConcurrentHashMap<>();
 
     private final EnvironmentRepository environmentRepository;
@@ -99,16 +99,18 @@ public class EffectiveSetCalculator {
         Path filePath = resolveEffectiveSetFilePath(environment.getEffectiveSetPath(), ctx, deployPostfix, applicationName);
         String cacheKey = environmentId + ":" + ctx.key() + ":" + deployPostfix + ":" + applicationName;
 
-        Map<String, Object> cached = effectiveSetCache.computeIfAbsent(cacheKey,
+        Map<String, Object> raw = effectiveSetCache.computeIfAbsent(cacheKey,
                 k -> readEffectiveSetFile(filePath, ctx));
 
-        Map<String, Object> merged = deepCopy(cached);
-        mergeApplicableParamsets(merged, environment, ctx, deployPostfix, applicationName);
+        Map<String, Object> paramsetLayer = deepCopy(raw);
+        mergeApplicableParamsets(paramsetLayer, environment, ctx, deployPostfix, applicationName);
+        Map<String, Object> requestLayer = deepCopy(paramsetLayer);
         if (requestParameters != null) {
-            mergeInto(merged, requestParameters);
+            mergeInto(requestLayer, requestParameters);
         }
 
-        return new EffectiveSetResponseDto(ctx.key(), environmentId, namespaceName, applicationName, wrapMap(merged));
+        return new EffectiveSetResponseDto(ctx.key(), environmentId, namespaceName, applicationName,
+                wrapMap(requestLayer, paramsetLayer, raw));
     }
 
     private static Path resolveEffectiveSetFilePath(String root, ParamsetContext ctx, String deployPostfix, String applicationName) {
@@ -236,22 +238,63 @@ public class EffectiveSetCalculator {
         }
     }
 
-    private static Map<String, Object> wrapMap(Map<String, Object> params) {
+    private static Object getOrAbsent(Map<String, Object> map, String key) {
+        if (map == null) {
+            return ABSENT;
+        }
+        return map.containsKey(key) ? map.get(key) : ABSENT;
+    }
+
+    private static Map<String, Object> wrapMap(Map<String, Object> finalMap, Map<String, Object> paramsetLayer,
+                                               Map<String, Object> rawLayer) {
         Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
-            result.put(entry.getKey(), wrapValue(entry.getValue()));
+        for (Map.Entry<String, Object> entry : finalMap.entrySet()) {
+            String key = entry.getKey();
+            result.put(key, wrapValue(entry.getValue(), getOrAbsent(paramsetLayer, key), getOrAbsent(rawLayer, key)));
         }
         return result;
     }
 
-    private static Map<String, Object> wrapValue(Object value) {
-        if (value instanceof Map<?, ?>) {
-            return Map.of("_type", "container", "_data", wrapMap((Map<String, Object>) value));
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> wrapValue(Object finalVal, Object paramsetVal, Object rawVal) {
+        if (finalVal instanceof Map<?, ?>) {
+            Map<String, Object> paramsetSub = paramsetVal instanceof Map ? (Map<String, Object>) paramsetVal : null;
+            Map<String, Object> rawSub = rawVal instanceof Map ? (Map<String, Object>) rawVal : null;
+            return Map.of("_type", "container", "_data",
+                    wrapMap((Map<String, Object>) finalVal, paramsetSub, rawSub));
         }
-        Map<String, Object> leafData = new LinkedHashMap<>();
-        leafData.put("value", value);
-        leafData.put("state", "ui_override_untouched");
-        leafData.put("originalValue", value);
-        return Map.of("_type", "leaf", "_data", leafData);
+        return Map.of("_type", "leaf", "_data", computeLeafData(finalVal, paramsetVal, rawVal));
+    }
+
+    /**
+     * Determines a leaf's UI-override state by comparing it across the three layers: the raw
+     * Effective Set file, the applicable paramsets layered on top, and the request-body overlay
+     * layered on top of that. A leaf is "uncommitted" if the request layer differs from (or adds to)
+     * the paramset layer, "committed" if the paramset layer differs from (or adds to) the raw layer,
+     * and "untouched" otherwise. originalValue is the value at the layer immediately below the one
+     * that caused the current state.
+     */
+    private static Map<String, Object> computeLeafData(Object finalVal, Object paramsetVal, Object rawVal) {
+        boolean paramsetAbsent = paramsetVal == ABSENT;
+        boolean rawAbsent = rawVal == ABSENT;
+        String state;
+        Object originalValue;
+
+        if (paramsetAbsent || !Objects.equals(finalVal, paramsetVal)) {
+            state = STATE_UNCOMMITTED;
+            originalValue = paramsetAbsent ? null : paramsetVal;
+        } else if (rawAbsent || !Objects.equals(paramsetVal, rawVal)) {
+            state = STATE_COMMITTED;
+            originalValue = rawAbsent ? null : rawVal;
+        } else {
+            state = STATE_UNTOUCHED;
+            originalValue = finalVal;
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("value", finalVal);
+        data.put("state", state);
+        data.put("originalValue", originalValue);
+        return data;
     }
 }
