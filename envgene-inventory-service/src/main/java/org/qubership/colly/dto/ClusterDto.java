@@ -63,7 +63,7 @@ public record ClusterDto(
 
         @Schema(
                 description = "Public host of the cloud API for this cluster",
-                examples = "https://api.cluster.example.com",
+                examples = "api.cluster.example.com",
                 nullable = true
         )
         String cloudPublicHost
