@@ -59,7 +59,14 @@ public record ClusterDto(
                 examples = "us-east-1",
                 nullable = true
         )
-        String region
+        String region,
+
+        @Schema(
+                description = "Public host of the cloud API for this cluster",
+                examples = "api.cluster.example.com",
+                nullable = true
+        )
+        String cloudPublicHost
 ) {
 }
 

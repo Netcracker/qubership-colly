@@ -132,6 +132,8 @@ class InventoryServiceRestTest {
                         equalTo("https://deployer.example.com"))
                 .body("find { it.name == 'test-cluster' }.argoUrl",
                         equalTo("https://argo.example.com"))
+                .body("find { it.name == 'test-cluster' }.cloudPublicHost",
+                        equalTo("gr7.eu-west-1.eks.amazonaws.com"))
                 .body(".", hasSize(2));
     }
 
@@ -158,6 +160,7 @@ class InventoryServiceRestTest {
                 .body("dbaasUrl", equalTo("https://dbaas.example.com"))
                 .body("deployerUrl", equalTo("https://deployer.example.com"))
                 .body("argoUrl", equalTo("https://argo.example.com"))
+                .body("cloudPublicHost", equalTo("gr7.eu-west-1.eks.amazonaws.com"))
                 .body("environments.name", containsInAnyOrder("env-test", "env-metadata-test",
                         "env-no-cmdb-v2-test", "env-cmdb-with-v2-override-test",
                         "env-cmdb-with-v1-override-test", "env-no-cmdb-v1-explicit-test"))
@@ -357,6 +360,84 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("findAll { it.name == '" + clusterName + "' }", hasSize(2))
                 .body("findAll { it.name == '" + clusterName + "' }.id", hasItem(legacyId));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void getEnvironments_environmentMovesToClusterWithSameNameInDifferentProject() {
+        // First sync: env-test lives under solar_earth's real "test-cluster" (base fixtures, unmodified).
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("env-test"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("env-test")));
+
+        Cluster earthClusterBeforeMove = clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster");
+
+        // Simulate the move: env-test is removed from solar_earth's "test-cluster" and committed
+        // under a cluster with the SAME name ("test-cluster") in solar_saturn's repo - a distinct
+        // cluster record from solar_earth's, since cluster identity is now scoped per project.
+        mockGitService.setCloneAction((repoName, dest) -> {
+            FileUtils.copyDirectory(new File("src/test/resources/" + repoName), dest);
+            if ("gitrepo_with_cloudpassports".equals(repoName)) {
+                FileUtils.deleteDirectory(new File(dest, "environments/test-cluster/env-test"));
+            } else if ("gitrepo_with_unreachable_cluster".equals(repoName)) {
+                writeMinimalClusterCloudPassport(new File(dest, "environments/test-cluster"),
+                        "saturn-region-for-moved-env", "saturn_token_for_test_cluster");
+                writeMinimalEnvironment(new File(dest, "environments/test-cluster/env-test"), "some env for tests");
+            }
+        });
+
+        given()
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then()
+                .statusCode(204);
+
+        // env-test must have followed the move: gone from solar_earth, present under solar_saturn.
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_earth")
+                .then()
+                .statusCode(200)
+                .body("name", not(hasItem("env-test")));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("name", hasItem("env-test"));
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments")
+                .then()
+                .statusCode(200)
+                .body("findAll { it.name == 'env-test' }", hasSize(1));
+
+        // ...and it must be attached to solar_saturn's own "test-cluster" record, not to
+        // solar_earth's (which kept its identity - it still exists, just minus this one env).
+        Cluster saturnCluster = clusterRepository.findByProjectIdAndName("solar_saturn", "test-cluster");
+        given()
+                .when().get("/colly/v2/inventory-service/environments?projectId=solar_saturn")
+                .then()
+                .statusCode(200)
+                .body("find { it.name == 'env-test' }.cluster.id", equalTo(saturnCluster.getId()))
+                .body("find { it.name == 'env-test' }.cluster.id", not(equalTo(earthClusterBeforeMove.getId())));
+
+        given()
+                .when().get("/colly/v2/inventory-service/clusters")
+                .then()
+                .statusCode(200)
+                .body("findAll { it.name == 'test-cluster' }", hasSize(2));
     }
 
     @Test
@@ -1608,6 +1689,16 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body("status", equalTo("UP"));
+    }
+
+    private void writeMinimalEnvironment(File envDir, String description) throws IOException {
+        File inventoryDir = new File(envDir, "Inventory");
+        FileUtils.forceMkdir(inventoryDir);
+        FileUtils.writeStringToFile(new File(inventoryDir, "env_definition.yml"), """
+                inventory:
+                  environmentName: "%s"
+                  description: "%s"
+                """.formatted(envDir.getName(), description), "UTF-8");
     }
 
     private void writeMinimalClusterCloudPassport(File clusterDir, String region, String token) throws IOException {
