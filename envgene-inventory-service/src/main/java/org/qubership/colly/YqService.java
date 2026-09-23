@@ -20,11 +20,11 @@ public class YqService {
             boolean finished = process.waitFor(5, TimeUnit.SECONDS);
             return finished && process.exitValue() == 0;
         } catch (IOException e) {
-            Log.error("Error checking yq availability:", e);
+            Log.errorf("Error checking yq availability: %s", e.getMessage());
             return false;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Log.error("Error checking yq availability:", e);
+            Log.errorf("Error checking yq availability: %s", e.getMessage());
             return false;
         }
     }
@@ -107,9 +107,12 @@ public class YqService {
             try (BufferedReader bufferedReader = process.errorReader()) {
                 String line;
                 while ((line = bufferedReader.readLine()) != null) {
-                    output.append(line).append("\n");
+                    if (!output.isEmpty()) {
+                        output.append(" | ");
+                    }
+                    output.append(line);
                 }
-                throw new IOException("yq command failed with exit code " + process.exitValue() + ": " + output.toString().trim());
+                throw new IOException("yq command failed with exit code " + process.exitValue() + ": " + output);
             }
         }
     }

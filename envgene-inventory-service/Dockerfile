@@ -77,14 +77,14 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM ghcr.io/netcracker/qubership-java-base:21-alpine-latest
+FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.3.7
 
 ENV LANGUAGE='en_US:en'
 
 # Install yq as root, then switch back to non-root user
 USER root
 RUN apk add --no-cache wget && \
-    wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.48.1/yq_linux_amd64 && \
+    wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64 && \
     chmod +x /usr/local/bin/yq
 
 # We make four distinct layers so if there are application changes the library layers can be re-used

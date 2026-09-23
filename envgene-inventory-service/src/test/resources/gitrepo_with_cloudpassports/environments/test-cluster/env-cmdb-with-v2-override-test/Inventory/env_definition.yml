@@ -1,0 +1,5 @@
+inventory:
+  environmentName: "env-cmdb-with-v2-override-test"
+  description: "env with deployer present but noCmdbVersion=v2 overriding to NO_CMDB_V2"
+  deployer: "https://deployer.example.com"
+  noCmdbVersion: "v2"
