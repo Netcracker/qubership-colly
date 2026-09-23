@@ -129,6 +129,44 @@ class EffectiveSetRestTest {
     }
 
     @Test
+    void deployment_mergesRequestBody_sameValueAsExisting_isUntouched() {
+        // Sending a value that is identical to the one already present in the Effective Set
+        // (raw file, no paramset override) must NOT be reported as "uncommitted" — nothing
+        // actually changed, so the state must stay "ui_override_untouched".
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"parameters\":{\"PARAMETER_1\":\"xbmfqlzrtk\"}}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.PARAMETER_1._data.value", equalTo("xbmfqlzrtk"))
+                .body("parameters.PARAMETER_1._data.state", equalTo("ui_override_untouched"))
+                .body("parameters.PARAMETER_1._data.originalValue", equalTo("xbmfqlzrtk"));
+    }
+
+    @Test
+    void deployment_mergesRequestBody_sameValueAsCommittedParamset_staysCommitted() {
+        // CORE_DEPLOY_PARAMETER is already "committed" via a paramset (not present in the raw file).
+        // Sending the same value it already has via the request body must not turn it "uncommitted" —
+        // it stays "committed", same as if the request body had not touched this key at all.
+        String id = syncAndGetEnvId("env-metadata-test");
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"parameters\":{\"CORE_DEPLOY_PARAMETER\":\"some value\"}}")
+                .queryParam("context", "deployment")
+                .queryParam("namespaceName", NS_CORE)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200)
+                .body("parameters.CORE_DEPLOY_PARAMETER._data.value", equalTo("some value"))
+                .body("parameters.CORE_DEPLOY_PARAMETER._data.state", equalTo("ui_override_committed"))
+                .body("parameters.CORE_DEPLOY_PARAMETER._data.originalValue", nullValue());
+    }
+
+    @Test
     void deployment_mergesRequestBody_null_is_literal() {
         String id = syncAndGetEnvId("env-metadata-test");
         given()
