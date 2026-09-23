@@ -65,7 +65,8 @@ public class DtoMapper {
                 cluster.getDbaasUrl(),
                 cluster.getDeployerUrl(),
                 cluster.getArgoUrl(),
-                cluster.getRegion());
+                cluster.getRegion(),
+                cluster.getCloudPublicHost());
     }
 
     private List<LightEnvironmentDto> toLightDtos(List<Environment> environments) {
