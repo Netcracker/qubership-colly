@@ -7,6 +7,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.headers.Header;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -27,6 +30,12 @@ import java.util.Map;
 @Path("/colly/v2/inventory-service")
 @SecurityRequirement(name = "SecurityScheme")
 public class InventoryServiceRest {
+
+    static final String ETAG_DESCRIPTION = "Version of the scope's UI override files (scope = environment, namespace or application, " +
+            "selected by `namespaceName` / `applicationName`). Format: quoted string `\"<scheme>:\" + hex(SHA-256(canonical))`, " +
+            "where canonical is the scope's override files as `(path, Git blob SHA)` pairs sorted by path. " +
+            "Used only as a write-lock token for `If-Match` on POST, not as a representation validator.";
+    static final String ETAG_EXAMPLE = "\"1:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"";
 
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
@@ -658,6 +667,13 @@ public class InventoryServiceRest {
                     "no query params → environment level; namespaceName → namespace level; namespaceName + applicationName → application level. " +
                     "Requires authentication."
     )
+    @APIResponse(
+            responseCode = "200",
+            description = "OK. The `ETag` header carries the scope version to send back in `If-Match` on POST. " +
+                    "Served from cache, so it may lag the remote.",
+            headers = @Header(name = "ETag", description = ETAG_DESCRIPTION, required = true, schema = @Schema(type = SchemaType.STRING)),
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = UiParametersDto.class))
+    )
     public UiParametersDto getUiParameters(
             @Parameter(
                     description = "ID of the environment to retrieve UI parameters for",
@@ -675,8 +691,51 @@ public class InventoryServiceRest {
     @Path("/environments/{environmentId}/ui-parameters")
     @Operation(
             summary = "Set UI parameters for environment",
-            description = "Set UI parameters for a specific environment, which can be used to customize the user interface based on environment attributes. Requires authentication."
+            description = """
+                    Saves UI Override parameters for a specific environment. The `parameters` map key is a `ParamsetContext` — must be one of: `deployment`, `runtime`, `pipeline`. Each context maps to a flat or nested map of parameter key-value pairs.
+                    - non-null value → written to the corresponding `-ui-override` paramset file (created and referenced in `env_definition.yml` if absent);
+                    - `null` value → the key is removed from every paramset file that defines it; a file that becomes empty is deleted and its reference is removed from `env_definition.yml`.
+
+                    Changes are committed to the instance Git repository using `commitInfo`. Requires authentication.
+
+                    Optimistic concurrency: the request must carry the scope version from the last GET in the `If-Match` header. \
+                    The POST is atomic — any conflict (the scope's override files changed since the read, or a concurrent push \
+                    that could not be rebased cleanly) rejects the whole request with `409`. \
+                    On success the new scope version is returned in the `ETag` header.
+                    """
     )
+    @Parameter(
+            name = "If-Match",
+            in = ParameterIn.HEADER,
+            required = true,
+            description = "Scope version (`ETag`) obtained from the last GET of the same scope (or from a previous `204`/`409` response). " +
+                    "Mandatory: absent → `428`. Exactly one strong entity tag; `*`, weak tags and multi-tag lists are rejected with `400`. " +
+                    "A mismatch with the current scope version → `409`.",
+            schema = @Schema(type = SchemaType.STRING),
+            example = ETAG_EXAMPLE
+    )
+    @APIResponse(
+            responseCode = "204",
+            description = "UI parameters successfully saved (no content). The new scope version is in the `ETag` header.",
+            headers = @Header(name = "ETag", description = ETAG_DESCRIPTION, required = true, schema = @Schema(type = SchemaType.STRING))
+    )
+    @APIResponse(
+            responseCode = "400",
+            description = "Bad Request – e.g. `parameters` is missing, `pipeline` at namespace/application scope, " +
+                    "or malformed `If-Match` (`*`, weak or multiple tags)"
+    )
+    @APIResponse(responseCode = "401", description = "Unauthorized – authentication required")
+    @APIResponse(responseCode = "404", description = "Environment, namespace or application not found")
+    @APIResponse(
+            responseCode = "409",
+            description = "Version conflict (pre-write `If-Match` mismatch or push-race). " +
+                    "The body carries the scope's current state and the `ETag` header its current version; " +
+                    "the client re-applies its edits and resubmits.",
+            headers = @Header(name = "ETag", description = ETAG_DESCRIPTION, required = true, schema = @Schema(type = SchemaType.STRING)),
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = UiParametersDto.class))
+    )
+    @APIResponse(responseCode = "428", description = "Precondition Required – `If-Match` header is absent")
+    @APIResponse(responseCode = "500", description = "Internal server error")
     public void setUiParameters(
             @Parameter(
                     description = "ID of the environment to retrieve UI parameters for",
