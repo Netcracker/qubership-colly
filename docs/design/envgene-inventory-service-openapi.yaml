@@ -1,0 +1,1399 @@
+---
+openapi: 3.1.0
+components:
+  schemas:
+    ClusterDto:
+      description: Kubernetes cluster information
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the cluster (UUID format)
+          examples:
+            - 995f5292-5725-42b6-ad28-0e8629e0f791
+        name:
+          type: string
+          description: Name of the cluster
+          examples:
+            - prod-cluster-01
+        environments:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/LightEnvironmentDto"
+          description: List of environments deployed on this cluster
+        dashboardUrl:
+          type:
+            - string
+            - "null"
+          description: URL to the Kubernetes dashboard for this cluster
+          examples:
+            - https://dashboard.k8s.example.com
+        dbaasUrl:
+          type:
+            - string
+            - "null"
+          description: DBaaS URL for this cluster
+          examples:
+            - https://dbaas.example.com
+        deployerUrl:
+          type:
+            - string
+            - "null"
+          description: Deployer URL for this cluster
+          examples:
+            - https://deployer.example.com
+        argoUrl:
+          type:
+            - string
+            - "null"
+          description: ArgoCD URL for GitOps deployments
+          examples:
+            - https://argocd.example.com
+        region:
+          type:
+            - string
+            - "null"
+          description: Geographic region or datacenter location
+          examples:
+            - us-east-1
+    CommitInfoDto:
+      type: object
+      properties:
+        commitMessage:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+    EffectiveSetRequestDto:
+      description: Uncommitted UI parameters to overlay on top of the Effective Set.
+      type: object
+      properties:
+        parameters:
+          type: object
+          additionalProperties: { }
+          description: "Map of parameter key-value pairs to overlay over the cached\
+            \ Effective Set. Supports nested maps for hierarchical parameters. A null\
+            \ value for a key is treated as a literal null, not a deletion. May be\
+            \ omitted or empty."
+    EffectiveSetResponseDto:
+      description: Effective Set response with per-parameter metadata.
+      type: object
+      properties:
+        context:
+          type: string
+          description: "Parameter context: `deployment`, `runtime`, or `pipeline`."
+        environmentId:
+          type: string
+          description: UUID of the environment.
+        namespaceName:
+          type:
+            - string
+            - "null"
+          description: Namespace name. Absent (null) for `pipeline` context.
+        applicationName:
+          type:
+            - string
+            - "null"
+          description: Application name. Absent (null) for `pipeline` context.
+        parameters:
+          type: object
+          additionalProperties: { }
+          description: "Wrapped parameter tree. Each entry is an EffectiveSetParameter\
+            \ node: `{\"_type\": \"leaf\" | \"container\", \"_data\": {...}}`. Leaf\
+            \ `_data` contains `value`, `state`, and `originalValue`. Container `_data`\
+            \ contains nested EffectiveSetParameter nodes."
+    EnvgeneArtifact:
+      type: object
+      properties:
+        name:
+          type: string
+        defaultTemplateDescriptorName:
+          type: string
+    EnvironmentDto:
+      description: Environment data transfer object containing all environment details
+      type: object
+      required:
+        - id
+        - name
+        - namespaces
+        - cluster
+        - status
+        - type
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the environment (UUID format)
+          examples:
+            - 96180fe7-f025-465f-bbbf-5e83f301a615
+        name:
+          type: string
+          description: Name of the environment
+          examples:
+            - prod-env-1
+        description:
+          type:
+            - string
+            - "null"
+          description: Detailed description of the environment
+          examples:
+            - Production environment for main application
+        namespaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/NamespaceDto"
+          description: List of Kubernetes namespaces associated with this environment
+        cluster:
+          description: Kubernetes cluster where this environment is deployed
+          type: object
+          $ref: "#/components/schemas/LightClusterDto"
+        owners:
+          type: array
+          items:
+            type: string
+          description: List of environment owners
+          examples:
+            - - john.doe
+              - jane.smith
+        labels:
+          type: array
+          items:
+            type: string
+          description: Custom labels/tags for categorization and filtering
+          examples:
+            - - ci
+              - critical
+              - high-availability
+        teams:
+          type: array
+          items:
+            type: string
+          description: Teams that have access to this environment
+          examples:
+            - - Platform
+              - DevOps
+              - Dev
+        status:
+          description: Current status of the environment
+          type: string
+          examples:
+            - FREE
+          enum:
+            - IN_USE
+            - RESERVED
+            - FREE
+            - MIGRATING
+          $ref: "#/components/schemas/EnvironmentStatus"
+        expirationDate:
+          description: Expiration date after which the environment should be cleaned
+            up or reviewed (ISO 8601 format)
+          type:
+            - string
+            - "null"
+          examples:
+            - 2025-12-31
+          anyOf:
+            - $ref: "#/components/schemas/LocalDate"
+            - type: "null"
+        type:
+          description: Type/category of the environment
+          type: string
+          examples:
+            - ENVIRONMENT
+          enum:
+            - ENVIRONMENT
+            - CSE_TOOLSET
+            - DESIGN_TIME
+            - APP_DEPLOYER
+            - INFRASTRUCTURE
+            - PORTAL
+            - UNDEFINED
+          $ref: "#/components/schemas/EnvironmentType"
+        role:
+          type:
+            - string
+            - "null"
+          description: Role or purpose of the environment in the infrastructure
+          examples:
+            - production
+        accessGroups:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+          description: List of access groups directly assigned to this environment
+          examples:
+            - - developers
+              - qa-team
+        effectiveAccessGroups:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+          description: List of effective access groups including inherited permissions
+          examples:
+            - - developers
+              - qa-team
+              - admins
+        sspStandalone:
+          type:
+            - boolean
+            - "null"
+          description: SSP status of the environment
+        cmApproach:
+          type: string
+          description: Configuration management approach used for this environment
+          examples:
+            - noCmdb
+          enum:
+            - cmdb
+            - noCmdb
+        effectiveSetHistoryUrl:
+          type:
+            - string
+            - "null"
+          description: URL to the effective-set commit history in the instance repository
+          examples:
+            - https://git.example.com/repo/commits/main/environments/my-cluster/my-env/effective-set
+    EnvironmentStatus:
+      type: string
+      enum:
+        - IN_USE
+        - RESERVED
+        - FREE
+        - MIGRATING
+    EnvironmentType:
+      type: string
+      enum:
+        - ENVIRONMENT
+        - CSE_TOOLSET
+        - DESIGN_TIME
+        - APP_DEPLOYER
+        - INFRASTRUCTURE
+        - PORTAL
+        - UNDEFINED
+    GitGroupUrlDto:
+      description: Git group URL entry with region
+      type: object
+      properties:
+        region:
+          type:
+            - string
+            - "null"
+          description: Region identifier
+        url:
+          type: string
+          description: URL of the git group
+          examples:
+            - https://gitlab.com/my-project-git-group
+    InstanceRepositoryDto:
+      description: Instance repository configuration containing repository access
+        details
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: Repository URL
+          examples:
+            - https://github.com/organization/instance-repo.git
+        branch:
+          type:
+            - string
+            - "null"
+          description: Git branch to use
+          examples:
+            - main
+        region:
+          type:
+            - string
+            - "null"
+          description: Geographic region or datacenter location
+          examples:
+            - us-east-1
+    InternalClusterInfoDto:
+      description: Internal cluster information including sensitive data like access
+        tokens. This is used for service-to-service communication.
+      type: object
+      required:
+        - id
+        - name
+        - token
+        - cloudApiHost
+        - cloudPublicHost
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the cluster (UUID format)
+          examples:
+            - 995f5292-5725-42b6-ad28-0e8629e0f791
+        name:
+          type: string
+          description: Name of the Kubernetes cluster
+          examples:
+            - prod-cluster-01
+        token:
+          type: string
+          description: Service account token for accessing the cluster API
+          examples:
+            - eyJhbGciOiJSUzI1NiIsImtpZCI6Ik...
+        cloudApiHost:
+          type: string
+          description: Kubernetes API server host URL
+          examples:
+            - https://1E4A399FCB54F505BBA05320EADF0DB3.gr7.eu-west-1.eks.amazonaws.com:443
+        cloudPublicHost:
+          type: string
+          description: Postfix for all ingresses in cloud
+          examples:
+            - gr7.eu-west-1.eks.amazonaws.com
+        environments:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/LightEnvironmentDto"
+          description: List of environments deployed on this cluster
+        monitoringUrl:
+          type:
+            - string
+            - "null"
+          description: "Monitoring service URL (e.g., VictoriaMetrics, Prometheus)"
+          examples:
+            - http://vmsingle-k8s.victoria:8428
+        achkaUrl:
+          type:
+            - string
+            - "null"
+          description: URL to ach kubernetes agent
+          examples:
+            - https://ach-kubernetes-agent-devops-toolkit.gr7.eu-west-1.eks.amazonaws.com
+    LightClusterDto:
+      type: object
+      description: Lightweight cluster information without nested details
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the cluster (UUID format)
+          examples:
+            - 995f5292-5725-42b6-ad28-0e8629e0f791
+        name:
+          type: string
+          description: Name of the Kubernetes cluster
+          examples:
+            - prod-cluster-01
+    LightEnvironmentDto:
+      type: object
+      description: Lightweight environment information without full details
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the environment (UUID format)
+          examples:
+            - 96180fe7-f025-465f-bbbf-5e83f301a614
+        name:
+          type: string
+          description: Name of the environment
+          examples:
+            - prod-env-1
+        namespaces:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/NamespaceDto"
+          description: List of Kubernetes namespaces in this environment
+    LocalDate:
+      type: string
+      format: date
+      examples:
+        - 2022-03-10
+    NamespaceDto:
+      type: object
+      description: Kubernetes namespace information
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the namespace (UUID format)
+          examples:
+            - 34f89c4d-bcc3-4eff-b271-6fdcdaf977c9
+        name:
+          type: string
+          description: Name of the Kubernetes namespace
+          examples:
+            - prod-app
+        deployPostfix:
+          type:
+            - string
+            - "null"
+          description: Deployment postfix used for resource naming
+          examples:
+            - core
+    PatchEnvironmentDto:
+      description: Data transfer object for partial environment updates. Only provided
+        fields will be updated. Omitted fields remain unchanged.
+      type: object
+      properties:
+        description:
+          type:
+            - string
+            - "null"
+          description: "New description for the environment. Omit to keep current\
+            \ value, provide value to update."
+          examples:
+            - Updated production environment for main application
+        owners:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+          description: New list of environment owners (replaces existing list). Omit
+            to keep current owners.
+          examples:
+            - - john.doe@company.com
+              - jane.smith@company.com
+        labels:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+          description: New list of labels/tags (replaces existing list). Omit to keep
+            current labels.
+          examples:
+            - - production
+              - critical
+              - high-priority
+        teams:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+          description: New list of teams with access (replaces existing list). Omit
+            to keep current teams.
+          examples:
+            - - QA
+              - DevOps
+              - Dev
+        status:
+          type:
+            - string
+            - "null"
+          enum:
+            - IN_USE
+            - RESERVED
+            - FREE
+            - MIGRATING
+          description: New status for the environment. Omit to keep current status.
+          examples:
+            - IN_USE
+          $ref: "#/components/schemas/EnvironmentStatus"
+        expirationDate:
+          type:
+            - string
+            - "null"
+          description: "New expiration date (ISO 8601 format: YYYY-MM-DD). Omit to\
+            \ keep current date. Provide empty string (\"\") to clear the date."
+          examples:
+            - 2025-12-31
+        type:
+          type:
+            - string
+            - "null"
+          enum:
+            - ENVIRONMENT
+            - CSE_TOOLSET
+            - DESIGN_TIME
+            - APP_DEPLOYER
+            - INFRASTRUCTURE
+            - PORTAL
+            - UNDEFINED
+          description: New type/category for the environment. Omit to keep current
+            type.
+          examples:
+            - ENVIRONMENT
+          $ref: "#/components/schemas/EnvironmentType"
+        role:
+          type:
+            - string
+            - "null"
+          description: New role or purpose of the environment. Omit to keep current
+            role.
+          examples:
+            - production
+    ProjectDto:
+      description: Project information containing project details and associated resources
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the project
+          examples:
+            - project-123
+        name:
+          type: string
+          description: Name of the project
+          examples:
+            - project-1
+        instanceRepositories:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/InstanceRepositoryDto"
+          description: List of instance repositories associated with the project
+        templateRepository:
+          description: Template repository configuration
+          type: object
+          anyOf:
+            - $ref: "#/components/schemas/TemplateRepositoryDto"
+            - type: "null"
+        gitGroupUrls:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/GitGroupUrlDto"
+          description: "List of git group URLs for the project, each with a region\
+            \ and URL"
+    SetUiParametersDto:
+      type: object
+      properties:
+        commitInfo:
+          $ref: "#/components/schemas/CommitInfoDto"
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: { }
+    TemplateRepositoryDto:
+      type: object
+      description: Template repository configuration for Envgene templates
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: Repository URL
+          examples:
+            - https://github.com/organization/templates.git
+        branch:
+          type:
+            - string
+            - "null"
+          description: Git branch to use
+          examples:
+            - main
+        envgeneArtifact:
+          description: Envgene artifact configuration
+          type:
+            - object
+            - "null"
+          anyOf:
+            - $ref: "#/components/schemas/EnvgeneArtifact"
+            - type: "null"
+    UiParametersDto:
+      type: object
+      properties:
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: { }
+  securitySchemes:
+    SecurityScheme:
+      description: Authentication
+      type: http
+      scheme: bearer
+      bearerFormat: Opaque
+paths:
+  /colly/v2/inventory-service/auth-status:
+    get:
+      summary: Get authentication status
+      description: "Returns the current user's authentication status, including username\
+        \ and admin role information. This endpoint is accessible without authentication."
+      responses:
+        "200":
+          description: Successfully retrieved authentication status
+          content:
+            application/json:
+              examples:
+                authenticated-user:
+                  summary: Authenticated user status
+                  value:
+                    authenticated: true
+                    username: john.doe
+                    isAdmin: false
+        "401":
+          description: Unauthorized - user is not authenticated
+          content:
+            application/json:
+              examples:
+                unauthenticated-user:
+                  summary: Unauthenticated user status
+                  value:
+                    authenticated: false
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/clusters:
+    get:
+      summary: Get all clusters
+      description: Retrieves a list of all Kubernetes clusters available in the inventory.
+        Requires authentication.
+      parameters:
+        - description: Optional project ID to filter clusters by project
+          example: project-123
+          name: projectId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved list of clusters
+          content:
+            application/json:
+              examples:
+                clusters-list:
+                  summary: Example list of clusters
+                  value:
+                    - id: bd75a053-1210-4b9a-9fe1-9af265b006c9
+                      name: prod-cluster-01
+                    - id: 995f5292-5725-42b6-ad28-0e8629e0f791
+                      name: dev-cluster-01
+                    - id: a1b2c3d4-5678-90ab-cdef-1234567890ab
+                      name: staging-cluster-01
+              schema:
+                $ref: "#/components/schemas/ClusterDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/clusters/{clusterId}:
+    get:
+      summary: Get cluster by ID
+      description: Retrieves detailed information about a specific cluster by its
+        ID. Requires authentication.
+      parameters:
+        - description: ID of the cluster to retrieve
+          example: bd75a053-1210-4b9a-9fe1-9af265b006c9
+          required: true
+          name: clusterId
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved cluster details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClusterDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "404":
+          description: Cluster not found
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/environments:
+    get:
+      summary: Get all environments
+      description: "Retrieves a list of all available environments with their details\
+        \ including namespaces, clusters, owners, teams, and metadata. Requires authentication."
+      parameters:
+        - description: Optional project ID to filter environments by project
+          example: project-123
+          name: projectId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved list of environments
+          content:
+            application/json:
+              examples:
+                environments-list:
+                  summary: Example list of environments
+                  value:
+                    - id: 96180fe7-f025-465f-bbbf-5e83f301a614
+                      name: prod-env-1
+                      description: Production environment for main application
+                      namespaces:
+                        - id: 34f89c4d-bcc3-4eff-b271-6fdcdaf977c9
+                          name: prod-env-1-app
+                        - id: 6d3eff88-f35b-471c-b84a-923765861feb
+                          name: prod-env-1-services
+                      cluster:
+                        id: 995f5292-5725-42b6-ad28-0e8629e0f791
+                        name: prod-cluster-01
+                      owners:
+                        - john.doe
+                        - jane.smith
+                      labels:
+                        - production
+                        - critical
+                      teams:
+                        - DevOps
+                      status: IN_USE
+                      expirationDate: null
+                      type: ENVIRONMENT
+                      role: production
+                      region: us-east-1
+                    - id: b41b5769-239c-4297-9ef8-8cb2866f186e
+                      name: dev-env-test
+                      description: Development environment for testing
+                      namespaces:
+                        - id: 8c1e53b8-74af-48cb-869d-e814447b0c91
+                          name: dev-env-test-apps
+                      cluster:
+                        id: bd75a053-1210-4b9a-9fe1-9af265b006c9
+                        name: dev-cluster-01
+                      owners:
+                        - dev.team
+                      labels:
+                        - CI
+                      teams:
+                        - Development
+                        - QA
+                      status: FREE
+                      expirationDate: 2025-12-31
+                      type: ENVIRONMENT
+                      role: development
+                      region: eu-west-1
+              schema:
+                $ref: "#/components/schemas/EnvironmentDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}:
+    patch:
+      summary: Partially update an environment
+      description: Updates specific fields of an existing environment. Only provided
+        fields will be updated. Requires admin role.
+      parameters:
+        - description: ID of the environment to update (UUID format)
+          example: 96180fe7-f025-465f-bbbf-5e83f301a614
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+      requestBody:
+        description: "Partial update data. Only provided fields will be updated. To\
+          \ clear expirationDate, send empty string."
+        content:
+          application/json:
+            examples:
+              update-description-and-owners:
+                summary: Update description and add owners
+                value:
+                  description: Updated environment description
+                  owners:
+                    - john.doe@company.com
+                    - jane.smith@company.com
+                    - new.owner@company.com
+              update-status-and-expiration:
+                summary: Change status and set expiration date
+                value:
+                  status: IN_USE
+                  expirationDate: 2025-12-31
+              clear-expiration-date:
+                summary: Clear expiration date
+                value:
+                  expirationDate: ""
+              update-labels-and-teams:
+                summary: Update labels and teams
+                value:
+                  labels:
+                    - production
+                    - critical
+                    - high-priority
+                  teams:
+                    - Platform
+                    - DevOps
+                    - SRE
+            schema:
+              $ref: "#/components/schemas/PatchEnvironmentDto"
+        required: true
+      responses:
+        "200":
+          description: Environment successfully updated
+          content:
+            application/json:
+              examples:
+                updated-environment:
+                  summary: Example of updated environment
+                  value:
+                    id: 96180fe7-f025-465f-bbbf-5e83f301a614
+                    name: prod-env-1
+                    description: Updated production environment description
+                    namespaces:
+                      - id: 34f89c4d-bcc3-4eff-b271-6fdcdaf977c9
+                        name: prod-env-1-app
+                    cluster:
+                      id: 995f5292-5725-42b6-ad28-0e8629e0f791
+                      name: prod-cluster-01
+                    owners:
+                      - john.doe
+                      - jane.smith
+                      - new.owner
+                    labels:
+                      - production
+                      - critical
+                      - updated
+                    teams:
+                      - Platform
+                      - DevOps
+                      - SRE
+                    status: IN_USE
+                    expirationDate: 2025-12-31
+                    type: ENVIRONMENT
+                    role: production
+                    region: us-east-1
+              schema:
+                $ref: "#/components/schemas/EnvironmentDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "404":
+          description: Environment not found
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+    get:
+      summary: Get environment by ID
+      description: Retrieves detailed information about a specific environment by
+        its ID. Requires authentication.
+      parameters:
+        - description: ID of the environment to retrieve
+          example: 96180fe7-f025-465f-bbbf-5e83f301a614
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved environment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvironmentDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "404":
+          description: Environment not found
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}/applications:
+    get:
+      summary: Get applications for a namespace
+      description: Returns a list of application names from the Solution Descriptor
+        filtered by the namespace's deployPostfix. Returns empty list if no SD data
+        is available for the environment.
+      parameters:
+        - description: ID of the environment
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+        - description: Namespace name to filter applications by
+          required: true
+          name: namespaceName
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of application names (may be empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "404":
+          description: Environment or namespace not found
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}/effective-set:
+    post:
+      summary: Get effective set with parameter metadata
+      description: |
+        Returns the Effective Set of parameters for the given environment and context, enriched with per-parameter metadata (`state`, `value`, `originalValue`).
+
+        Each parameter in the response is wrapped in an `EffectiveSetParameter` node:
+        ```
+        {
+          "_type": "leaf" | "container",
+          "_data": {
+            "value": <current value after merging all sources>,
+            "state": "ui_override_untouched" | "ui_override_uncommitted" | "ui_override_committed",
+            "originalValue": <value before any UI Override>
+          }
+        }
+        ```
+        Container nodes have the same `_type`/`_data` structure where `_data` holds nested `EffectiveSetParameter` nodes instead of `value`/`state`/`originalValue`.
+
+        **State semantics:**
+        - `ui_override_untouched` – parameter was not changed via UI Override
+        - `ui_override_uncommitted` – changed in UI but not yet committed to Git
+        - `ui_override_committed` – changed in UI and committed to Git
+
+        **Context rules:**
+        - `deployment` and `runtime` require `namespaceName` and `applicationName`
+        - `pipeline` must not include `namespaceName` or `applicationName`
+      parameters:
+        - description: UUID of the environment
+          example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+        - description: Application name. Required for `deployment` and `runtime` contexts.
+          example: my-app
+          name: applicationName
+          in: query
+          schema:
+            type: string
+        - description: "Parameter context: `deployment`, `runtime`, or `pipeline`"
+          example: deployment
+          required: true
+          name: context
+          in: query
+          schema:
+            type: string
+        - description: Namespace name. Required for `deployment` and `runtime` contexts.
+          example: env-01-core
+          name: namespaceName
+          in: query
+          schema:
+            type: string
+      requestBody:
+        description: Uncommitted UI parameters. Pass the full current UI state including
+          already-committed values. `parameters` may be omitted or empty.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EffectiveSetRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Effective Set successfully assembled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EffectiveSetResponseDto"
+        "400":
+          description: "Bad request – missing or invalid query parameters (e.g. unknown\
+            \ context, missing namespaceName for deployment/runtime context)"
+        "404":
+          description: "Environment, namespace or application not found"
+        "401":
+          description: Unauthorized – authentication required
+        "500":
+          description: Internal server error
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}/ui-parameters:
+    post:
+      summary: Set UI parameters for environment
+      description: |
+        Saves UI Override parameters for a specific environment. The `parameters` map key is a `ParamsetContext` — must be one of: `deployment`, `runtime`, `pipeline`. Each context maps to a flat or nested map of parameter key-value pairs.
+        - non-null value → written to the corresponding `-ui-override` paramset file (created and referenced in `env_definition.yml` if absent);
+        - `null` value → the key is removed from every paramset file that defines it; a file that becomes empty is deleted and its reference is removed from `env_definition.yml`.
+
+        Changes are committed to the instance Git repository using `commitInfo`. Requires authentication.
+
+        Optimistic concurrency: the request must carry the scope version from the last GET in the `If-Match` header. The POST is atomic — any conflict (the scope's override files changed since the read, or a concurrent push that could not be rebased cleanly) rejects the whole request with `409`. On success the new scope version is returned in the `ETag` header.
+      parameters:
+        - description: ID of the environment to retrieve UI parameters for
+          example: 96180fe7-f025-465f-bbbf-5e83f301a614
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+        - name: applicationName
+          in: query
+          schema:
+            type: string
+        - name: namespaceName
+          in: query
+          schema:
+            type: string
+        - description: "Scope version (`ETag`) obtained from the last GET of the same\
+          \ scope (or from a previous `204`/`409` response). Mandatory: absent → `428`.\
+          \ Exactly one strong entity tag; `*`, weak tags and multi-tag lists are\
+          \ rejected with `400`. A mismatch with the current scope version → `409`."
+          example: '"1:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"'
+          in: header
+          name: If-Match
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUiParametersDto"
+        required: true
+      responses:
+        "204":
+          description: UI parameters successfully saved (no content). The new scope
+            version is in the `ETag` header.
+          headers:
+            ETag:
+              description: "Version of the scope's UI override files (scope = environment,\
+                \ namespace or application, selected by `namespaceName` / `applicationName`).\
+                \ Format: quoted string `\"<scheme>:\" + hex(SHA-256(canonical))`,\
+                \ where canonical is the scope's override files as `(path, Git blob\
+                \ SHA)` pairs sorted by path. Used only as a write-lock token for\
+                \ `If-Match` on POST, not as a representation validator."
+              schema:
+                type: string
+              required: true
+        "400":
+          description: "Bad Request – e.g. `parameters` is missing, `pipeline` at\
+            \ namespace/application scope, or malformed `If-Match` (`*`, weak or multiple\
+            \ tags)"
+        "401":
+          description: Unauthorized – authentication required
+        "404":
+          description: "Environment, namespace or application not found"
+        "409":
+          description: Version conflict (pre-write `If-Match` mismatch or push-race).
+            The body carries the scope's current state and the `ETag` header its current
+            version; the client re-applies its edits and resubmits.
+          headers:
+            ETag:
+              description: "Version of the scope's UI override files (scope = environment,\
+                \ namespace or application, selected by `namespaceName` / `applicationName`).\
+                \ Format: quoted string `\"<scheme>:\" + hex(SHA-256(canonical))`,\
+                \ where canonical is the scope's override files as `(path, Git blob\
+                \ SHA)` pairs sorted by path. Used only as a write-lock token for\
+                \ `If-Match` on POST, not as a representation validator."
+              schema:
+                type: string
+              required: true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UiParametersDto"
+        "428":
+          description: Precondition Required – `If-Match` header is absent
+        "500":
+          description: Internal server error
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+    get:
+      summary: Get UI parameters for environment
+      description: "Retrieves UI parameters for a specific environment from all paramsets\
+        \ defined in the envTemplate. Parameters are grouped by context (deployment,\
+        \ runtime, pipeline) and scoped by level: no query params → environment level;\
+        \ namespaceName → namespace level; namespaceName + applicationName → application\
+        \ level. Requires authentication."
+      parameters:
+        - description: ID of the environment to retrieve UI parameters for
+          example: 96180fe7-f025-465f-bbbf-5e83f301a614
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+        - name: applicationName
+          in: query
+          schema:
+            type: string
+        - name: namespaceName
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "OK. The `ETag` header carries the scope version to send back\
+            \ in `If-Match` on POST. Served from cache, so it may lag the remote."
+          headers:
+            ETag:
+              description: "Version of the scope's UI override files (scope = environment,\
+                \ namespace or application, selected by `namespaceName` / `applicationName`).\
+                \ Format: quoted string `\"<scheme>:\" + hex(SHA-256(canonical))`,\
+                \ where canonical is the scope's override files as `(path, Git blob\
+                \ SHA)` pairs sorted by path. Used only as a write-lock token for\
+                \ `If-Match` on POST, not as a representation validator."
+              schema:
+                type: string
+              required: true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UiParametersDto"
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}/ui-parameters-history-url:
+    get:
+      summary: Returns URL to navigate to history of parameters
+      description: |
+        Returns a Git URL pointing at the commit history of the `-ui-override` paramset file for the requested scope:
+        no query params → environment level; `namespaceName` → namespace level; `namespaceName` + `applicationName` → application level.
+        `pipeline` context is environment-scope only.
+      parameters:
+        - description: ID of the environment to retrieve UI parameters for
+          example: 96180fe7-f025-465f-bbbf-5e83f301a614
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+        - name: namespaceName
+          in: query
+          schema:
+            type: string
+        - name: applicationName
+          in: query
+          schema:
+            type: string
+        - description: "Parameter context: `deployment`, `runtime`, or `pipeline`"
+          example: deployment
+          required: true
+          name: context
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          description: "Bad request – unknown context, or `pipeline` with namespaceName/applicationName"
+        "404":
+          description: Environment or namespace not found
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/internal/cluster-infos:
+    get:
+      summary: Get cluster information. For internal colly usages
+      description: Retrieves detailed cluster information including internal configuration.
+        This is an internal endpoint for service-to-service communication.
+      responses:
+        "200":
+          description: Successfully retrieved internal cluster information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalClusterInfoDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/manual-sync:
+    post:
+      summary: Manually trigger Git synchronization
+      description: Triggers a manual synchronization of environment data from the
+        Git repository. This will fetch the latest configuration from Git and update
+        the inventory. Requires authentication.
+      parameters:
+        - description: "Optional project ID to sync only a specific project. If not\
+          \ provided, all projects will be synchronized."
+          example: project-123
+          name: projectId
+          in: query
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Synchronization triggered successfully (no content returned)
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error - synchronization failed
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/projects:
+    get:
+      summary: Get all projects
+      description: Retrieves a list of all projects available in the inventory. Requires
+        authentication.
+      responses:
+        "200":
+          description: Successfully retrieved list of projects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+  /colly/v2/inventory-service/projects/{id}:
+    get:
+      summary: Get project by ID
+      description: Retrieves detailed information about a specific project by its
+        ID. Requires authentication.
+      parameters:
+        - description: ID of the project to retrieve
+          example: project-123
+          required: true
+          name: id
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved project details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDto"
+        "401":
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              examples: { }
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              examples: { }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              examples: { }
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
+info:
+  title: envgene-inventory-service API
+  version: 1.0.0-SNAPSHOT
+servers:
+  - url: http://localhost:8080
+    description: Auto generated value
+  - url: http://0.0.0.0:8080
+    description: Auto generated value
