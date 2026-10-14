@@ -1222,6 +1222,51 @@ paths:
         - SecurityScheme: [ ]
       tags:
         - Inventory Service Rest
+  /colly/v2/inventory-service/environments/{environmentId}/ui-parameters-history-url:
+    get:
+      summary: Returns URL to navigate to history of parameters
+      description: |
+        Returns a Git URL pointing at the commit history of the `-ui-override` paramset file for the requested scope:
+        no query params → environment level; `namespaceName` → namespace level; `namespaceName` + `applicationName` → application level.
+        `pipeline` context is environment-scope only.
+      parameters:
+        - description: ID of the environment to retrieve UI parameters for
+          example: 96180fe7-f025-465f-bbbf-5e83f301a614
+          required: true
+          name: environmentId
+          in: path
+          schema:
+            type: string
+        - name: namespaceName
+          in: query
+          schema:
+            type: string
+        - name: applicationName
+          in: query
+          schema:
+            type: string
+        - description: "Parameter context: `deployment`, `runtime`, or `pipeline`"
+          example: deployment
+          required: true
+          name: context
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          description: "Bad request – unknown context, or `pipeline` with namespaceName/applicationName"
+        "404":
+          description: Environment or namespace not found
+      security:
+        - SecurityScheme: [ ]
+      tags:
+        - Inventory Service Rest
   /colly/v2/inventory-service/internal/cluster-infos:
     get:
       summary: Get cluster information. For internal colly usages

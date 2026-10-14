@@ -733,6 +733,108 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_environment_level() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?context=deployment")
+                .then()
+                .statusCode(200)
+                .body(equalTo("gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/Inventory/parameters/deploy-ui-override.yaml"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_namespace_level() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?namespaceName=test-ns&context=deployment")
+                .then()
+                .statusCode(200)
+                .body(equalTo("gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/Inventory/parameters/core-deploy-ui-override.yaml"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_application_level() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?namespaceName=test-ns&applicationName=my-app&context=deployment")
+                .then()
+                .statusCode(200)
+                .body(equalTo("gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/Inventory/parameters/core-my-app-deploy-ui-override.yaml"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_runtime_context() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?context=runtime")
+                .then()
+                .statusCode(200)
+                .body(equalTo("gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/Inventory/parameters/runtime-ui-override.yaml"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_pipeline_context() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?context=pipeline")
+                .then()
+                .statusCode(200)
+                .body(equalTo("gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/Inventory/parameters/pipeline-ui-override.yaml"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_pipeline_at_namespace_scope_bad_request() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?namespaceName=test-ns&context=pipeline")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_invalid_context_bad_request() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?context=bogus")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_namespace_not_found() {
+        Environment environment = prepareEnvironmentForTests("env-metadata-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters-history-url?namespaceName=invalid-ns&context=deployment")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_ui_parameters_history_url_environment_not_found() {
+        given()
+                .when().get("/colly/v2/inventory-service/environments/non-existent-env/ui-parameters-history-url?context=deployment")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_ui_parameters_both_levels_from_single_paramset_file() {
         // core-mixed-paramset.yaml has both `parameters` and `applications` sections.
         // The same file must produce NAMESPACE-level params (for namespace requests)

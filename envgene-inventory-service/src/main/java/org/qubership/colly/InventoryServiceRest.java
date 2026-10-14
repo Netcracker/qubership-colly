@@ -31,12 +31,6 @@ import java.util.Map;
 @SecurityRequirement(name = "SecurityScheme")
 public class InventoryServiceRest {
 
-    static final String ETAG_DESCRIPTION = "Version of the scope's UI override files (scope = environment, namespace or application, " +
-            "selected by `namespaceName` / `applicationName`). Format: quoted string `\"<scheme>:\" + hex(SHA-256(canonical))`, " +
-            "where canonical is the scope's override files as `(path, Git blob SHA)` pairs sorted by path. " +
-            "Used only as a write-lock token for `If-Match` on POST, not as a representation validator.";
-    static final String ETAG_EXAMPLE = "\"1:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"";
-
     private final CollyStorage collyStorage;
     private final SecurityIdentity securityIdentity;
     private final DtoMapper dtoMapper;
@@ -657,6 +651,37 @@ public class InventoryServiceRest {
         }
     }
 
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/environments/{environmentId}/ui-parameters-history-url")
+    @Operation(
+            summary = "Returns URL to navigate to history of parameters",
+            description = "Returns a Git URL pointing at the commit history of the `-ui-override` paramset file for the " +
+                    "requested scope: no query params → environment level; namespaceName → namespace level; " +
+                    "namespaceName + applicationName → application level. `pipeline` context is environment-scope only."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(mediaType = MediaType.TEXT_PLAIN, schema = @Schema(type = SchemaType.STRING))
+    )
+    @APIResponse(responseCode = "400", description = "Bad request – unknown context, or `pipeline` with namespaceName/applicationName")
+    @APIResponse(responseCode = "404", description = "Environment or namespace not found")
+    public String getUiParametersHistoryUrl(
+            @Parameter(
+                    description = "ID of the environment to retrieve UI parameters for",
+                    required = true,
+                    example = "96180fe7-f025-465f-bbbf-5e83f301a614"
+            )
+            @PathParam("environmentId") String environmentId,
+            @QueryParam("namespaceName") String namespaceName,
+            @QueryParam("applicationName") String applicationName,
+            @Parameter(description = "Parameter context: `deployment`, `runtime`, or `pipeline`", example = "deployment", required = true)
+            @QueryParam("context") String context) {
+        return collyStorage.getUiParametersHistoryUrl(environmentId, namespaceName, applicationName, context);
+    }
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/environments/{environmentId}/ui-parameters")
@@ -666,13 +691,6 @@ public class InventoryServiceRest {
                     "Parameters are grouped by context (deployment, runtime, pipeline) and scoped by level: " +
                     "no query params → environment level; namespaceName → namespace level; namespaceName + applicationName → application level. " +
                     "Requires authentication."
-    )
-    @APIResponse(
-            responseCode = "200",
-            description = "OK. The `ETag` header carries the scope version to send back in `If-Match` on POST. " +
-                    "Served from cache, so it may lag the remote.",
-            headers = @Header(name = "ETag", description = ETAG_DESCRIPTION, required = true, schema = @Schema(type = SchemaType.STRING)),
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = UiParametersDto.class))
     )
     public UiParametersDto getUiParameters(
             @Parameter(
@@ -691,51 +709,8 @@ public class InventoryServiceRest {
     @Path("/environments/{environmentId}/ui-parameters")
     @Operation(
             summary = "Set UI parameters for environment",
-            description = """
-                    Saves UI Override parameters for a specific environment. The `parameters` map key is a `ParamsetContext` — must be one of: `deployment`, `runtime`, `pipeline`. Each context maps to a flat or nested map of parameter key-value pairs.
-                    - non-null value → written to the corresponding `-ui-override` paramset file (created and referenced in `env_definition.yml` if absent);
-                    - `null` value → the key is removed from every paramset file that defines it; a file that becomes empty is deleted and its reference is removed from `env_definition.yml`.
-
-                    Changes are committed to the instance Git repository using `commitInfo`. Requires authentication.
-
-                    Optimistic concurrency: the request must carry the scope version from the last GET in the `If-Match` header. \
-                    The POST is atomic — any conflict (the scope's override files changed since the read, or a concurrent push \
-                    that could not be rebased cleanly) rejects the whole request with `409`. \
-                    On success the new scope version is returned in the `ETag` header.
-                    """
+            description = "Set UI parameters for a specific environment, which can be used to customize the user interface based on environment attributes. Requires authentication."
     )
-    @Parameter(
-            name = "If-Match",
-            in = ParameterIn.HEADER,
-            required = true,
-            description = "Scope version (`ETag`) obtained from the last GET of the same scope (or from a previous `204`/`409` response). " +
-                    "Mandatory: absent → `428`. Exactly one strong entity tag; `*`, weak tags and multi-tag lists are rejected with `400`. " +
-                    "A mismatch with the current scope version → `409`.",
-            schema = @Schema(type = SchemaType.STRING),
-            example = ETAG_EXAMPLE
-    )
-    @APIResponse(
-            responseCode = "204",
-            description = "UI parameters successfully saved (no content). The new scope version is in the `ETag` header.",
-            headers = @Header(name = "ETag", description = ETAG_DESCRIPTION, required = true, schema = @Schema(type = SchemaType.STRING))
-    )
-    @APIResponse(
-            responseCode = "400",
-            description = "Bad Request – e.g. `parameters` is missing, `pipeline` at namespace/application scope, " +
-                    "or malformed `If-Match` (`*`, weak or multiple tags)"
-    )
-    @APIResponse(responseCode = "401", description = "Unauthorized – authentication required")
-    @APIResponse(responseCode = "404", description = "Environment, namespace or application not found")
-    @APIResponse(
-            responseCode = "409",
-            description = "Version conflict (pre-write `If-Match` mismatch or push-race). " +
-                    "The body carries the scope's current state and the `ETag` header its current version; " +
-                    "the client re-applies its edits and resubmits.",
-            headers = @Header(name = "ETag", description = ETAG_DESCRIPTION, required = true, schema = @Schema(type = SchemaType.STRING)),
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = UiParametersDto.class))
-    )
-    @APIResponse(responseCode = "428", description = "Precondition Required – `If-Match` header is absent")
-    @APIResponse(responseCode = "500", description = "Internal server error")
     public void setUiParameters(
             @Parameter(
                     description = "ID of the environment to retrieve UI parameters for",
