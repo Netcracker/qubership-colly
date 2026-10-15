@@ -1,0 +1,638 @@
+# Publish Docker images to GHCR; image names/tags in charts/qubership-colly/values.yaml on branch builds.
+# Manual run: check Build and/or Deploy. Push (commit): build gated by conventional commit type.
+# Push pipeline order:
+#   1. validate-inputs — commit type decides build vs skip
+#   2. conventional-commits + link-check — in parallel (after step 1; link-check when build runs)
+#   3. Maven, Docker, chart update — when build is required
+# Build types: feat, fix, refactor, build, config, ci, perf, test, breaking
+# Skip build (workflow succeeds): docs, chore, style
+#   [skip ci] / [ci skip] / [no ci] → GitHub skips the entire workflow (native)
+name: "Build & Deploy"
+
+run-name: >-
+  ${{
+    github.event_name == 'push' && format('Build from {0}', github.ref_name)
+    || (github.event_name == 'workflow_dispatch' && inputs.deploy && !inputs.build
+        && format('Deploy from {0}', inputs.deploy-ref || github.ref_name))
+    || (github.event_name == 'workflow_dispatch' && inputs.build && inputs.deploy
+        && format('Build & Deploy from {0}', inputs.deploy-ref || github.ref_name))
+    || format('Build from {0}', github.ref_name)
+  }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: 'Build'
+        required: false
+        default: true
+        type: boolean
+      deploy:
+        description: 'Deploy'
+        required: false
+        default: false
+        type: boolean
+      deploy-ref:
+        description: >-
+          Branch or tag to deploy when Deploy is on. Empty = current branch (github.ref_name).
+        required: false
+        default: ''
+        type: string
+  push:
+
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  COLLY_EKS_CLUSTER: Qubership-pioneer
+  COLLY_INSTALL_NAMESPACE: qubership-colly-test
+  COLLY_UI_INGRESS_NAME: ui-service-http
+  COLLY_UI_INGRESS_HEALTH_PATH: /q/health/live
+  COLLY_UI_INGRESS_API_PATH: /colly/v2/ui-service/environments
+  COLLY_UI_HEALTHCHECK_CLIENT_ID: colly
+  CHART_PATH: charts/qubership-colly
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+  statuses: write
+  pull-requests: read
+
+jobs:
+  validate-inputs:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    outputs:
+      build_required: ${{ steps.validate.outputs.build_required }}
+      commit_type: ${{ steps.validate.outputs.commit_type }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'push'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 1
+
+      - name: Validate Inputs
+        id: validate
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_BUILD: ${{ inputs.build }}
+          INPUT_DEPLOY: ${{ inputs.deploy }}
+        run: |
+          set -euo pipefail
+
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            if [ "${INPUT_BUILD}" != "true" ] && [ "${INPUT_DEPLOY}" != "true" ]; then
+              echo "::error::Select Build and/or Deploy"
+              exit 1
+            fi
+            echo "build_required=${INPUT_BUILD}" >> "$GITHUB_OUTPUT"
+            echo "commit_type=manual" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Build decision"
+              echo "- Trigger: manual (\`workflow_dispatch\`)"
+              echo "- Build: **${INPUT_BUILD}**"
+              echo "- Deploy: **${INPUT_DEPLOY}**"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          subject="$(git log -1 --format=%s)"
+          commit_type=""
+          cc_regex='^([a-zA-Z_]+)(\([^)]+\))?!?:[[:space:]]'
+          if [[ "${subject}" =~ ${cc_regex} ]]; then
+            commit_type="$(echo "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')"
+          fi
+
+          case "${commit_type}" in
+            feature) commit_type="feat" ;;
+            doc|documentation) commit_type="docs" ;;
+          esac
+
+          if [ -z "${commit_type}" ]; then
+            echo "::error::Could not parse commit type from: ${subject}"
+            exit 1
+          fi
+
+          skip_types="docs chore style"
+          build_required="true"
+          for skip_type in ${skip_types}; do
+            if [ "${commit_type}" = "${skip_type}" ]; then
+              build_required="false"
+              break
+            fi
+          done
+
+          echo "build_required=${build_required}" >> "$GITHUB_OUTPUT"
+          echo "commit_type=${commit_type}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Commit validation"
+            echo "- Commit message: \`${subject}\`"
+            echo "- Commit type: \`${commit_type}\`"
+            echo "- Build required: **${build_required}**"
+            if [ "${build_required}" = "false" ]; then
+              echo "- Skipped jobs: Maven, Docker, chart update"
+              echo "- Reason: commit type \`${commit_type}\` (skip types: \`docs\`, \`chore\`, \`style\`)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  conventional-commits:
+    name: Conventional Commits
+    needs: [validate-inputs]
+    if: >-
+      always()
+      && !failure()
+      && !cancelled()
+      && needs.validate-inputs.result == 'success'
+    uses: ./.github/workflows/pr-conventional-commits.yaml
+    secrets: inherit
+
+  link-check:
+    name: Link Check
+    needs: [validate-inputs]
+    if: >-
+      always()
+      && !failure()
+      && !cancelled()
+      && (
+        (github.event_name == 'push' && needs.validate-inputs.result == 'success')
+        || (github.event_name == 'workflow_dispatch' && inputs.build)
+      )
+    uses: ./.github/workflows/link-checker.yaml
+    secrets: inherit
+
+  #linters:
+  #  uses: ./.github/workflows/super-linter.yaml
+  #  secrets: inherit
+  #  with:
+  #    full_scan: false
+
+  mvn-build:
+    if: >-
+      always()
+      && !failure()
+      && !cancelled()
+      && (
+        (
+          github.event_name == 'push'
+          && needs.validate-inputs.outputs.build_required == 'true'
+          && needs.conventional-commits.result == 'success'
+          && needs.link-check.result == 'success'
+        )
+        || (
+          github.event_name == 'workflow_dispatch'
+          && inputs.build
+          && needs.conventional-commits.result == 'success'
+          && needs.link-check.result == 'success'
+        )
+      )
+    needs:
+      - validate-inputs
+      - conventional-commits
+      - link-check
+      #- linters
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - envgene-inventory-service
+          - environment-operational-service
+          - ui-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Check Docker version
+        run: docker version
+      - name: Build java
+        uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@768c088ef2adf0081dd97cff19dae2ef3ccab9b1 # main (pinned 2026-07-09)
+        with:
+          java-version: 21
+          maven-command: clean install
+          working-directory: ${{ matrix.component }}
+          upload-artifact: "true"
+          artifact-id: ${{ matrix.component }}
+          maven-token: ${{ secrets.GITHUB_TOKEN }}
+
+  prepare-metadata:
+    if: >-
+      (github.event_name == 'push' && needs.validate-inputs.outputs.build_required == 'true')
+      || (github.event_name == 'workflow_dispatch' && inputs.build)
+    needs:
+      - validate-inputs
+      - mvn-build
+    name: "Prepare Metadata"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      components: ${{ steps.load_component.outputs.components }}
+      platforms: ${{ steps.load_component.outputs.platforms }}
+      metadata: "${{ steps.calculate_image_tag.outputs.tags }}"
+      image_tag: "${{ steps.calculate_image_tag.outputs.value }}"
+      chart_version: "${{ steps.calculate_image_tag.outputs.chart_version }}"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Load Docker Configuration
+        id: load_component
+        shell: bash
+        run: |
+          verify=$(cat "$GITHUB_WORKSPACE/.github/docker-dev-config.json" | jq '
+            def verify_structure:
+              .components as $components
+              | .platforms as $platforms
+              | ($components | type == "array")
+              and (all($components[]; has("name") and has("file") and has("context")))
+              and ($platforms | type == "string");
+            verify_structure
+            | if . then true else false end
+          ')
+          if [ "${verify}" == "true" ]; then
+            echo "✅ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is valid"
+            components=$(jq -c ".components" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+            platforms=$(jq -c ".platforms" "$GITHUB_WORKSPACE/.github/docker-dev-config.json")
+          else
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid"
+            echo "❗ $GITHUB_WORKSPACE/.github/docker-dev-config.json file is invalid" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "components=${components}" >> "$GITHUB_OUTPUT"
+          echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate branch image tag
+        id: calculate_image_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.ref_type }}" != "branch" ]; then
+            echo "::error::Dev builds use branch refs only (no git tags like 1.2.3)"
+            exit 1
+          fi
+          ref_name="${{ github.ref_name }}"
+          if [ "$ref_name" = "main" ]; then
+            image_tag="latest"
+            echo "value=${image_tag}" >> "$GITHUB_OUTPUT"
+            echo "tags=latest, main" >> "$GITHUB_OUTPUT"
+          else
+            image_tag=$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed 's|/|-|g' | sed 's|_|-|g')
+            echo "value=${image_tag}" >> "$GITHUB_OUTPUT"
+            echo "tags=${image_tag}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "chart_version=0.0.0-${image_tag}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Docker Images
+    if: >-
+      (github.event_name == 'push' && needs.validate-inputs.outputs.build_required == 'true')
+      || (github.event_name == 'workflow_dispatch' && inputs.build)
+    needs:
+      - validate-inputs
+      - prepare-metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.prepare-metadata.outputs.components) }}
+    steps:
+      - name: Docker
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@396774180000abdb825cbf150b56cc59c6913db8 # v2.0.5
+        with:
+          ref: ${{ github.ref }}
+          dry-run: false
+          download-artifact: true
+          download-artifact-path: '.'
+          download-artifact-merge-multiple: true
+          debug: true
+          component: ${{ toJson(matrix.component) }}
+          platforms: ${{ needs.prepare-metadata.outputs.platforms }}
+          tags: ${{ needs.prepare-metadata.outputs.metadata }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-chart-values:
+    name: Update Chart Image Tags
+    needs: [validate-inputs, build, prepare-metadata]
+    if: >-
+      (github.event_name == 'push' && needs.validate-inputs.outputs.build_required == 'true')
+      || (github.event_name == 'workflow_dispatch' && inputs.build)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update chart image names and tags
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.prepare-metadata.outputs.image_tag }}
+          CHART_VERSION: ${{ needs.prepare-metadata.outputs.chart_version }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: bash "${GITHUB_WORKSPACE}/.github/scripts/build_deploy/update-chart-values.sh"
+
+      - name: Commit updated chart values to branch
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.prepare-metadata.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          values_file="charts/qubership-colly/values.yaml"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- "${values_file}"; then
+            echo "No changes in ${values_file}, skipping commit"
+            exit 0
+          fi
+
+          git add "${values_file}"
+          git commit -m "$(cat <<EOF
+          ci: update image tags to ${IMAGE_TAG} [skip ci]
+          EOF
+          )"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "Committed and pushed ${values_file} to ${GITHUB_REF_NAME}"
+
+  deploy:
+    name: Deploy to EKS
+    needs: [validate-inputs, update-chart-values]
+    if: >-
+      always()
+      && !cancelled()
+      && !failure()
+      && github.event_name == 'workflow_dispatch'
+      && inputs.deploy
+      && (inputs.build != true || needs.update-chart-values.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+        with:
+          version: v1.32.0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Verify tools
+        run: |
+          kubectl version --client
+          helm version
+          aws --version
+
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.deploy-ref || github.ref_name }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Configure kubeconfig for EKS
+        env:
+          EKS_CLUSTER: ${{ vars.TF_VAR_EKS_NEW_CLUSTERNAME || env.COLLY_EKS_CLUSTER }}
+        run: |
+          echo "EKS cluster: ${EKS_CLUSTER}"
+          aws eks update-kubeconfig \
+            --region "${{ vars.AWS_REGION || 'us-east-1' }}" \
+            --name "${EKS_CLUSTER}"
+
+      - name: Cluster healthcheck
+        env:
+          INSTALL_NAMESPACE: ${{ vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}
+        run: |
+          set -euo pipefail
+          echo "### Cluster connectivity"
+          kubectl cluster-info
+          echo "### Nodes"
+          kubectl get nodes -o wide
+          ready_nodes="$(kubectl get nodes -o json | jq '[.items[] | select(.status.conditions[]? | select(.type=="Ready" and .status=="True"))] | length')"
+          total_nodes="$(kubectl get nodes -o json | jq '.items | length')"
+          if [ "${ready_nodes}" -lt 1 ]; then
+            echo "::error::No Ready nodes in cluster (ready=${ready_nodes}, total=${total_nodes})"
+            exit 1
+          fi
+          echo "Ready nodes: ${ready_nodes}/${total_nodes}"
+          echo "### Namespace pre-check: ${INSTALL_NAMESPACE}"
+          if ! kubectl get namespace "${INSTALL_NAMESPACE}" >/dev/null 2>&1; then
+            echo "::error::Namespace ${INSTALL_NAMESPACE} does not exist. Create it before deploy."
+            exit 1
+          fi
+          phase="$(kubectl get namespace "${INSTALL_NAMESPACE}" -o jsonpath='{.status.phase}')"
+          echo "Namespace exists (phase=${phase})"
+          if [ "${phase}" != "Active" ]; then
+            echo "::error::Namespace ${INSTALL_NAMESPACE} is not Active"
+            exit 1
+          fi
+
+      - name: Resolve deploy parameters
+        id: deploy
+        shell: bash
+        env:
+          REF: ${{ inputs.deploy-ref || github.ref_name }}
+          IMAGE_TAG_INPUT: ''
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          ref="${REF}"
+          chart_path="${GITHUB_WORKSPACE}/${CHART_PATH}"
+
+          if [ ! -f "${chart_path}/Chart.yaml" ]; then
+            echo "::error::Helm chart not found at ${chart_path}"
+            exit 1
+          fi
+
+          chart_version="$(awk '/^version:/ { print $2; exit }' "${chart_path}/Chart.yaml")"
+
+          normalize_branch() {
+            echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's|/|-|g' | sed 's|_|-|g'
+          }
+
+          if [ "${ref}" = "main" ] || [[ "${ref}" == */* ]]; then
+            ref_kind="branch"
+            if [ "${ref}" = "main" ]; then
+              image_tag="latest"
+            else
+              image_tag=$(normalize_branch "${ref}")
+            fi
+          else
+            ref_kind="tag"
+            image_tag="${ref}"
+          fi
+
+          echo "owner=${owner}" >> "$GITHUB_OUTPUT"
+          echo "ref_kind=${ref_kind}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+          echo "chart_version=${chart_version}" >> "$GITHUB_OUTPUT"
+          echo "chart_path=${chart_path}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Deploy parameters"
+            echo "- Checkout (\`${ref_kind}\`): \`${ref}\`"
+            echo "- Chart path: \`${CHART_PATH}\` (version \`${chart_version}\`)"
+            echo "- Default image tag from ref: \`${image_tag}\`"
+            echo "- Image tag override: _(none — use refs from values.yaml)_"
+            echo "- Namespace: \`${{ vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}\`"
+            echo "- Helm release: \`${{ vars.COLLY_HELM_RELEASE || vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}\`"
+            echo "- Helm dry-run: \`false\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate GitHub secrets
+        shell: bash
+        env:
+          PROJECT_GIT_REPO_URL_EXAMPLE: ${{ secrets.PROJECT_GIT_REPO_URL_EXAMPLE }}
+          GH_TOKEN_EXAMPLE: ${{ secrets.GH_TOKEN_EXAMPLE }}
+          K8S_KEYCLOAK_EXAMPLE: ${{ secrets.K8S_KEYCLOAK_EXAMPLE }}
+          REDIS_HOST_EXAMPLE: ${{ secrets.REDIS_HOST_EXAMPLE }}
+          REDIS_HOST_ADMIN: ${{ secrets.REDIS_HOST_ADMIN }}
+          REDIS_HOST_PASSWORD: ${{ secrets.REDIS_HOST_PASSWORD }}
+          COLLY_UI_HEALTHCHECK_USERNAME: ${{ secrets.COLLY_UI_HEALTHCHECK_USERNAME }}
+          COLLY_UI_HEALTHCHECK_PASSWORD: ${{ secrets.COLLY_UI_HEALTHCHECK_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in \
+            PROJECT_GIT_REPO_URL_EXAMPLE \
+            GH_TOKEN_EXAMPLE \
+            K8S_KEYCLOAK_EXAMPLE \
+            REDIS_HOST_EXAMPLE \
+            REDIS_HOST_ADMIN \
+            REDIS_HOST_PASSWORD \
+            COLLY_UI_HEALTHCHECK_USERNAME \
+            COLLY_UI_HEALTHCHECK_PASSWORD
+          do
+            value="${!name:-}"
+            if [ -z "${value}" ]; then
+              echo "::error::Missing repository secret: ${name}"
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "Configure secrets listed in .github/config/deploy-settings.example"
+            exit 1
+          fi
+
+      - name: Deploy Colly stack
+        id: deploy_helm
+        env:
+          INSTALL_NAMESPACE: ${{ vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}
+          HELM_RELEASE: ${{ vars.COLLY_HELM_RELEASE || vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}
+          IMAGE_TAG: ''
+          HELM_DRY_RUN: 'false'
+          COLLY_HELM_EXTRA_ARGS: ${{ vars.COLLY_HELM_EXTRA_ARGS }}
+          COLLY_CLOUD_PUBLIC_HOST: ${{ vars.COLLY_CLOUD_PUBLIC_HOST }}
+          PROJECT_GIT_REPO_URL_EXAMPLE: ${{ secrets.PROJECT_GIT_REPO_URL_EXAMPLE }}
+          GH_TOKEN_EXAMPLE: ${{ secrets.GH_TOKEN_EXAMPLE }}
+          K8S_KEYCLOAK_EXAMPLE: ${{ secrets.K8S_KEYCLOAK_EXAMPLE }}
+          REDIS_HOST_EXAMPLE: ${{ secrets.REDIS_HOST_EXAMPLE }}
+          REDIS_HOST_ADMIN: ${{ secrets.REDIS_HOST_ADMIN }}
+          REDIS_HOST_PASSWORD: ${{ secrets.REDIS_HOST_PASSWORD }}
+        run: |
+          set -euo pipefail
+          owner="${{ steps.deploy.outputs.owner }}"
+          chart_path="${{ steps.deploy.outputs.chart_path }}"
+          helm_set_args=(--set "NAMESPACE=${INSTALL_NAMESPACE}")
+          if [ -n "${COLLY_CLOUD_PUBLIC_HOST}" ]; then
+            helm_set_args+=(--set "CLOUD_PUBLIC_HOST=${COLLY_CLOUD_PUBLIC_HOST}")
+          fi
+          image_set_args=()
+          if [ -n "${IMAGE_TAG}" ]; then
+            image_set_args+=(
+              --set "colly.envgeneInventoryService.image=ghcr.io/${owner}/envgene-inventory-service:${IMAGE_TAG}"
+              --set "colly.environmentOperationalService.image=ghcr.io/${owner}/environment-operational-service:${IMAGE_TAG}"
+              --set "colly.uiService.image=ghcr.io/${owner}/ui-service:${IMAGE_TAG}"
+            )
+          fi
+          dry_run_arg=()
+          if [ "${HELM_DRY_RUN}" = "true" ]; then
+            dry_run_arg=(--dry-run)
+          fi
+          values_file="${chart_path}/values.yaml"
+          envsubst \
+            '${PROJECT_GIT_REPO_URL_EXAMPLE} ${GH_TOKEN_EXAMPLE} ${K8S_KEYCLOAK_EXAMPLE} ${REDIS_HOST_EXAMPLE} ${REDIS_HOST_ADMIN} ${REDIS_HOST_PASSWORD}' \
+            < "${values_file}" > "${values_file}.tmp"
+          mv "${values_file}.tmp" "${values_file}"
+          echo "Applied secret placeholders in chart values"
+          echo "Deploying ${CHART_PATH} (version ${{ steps.deploy.outputs.chart_version }}) to namespace ${INSTALL_NAMESPACE}"
+          # shellcheck disable=SC2086
+          helm upgrade --install "${HELM_RELEASE}" "${chart_path}" \
+            --namespace "${INSTALL_NAMESPACE}" \
+            --wait \
+            --timeout 10m \
+            "${dry_run_arg[@]}" \
+            "${helm_set_args[@]}" \
+            "${image_set_args[@]}" \
+            ${COLLY_HELM_EXTRA_ARGS}
+
+      - name: Deployment healthcheck
+        id: healthcheck
+        env:
+          INSTALL_NAMESPACE: ${{ vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}
+          UI_INGRESS_NAME: ${{ vars.COLLY_UI_INGRESS_NAME || env.COLLY_UI_INGRESS_NAME }}
+          UI_INGRESS_HEALTH_PATH: ${{ vars.COLLY_UI_INGRESS_HEALTH_PATH || env.COLLY_UI_INGRESS_HEALTH_PATH }}
+          UI_INGRESS_API_PATH: ${{ vars.COLLY_UI_INGRESS_API_PATH || env.COLLY_UI_INGRESS_API_PATH }}
+          UI_HEALTHCHECK_CLIENT_ID: ${{ vars.COLLY_UI_HEALTHCHECK_CLIENT_ID || env.COLLY_UI_HEALTHCHECK_CLIENT_ID }}
+          K8S_KEYCLOAK_EXAMPLE: ${{ secrets.K8S_KEYCLOAK_EXAMPLE }}
+          COLLY_UI_HEALTHCHECK_USERNAME: ${{ secrets.COLLY_UI_HEALTHCHECK_USERNAME }}
+          COLLY_UI_HEALTHCHECK_PASSWORD: ${{ secrets.COLLY_UI_HEALTHCHECK_PASSWORD }}
+          COLLY_UI_HEALTHCHECK_CLIENT_SECRET: ${{ secrets.COLLY_UI_HEALTHCHECK_CLIENT_SECRET }}
+          DEPLOY_REF: ${{ inputs.deploy-ref || github.ref_name }}
+          CHART_VERSION: ${{ steps.deploy.outputs.chart_version }}
+        run: bash "${GITHUB_WORKSPACE}/.github/scripts/build_deploy/deploy-healthcheck.sh"
+
+      - name: Rollback on failure
+        if: >-
+          always()
+          && steps.deploy_helm.outcome != 'skipped'
+          && (steps.deploy_helm.outcome == 'failure' || steps.healthcheck.outcome == 'failure')
+        env:
+          INSTALL_NAMESPACE: ${{ vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}
+          HELM_RELEASE: ${{ vars.COLLY_HELM_RELEASE || vars.TF_VAR_COLLY_INSTALL_NAMESPACE || env.COLLY_INSTALL_NAMESPACE }}
+        run: |
+          set -euo pipefail
+          echo "Deploy or healthcheck failed — attempting Helm rollback"
+
+          if ! helm status "${HELM_RELEASE}" -n "${INSTALL_NAMESPACE}" >/dev/null 2>&1; then
+            echo "No Helm release ${HELM_RELEASE} in namespace ${INSTALL_NAMESPACE}; nothing to roll back"
+            exit 0
+          fi
+
+          revisions="$(helm history "${HELM_RELEASE}" -n "${INSTALL_NAMESPACE}" -o json | jq 'length')"
+          echo "Release ${HELM_RELEASE} has ${revisions} revision(s)"
+          if [ "${revisions}" -lt 2 ]; then
+            echo "::warning::Only ${revisions} revision(s) exist — no previous revision to roll back to (first install)."
+            echo "The failed release is kept for debugging. Uninstall manually if needed:"
+            echo "  helm uninstall ${HELM_RELEASE} -n ${INSTALL_NAMESPACE}"
+            {
+              echo "## Deploy failed — no rollback"
+              echo "Release \`${HELM_RELEASE}\` has only ${revisions} revision(s); nothing to roll back to."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "Rolling back ${HELM_RELEASE} to the previous revision..."
+          helm rollback "${HELM_RELEASE}" 0 -n "${INSTALL_NAMESPACE}" --wait --timeout 10m
+          echo "Rollback complete. Current status:"
+          helm status "${HELM_RELEASE}" -n "${INSTALL_NAMESPACE}"
+
+          {
+            echo "## Deploy rolled back"
+            echo "Release \`${HELM_RELEASE}\` in namespace \`${INSTALL_NAMESPACE}\` was rolled back to the previous revision after a failed deploy/healthcheck."
+          } >> "$GITHUB_STEP_SUMMARY"
