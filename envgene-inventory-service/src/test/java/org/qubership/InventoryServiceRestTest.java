@@ -1320,6 +1320,27 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void set_ui_parameters_push_rejected_returns_conflict() {
+        Environment environment = prepareEnvironmentForTests("env-test");
+        mockGitService.setRejectPush(true);
+
+        given()
+                .contentType("application/json")
+                .body("{\"commitInfo\": {\"username\": \"test\", \"email\": \"test@mail.com\", \"commitMessage\": \"test\"}," +
+                        "\"parameters\": {\"deployment\":{\"REJECTED_PARAMETER\":\"some value\"}}}")
+                .when().post("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(409);
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/ui-parameters")
+                .then()
+                .statusCode(200)
+                .body("parameters.deployment", not(hasKey("REJECTED_PARAMETER")));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void set_ui_parameters_env_not_found() {
         given()
                 .contentType("application/json")
