@@ -20,6 +20,7 @@ import org.qubership.colly.projectrepo.Project;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,6 +42,9 @@ public class CloudPassportLoader {
 
     @Inject
     ParamsetService paramsetService;
+
+    @Inject
+    GitRepositoryLocks gitRepositoryLocks;
 
     @ConfigProperty(name = "colly.eis.cloud.passport.folder")
     String cloudPassportFolder;
@@ -85,8 +89,7 @@ public class CloudPassportLoader {
                 String token = gitService.resolveToken(instanceRepository.token(), instanceRepository.region());
                 gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), token, new File(tmpFolder));
                 try {
-                    FileUtils.deleteDirectory(new File(stableFolder));
-                    Files.move(Path.of(tmpFolder), Path.of(stableFolder));
+                    replaceStableFolder(tmpFolder, stableFolder);
                 } catch (IOException e) {
                     Log.errorf("Failed to replace stable directory %s, skipping repo %s",
                             stableFolder, instanceRepository.url());
@@ -103,6 +106,22 @@ public class CloudPassportLoader {
             }
         }
         return result;
+    }
+
+    // Held under the repository lock so a concurrent write (UpdateEnvironmentService) never sees a half-replaced folder
+    private void replaceStableFolder(String tmpFolder, String stableFolder) throws IOException {
+        try {
+            gitRepositoryLocks.withLock(new File(stableFolder), () -> {
+                try {
+                    FileUtils.deleteDirectory(new File(stableFolder));
+                    Files.move(Path.of(tmpFolder), Path.of(stableFolder));
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
     }
 
     private void cleanupTmpDirectories() {

@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 
-@QuarkusComponentTest
+@QuarkusComponentTest(GitRepositoryLocks.class)
 class CloudPassportLoaderTest {
 
     private static final CloudPassport TEST_CLUSTER = new CloudPassport("test-cluster",

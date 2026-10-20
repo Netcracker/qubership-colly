@@ -30,6 +30,9 @@ public class UpdateEnvironmentService {
     @Inject
     YqService yqService;
 
+    @Inject
+    GitRepositoryLocks gitRepositoryLocks;
+
     public List<Paramset> updateParamset(Cluster cluster, Environment environment, ParamsetService.ParamsetTarget target,
                                          String applicationName,
                                          Map<ParamsetContext, Map<String, Object>> parameters,
@@ -48,8 +51,22 @@ public class UpdateEnvironmentService {
         if (!Files.exists(gitRepoPath)) {
             throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
         }
-        Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
+        String token = gitService.resolveToken(gitInfo.instanceRepository().token(), gitInfo.instanceRepository().region());
+        String commitMessage = commitInfo.commitMessage() != null
+                ? commitInfo.commitMessage()
+                : "Update UI parameters for " + environment.getName();
 
+        return gitRepositoryLocks.withLock(gitRepoPath.toFile(), () -> {
+            gitService.syncWithRemote(gitRepoPath.toFile(), token);
+            Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
+            List<Paramset> updatedParamsets = applyParamsetChanges(inventoryDir, environment, target, applicationName, parameters);
+            gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, token, commitInfo.username(), commitInfo.email());
+            return updatedParamsets;
+        });
+    }
+
+    private List<Paramset> applyParamsetChanges(Path inventoryDir, Environment environment, ParamsetService.ParamsetTarget target,
+                                                String applicationName, Map<ParamsetContext, Map<String, Object>> parameters) {
         List<Paramset> updatedParamsets = new ArrayList<>(environment.getParamsets());
 
         for (ParamsetContext context : ParamsetContext.values()) {
@@ -137,12 +154,6 @@ public class UpdateEnvironmentService {
             }
         }
 
-        String commitMessage = commitInfo.commitMessage() != null
-                ? commitInfo.commitMessage()
-                : "Update UI parameters for " + environment.getName();
-        String token = gitService.resolveToken(gitInfo.instanceRepository().token(), gitInfo.instanceRepository().region());
-        gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, token, commitInfo.username(), commitInfo.email());
-
         return updatedParamsets;
     }
 
@@ -152,16 +163,19 @@ public class UpdateEnvironmentService {
         if (!Files.exists(gitRepoPath)) {
             throw new IllegalArgumentException("Could not find git repo at " + gitRepoPath);
         }
-        Path inventoryDir = findInventoryDir(gitRepoPath, environmentUpdate.getName());
-        Path envDefinitionPath = inventoryDir.resolve("env_definition.yml");
-        try {
-            updateEnvDefinitionYamlFileWithYq(envDefinitionPath, environmentUpdate);
-            Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
-        } catch (IOException e) {
-            throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
-        }
         String token = gitService.resolveToken(gitInfo.instanceRepository().token(), gitInfo.instanceRepository().region());
-        gitService.commitAndPush(gitRepoPath.toFile(), "Update environment " + environmentUpdate.getName(), token, null, null);
+        gitRepositoryLocks.withLock(gitRepoPath.toFile(), () -> {
+            gitService.syncWithRemote(gitRepoPath.toFile(), token);
+            Path inventoryDir = findInventoryDir(gitRepoPath, environmentUpdate.getName());
+            Path envDefinitionPath = inventoryDir.resolve("env_definition.yml");
+            try {
+                updateEnvDefinitionYamlFileWithYq(envDefinitionPath, environmentUpdate);
+                Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
+            } catch (IOException e) {
+                throw new IllegalStateException("Error during update yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName(), e);
+            }
+            gitService.commitAndPush(gitRepoPath.toFile(), "Update environment " + environmentUpdate.getName(), token, null, null);
+        });
 
         return environmentUpdate;
     }

@@ -229,4 +229,66 @@ class GitServiceTest {
             assertEquals("my specific message", commits.getFirst().getFullMessage());
         }
     }
+
+    @Test
+    void commitAndPush_shouldThrowPushRejectedWhenRemoteHasNewerCommit() throws Exception {
+        Path staleRepo = tempDir.resolve("stale");
+        Path otherRepo = tempDir.resolve("other");
+        gitService.cloneRepository(bareRepoUri, "main", "", staleRepo.toFile());
+        gitService.cloneRepository(bareRepoUri, "main", "", otherRepo.toFile());
+
+        Files.writeString(otherRepo.resolve("README.md"), "changed by someone else");
+        gitService.commitAndPush(otherRepo.toFile(), "concurrent change", "", "Other", "other@test.com");
+
+        Files.writeString(staleRepo.resolve("README.md"), "changed on stale copy");
+        GitPushRejectedException ex = assertThrows(GitPushRejectedException.class, () ->
+                gitService.commitAndPush(staleRepo.toFile(), "stale change", "", "User", "user@test.com"));
+        assertTrue(ex.getMessage().contains("REJECTED_NONFASTFORWARD"), ex.getMessage());
+
+        Path verify = tempDir.resolve("verify-rejected");
+        gitService.cloneRepository(bareRepoUri, "main", "", verify.toFile());
+        assertEquals("changed by someone else", Files.readString(verify.resolve("README.md")));
+    }
+
+    @Test
+    void syncWithRemote_shouldPickUpRemoteChangesAndDiscardLocalState() throws Exception {
+        Path localRepo = tempDir.resolve("local-sync");
+        Path otherRepo = tempDir.resolve("other-sync");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+        gitService.cloneRepository(bareRepoUri, "main", "", otherRepo.toFile());
+
+        Files.writeString(otherRepo.resolve("remote-file.txt"), "from remote");
+        gitService.commitAndPush(otherRepo.toFile(), "remote change", "", "Other", "other@test.com");
+
+        // local unpushed commit + uncommitted modification + untracked file
+        try (Git git = Git.open(localRepo.toFile())) {
+            Files.writeString(localRepo.resolve("committed-locally.txt"), "local commit");
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage("local only").setAuthor("u", "u@test.com").call();
+        }
+        Files.writeString(localRepo.resolve("README.md"), "dirty");
+        Files.createDirectories(localRepo.resolve("untracked-dir"));
+        Files.writeString(localRepo.resolve("untracked-dir/untracked.txt"), "untracked");
+
+        gitService.syncWithRemote(localRepo.toFile(), "");
+
+        assertEquals("from remote", Files.readString(localRepo.resolve("remote-file.txt")));
+        assertEquals("initial content", Files.readString(localRepo.resolve("README.md")));
+        assertFalse(Files.exists(localRepo.resolve("committed-locally.txt")));
+        assertFalse(Files.exists(localRepo.resolve("untracked-dir")));
+
+        Files.writeString(localRepo.resolve("README.md"), "after sync");
+        gitService.commitAndPush(localRepo.toFile(), "change after sync", "", "User", "user@test.com");
+
+        Path verify = tempDir.resolve("verify-sync");
+        gitService.cloneRepository(bareRepoUri, "main", "", verify.toFile());
+        assertEquals("after sync", Files.readString(verify.resolve("README.md")));
+        assertEquals("from remote", Files.readString(verify.resolve("remote-file.txt")));
+    }
+
+    @Test
+    void syncWithRemote_shouldThrowOnInvalidRepository() {
+        Path notARepo = tempDir.resolve("not-a-repo-sync");
+        assertThrows(IllegalStateException.class, () -> gitService.syncWithRemote(notARepo.toFile(), ""));
+    }
 }

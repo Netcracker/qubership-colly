@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.InOrder;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
@@ -16,6 +17,7 @@ import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.CommitInfoDto;
 import org.qubership.colly.projectrepo.InstanceRepository;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,11 +31,12 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-@QuarkusComponentTest
+@QuarkusComponentTest(GitRepositoryLocks.class)
 class UpdateEnvironmentServiceTest {
 
     public static final CommitInfoDto COMMIT_INFO = new CommitInfoDto("test", "some_user", "some_user@fff.com");
@@ -109,6 +112,47 @@ class UpdateEnvironmentServiceTest {
         verify(gitService).resolveToken("42", "cn");
         verify(gitService).commitAndPush(Paths.get(testCluster.getGitInfo().folderName()).toFile(),
                 "Update environment " + testEnvironment.getName(), "resolved-token", null, null);
+    }
+
+    @Test
+    void updateEnvironment_shouldSyncWithRemoteBeforeCommit() {
+        File repo = Paths.get(testCluster.getGitInfo().folderName()).toFile();
+
+        updateEnvironmentService.updateEnvironment(testCluster, testEnvironment);
+
+        InOrder inOrder = inOrder(gitService);
+        inOrder.verify(gitService).syncWithRemote(repo, null);
+        inOrder.verify(gitService).commitAndPush(repo, "Update environment " + testEnvironment.getName(), null, null, null);
+    }
+
+    @Test
+    void updateParamset_shouldSyncWithRemoteBeforeModifyingFiles() {
+        File repo = Paths.get(testCluster.getGitInfo().folderName()).toFile();
+        Path uiOverrideFile = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory/parameters/deploy-ui-override.yaml");
+        doAnswer(invocation -> {
+            assertFalse(Files.exists(uiOverrideFile), "files must not be modified before sync with remote");
+            return null;
+        }).when(gitService).syncWithRemote(repo, null);
+
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("ENV_DEPLOY_PARAM", "value")), COMMIT_INFO);
+
+        assertTrue(Files.exists(uiOverrideFile));
+        InOrder inOrder = inOrder(gitService);
+        inOrder.verify(gitService).syncWithRemote(repo, null);
+        inOrder.verify(gitService).commitAndPush(repo, COMMIT_INFO.commitMessage(), null, COMMIT_INFO.username(), COMMIT_INFO.email());
+    }
+
+    @Test
+    void updateParamset_shouldPropagatePushRejection() {
+        doThrow(new GitPushRejectedException("rejected"))
+                .when(gitService).commitAndPush(any(), any(), any(), any(), any());
+
+        assertThrows(GitPushRejectedException.class, () -> updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("ENV_DEPLOY_PARAM", "value")), COMMIT_INFO));
     }
 
     @Test
