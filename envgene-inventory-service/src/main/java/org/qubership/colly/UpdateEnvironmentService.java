@@ -178,7 +178,7 @@ public class UpdateEnvironmentService {
         gitRepositoryLocks.withLock(gitRepoPath.toFile(), () -> {
             gitService.syncWithRemote(gitRepoPath.toFile(), token);
             Path inventoryDir = findInventoryDir(gitRepoPath, cluster.getName(), environmentUpdate.getName());
-            Path envDefinitionPath = inventoryDir.resolve("env_definition.yml");
+            Path envDefinitionPath = inventoryDir.resolve(ENV_DEFINITION_FILE);
             try {
                 updateEnvDefinitionYamlFileWithYq(envDefinitionPath, environmentUpdate);
                 Log.info("Updated yaml for " + environmentUpdate.getName() + " cluster=" + cluster.getName());
