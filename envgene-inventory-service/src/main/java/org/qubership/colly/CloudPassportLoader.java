@@ -21,9 +21,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -81,11 +84,17 @@ public class CloudPassportLoader {
         cleanupTmpDirectories();
 
         List<GitInfo> result = new ArrayList<>();
-        int index = 1;
+        Set<String> usedFolders = new HashSet<>();
         for (Project project : projects) {
             for (InstanceRepository instanceRepository : project.instanceRepositories()) {
-                String tmpFolder = cloudPassportFolder + "/" + index + "-tmp";
-                String stableFolder = cloudPassportFolder + "/" + index;
+                String folderName = repositoryFolderName(project, instanceRepository.url());
+                if (!usedFolders.add(folderName)) {
+                    Log.errorf("Instance repository %s is listed more than once in project %s, skipping duplicate",
+                            instanceRepository.url(), project.name());
+                    continue;
+                }
+                String tmpFolder = cloudPassportFolder + "/" + folderName + "-tmp";
+                String stableFolder = cloudPassportFolder + "/" + folderName;
                 String token = gitService.resolveToken(instanceRepository.token(), instanceRepository.region());
                 gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), token, new File(tmpFolder));
                 try {
@@ -98,14 +107,28 @@ public class CloudPassportLoader {
                     } catch (IOException ex) {
                         Log.warnf("Failed to delete tmp directory %s after failed replacement: %s", tmpFolder, ex.getMessage());
                     }
-                    index++;
                     continue;
                 }
                 result.add(new GitInfo(instanceRepository, stableFolder, project.id()));
-                index++;
             }
         }
         return result;
+    }
+
+    /**
+     * Stable clone folder name: {@code <project name>-<first 12 hex chars of sha256(url)>}.
+     * Does not depend on the order of projects / repositories, so a cluster's {@code GitInfo.folderName}
+     * keeps pointing to the same repository across syncs.
+     */
+    static String repositoryFolderName(Project project, String repositoryUrl) {
+        String projectName = StringUtils.isNotBlank(project.name()) ? project.name() : project.id();
+        String safeProjectName = projectName.replaceAll("[^A-Za-z0-9._-]", "_");
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(repositoryUrl.getBytes(StandardCharsets.UTF_8));
+            return safeProjectName + "-" + HexFormat.of().formatHex(hash).substring(0, 12);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is not available", e);
+        }
     }
 
     // Held under the repository lock so a concurrent write (UpdateEnvironmentService) never sees a half-replaced folder

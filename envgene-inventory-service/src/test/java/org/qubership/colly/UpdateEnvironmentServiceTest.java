@@ -176,6 +176,70 @@ class UpdateEnvironmentServiceTest {
 
 
     @Test
+    void updateParamset_shouldWriteToEnvironmentOfGivenClusterWhenNameIsNotUnique() throws IOException {
+        Path environmentsDir = tempDir.resolve("gitrepo_with_cloudpassports/environments");
+        copyDirectory(environmentsDir.resolve("test-cluster"), environmentsDir.resolve("other-cluster"));
+        Cluster otherCluster = Cluster.builder().build();
+        otherCluster.setName("other-cluster");
+        otherCluster.setGitInfo(testCluster.getGitInfo());
+        Path testClusterFile = environmentsDir.resolve("test-cluster/env-test/Inventory/parameters/deploy-ui-override.yaml");
+        Path otherClusterFile = environmentsDir.resolve("other-cluster/env-test/Inventory/parameters/deploy-ui-override.yaml");
+        ParamsetService.ParamsetTarget target = new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud");
+
+        updateEnvironmentService.updateParamset(otherCluster, testEnvironment, target, null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "other")), COMMIT_INFO);
+
+        assertTrue(Files.exists(otherClusterFile));
+        assertFalse(Files.exists(testClusterFile));
+
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment, target, null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "test")), COMMIT_INFO);
+
+        assertThat(Files.readString(testClusterFile), containsString("test"));
+        assertThat(Files.readString(otherClusterFile), containsString("other"));
+    }
+
+    @Test
+    void updateParamset_shouldFindEnvironmentByInventoryEnvironmentName() throws IOException {
+        Path clusterDir = tempDir.resolve("gitrepo_with_cloudpassports/environments/test-cluster");
+        Path renamedEnvDir = clusterDir.resolve("folder-name-differs");
+        copyDirectory(clusterDir.resolve("env-test"), renamedEnvDir);
+        Path envDefinition = renamedEnvDir.resolve("Inventory/env_definition.yml");
+        Files.writeString(envDefinition, Files.readString(envDefinition)
+                .replace("environmentName: \"env-test\"", "environmentName: \"renamed-env\""));
+
+        updateEnvironmentService.updateParamset(testCluster, new Environment("3", "renamed-env"),
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "value")), COMMIT_INFO);
+
+        assertTrue(Files.exists(renamedEnvDir.resolve("Inventory/parameters/deploy-ui-override.yaml")));
+        assertFalse(Files.exists(clusterDir.resolve("env-test/Inventory/parameters/deploy-ui-override.yaml")));
+    }
+
+    @Test
+    void updateParamset_shouldFailWhenEnvironmentIsAmbiguousWithinCluster() throws IOException {
+        Path clusterDir = tempDir.resolve("gitrepo_with_cloudpassports/environments/test-cluster");
+        copyDirectory(clusterDir.resolve("env-test"), clusterDir.resolve("env-test-copy"));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> updateEnvironmentService.updateParamset(
+                testCluster, testEnvironment, new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "value")), COMMIT_INFO));
+        assertThat(ex.getMessage(), containsString("Found several Inventory directories"));
+        verify(gitService, never()).commitAndPush(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void updateEnvironment_shouldFailWhenClusterFolderNotFound() {
+        Cluster unknownCluster = Cluster.builder().build();
+        unknownCluster.setName("unknown-cluster");
+        unknownCluster.setGitInfo(testCluster.getGitInfo());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> updateEnvironmentService.updateEnvironment(unknownCluster, testEnvironment));
+        assertThat(ex.getMessage(), containsString("in cluster unknown-cluster"));
+    }
+
+    @Test
     void updateParamset_shouldWriteNamespaceLevelParameters() throws IOException {
         // Given
         Map<ParamsetContext, Map<String, Object>> params = new EnumMap<>(ParamsetContext.class);

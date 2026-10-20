@@ -1,10 +1,15 @@
 package org.qubership.colly;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.apache.commons.lang3.StringUtils;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.Paramset;
+import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
+import org.qubership.colly.cloudpassport.envgen.Inventory;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
 import org.qubership.colly.db.data.ParamsetContext;
@@ -12,6 +17,7 @@ import org.qubership.colly.db.data.ParamsetLevel;
 import org.qubership.colly.dto.CommitInfoDto;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,6 +26,11 @@ import java.util.stream.Stream;
 
 @ApplicationScoped
 public class UpdateEnvironmentService {
+
+    private static final String CLOUD_PASSPORT_FOLDER = "cloud-passport";
+    private static final String INVENTORY_FOLDER = "Inventory";
+    private static final String ENV_DEFINITION_FILE = "env_definition.yml";
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     @Inject
     GitService gitService;
@@ -58,7 +69,7 @@ public class UpdateEnvironmentService {
 
         return gitRepositoryLocks.withLock(gitRepoPath.toFile(), () -> {
             gitService.syncWithRemote(gitRepoPath.toFile(), token);
-            Path inventoryDir = findInventoryDir(gitRepoPath, environment.getName());
+            Path inventoryDir = findInventoryDir(gitRepoPath, cluster.getName(), environment.getName());
             List<Paramset> updatedParamsets = applyParamsetChanges(inventoryDir, environment, target, applicationName, parameters);
             gitService.commitAndPush(gitRepoPath.toFile(), commitMessage, token, commitInfo.username(), commitInfo.email());
             return updatedParamsets;
@@ -166,7 +177,7 @@ public class UpdateEnvironmentService {
         String token = gitService.resolveToken(gitInfo.instanceRepository().token(), gitInfo.instanceRepository().region());
         gitRepositoryLocks.withLock(gitRepoPath.toFile(), () -> {
             gitService.syncWithRemote(gitRepoPath.toFile(), token);
-            Path inventoryDir = findInventoryDir(gitRepoPath, environmentUpdate.getName());
+            Path inventoryDir = findInventoryDir(gitRepoPath, cluster.getName(), environmentUpdate.getName());
             Path envDefinitionPath = inventoryDir.resolve("env_definition.yml");
             try {
                 updateEnvDefinitionYamlFileWithYq(envDefinitionPath, environmentUpdate);
@@ -180,18 +191,59 @@ public class UpdateEnvironmentService {
         return environmentUpdate;
     }
 
-    private Path findInventoryDir(Path gitRepoPath, String environmentName) {
+    /**
+     * Locates {@code <cluster>/.../<env>/Inventory} using the same rules as {@link CloudPassportLoader}:
+     * a cluster folder is the parent of a {@code cloud-passport} folder, an environment is a folder with
+     * {@code Inventory/env_definition.yml} whose name is {@code inventory.environmentName} or, if blank, the folder name.
+     */
+    private Path findInventoryDir(Path gitRepoPath, String clusterName, String environmentName) {
+        List<Path> matches;
         try (Stream<Path> paths = Files.walk(gitRepoPath)) {
+            matches = paths.filter(Files::isDirectory)
+                    .filter(dir -> dir.getFileName().toString().equals(clusterName)
+                            && Files.isDirectory(dir.resolve(CLOUD_PASSPORT_FOLDER)))
+                    .flatMap(clusterDir -> findInventoryDirsInCluster(clusterDir, environmentName).stream())
+                    .toList();
+        } catch (IOException | UncheckedIOException e) {
+            throw new IllegalStateException("Error searching for Inventory directory for environment " + environmentName
+                    + " in cluster " + clusterName, e);
+        }
+        if (matches.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Could not find Inventory directory for environment " + environmentName + " in cluster " + clusterName);
+        }
+        if (matches.size() > 1) {
+            throw new IllegalStateException("Found several Inventory directories for environment " + environmentName
+                    + " in cluster " + clusterName + ": " + matches);
+        }
+        return matches.getFirst();
+    }
+
+    private List<Path> findInventoryDirsInCluster(Path clusterDir, String environmentName) {
+        try (Stream<Path> paths = Files.walk(clusterDir)) {
             return paths.filter(Files::isDirectory)
-                    .map(path -> path.resolve(environmentName))
-                    .filter(Files::isDirectory)
-                    .map(path -> path.resolve("Inventory"))
-                    .filter(Files::isDirectory)
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Could not find Inventory directory for environment " + environmentName));
+                    .map(dir -> dir.resolve(INVENTORY_FOLDER))
+                    .filter(inventoryDir -> Files.isRegularFile(inventoryDir.resolve(ENV_DEFINITION_FILE)))
+                    .filter(inventoryDir -> environmentName.equals(resolveEnvironmentName(inventoryDir)))
+                    .toList();
         } catch (IOException e) {
-            throw new IllegalStateException("Error searching for Inventory directory for environment " + environmentName, e);
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private String resolveEnvironmentName(Path inventoryDir) {
+        try {
+            EnvDefinition envDefinition = YAML_MAPPER.readValue(inventoryDir.resolve(ENV_DEFINITION_FILE).toFile(), EnvDefinition.class);
+            Inventory inventory = envDefinition.inventory();
+            if (inventory == null) {
+                return null;
+            }
+            return StringUtils.isNotBlank(inventory.environmentName())
+                    ? inventory.environmentName()
+                    : inventoryDir.getParent().getFileName().toString();
+        } catch (IOException e) {
+            Log.warnf("Failed to read %s: %s", inventoryDir.resolve(ENV_DEFINITION_FILE), e.getMessage());
+            return null;
         }
     }
 
