@@ -1,95 +1,120 @@
-# Versioning and conflict handling for UI override parameters
+# Concurrent writes for UI override parameters
 
-- [Versioning and conflict handling for UI override parameters](#versioning-and-conflict-handling-for-ui-override-parameters)
+- [Concurrent writes for UI override parameters](#concurrent-writes-for-ui-override-parameters)
   - [Introduction](#introduction)
   - [Handled collisions](#handled-collisions)
-  - [Versioning model](#versioning-model)
-      - [Version](#version)
-    - [ETag and If-Match](#etag-and-if-match)
+  - [Not implemented](#not-implemented)
+  - [Write serialization](#write-serialization)
+      - [Repository lock](#repository-lock)
+      - [Sync before write](#sync-before-write)
+      - [Rejected push](#rejected-push)
   - [Request flows](#request-flows)
     - [GET](#get)
     - [POST](#post)
-  - [Conflict handling](#conflict-handling)
+  - [Known limitations](#known-limitations)
   - [API reference](#api-reference)
-  - [Enabling changes](#enabling-changes)
+      - [History URL](#history-url)
 
 ## Introduction
 
-This document specifies how Colly versions UI override parameters and detects concurrent modifications.
-It extends the [Override UI API design](./ui-override.md), which defines body shapes, scope selection
-and storage layout.
+This document describes how Colly handles concurrent changes to UI override parameters as implemented
+today. It extends the [Override UI API design](./ui-override.md), which defines body shapes, scope
+selection and storage layout.
+
+Colly has no parameter versioning. It serializes writes to the local Git working copy, applies each write
+on top of the latest remote state, and relies on Git to reject a push that lost a race. History is the
+Git history of the override file, and Colly exposes a link to it.
+
+The same write path is used by `UpdateEnvironmentService.updateParamset` (UI parameters) and
+`UpdateEnvironmentService.updateEnvironment` (environment metadata).
 
 ## Handled collisions
 
-- **UI vs UI** - two users editing the same scope through Colly.
-- **UI vs direct Git push** - a UI user versus an administrator or CI pushing to the instance repository.
-- **Write vs `syncAll`** - a POST in flight versus the scheduled re-clone of the instance repository.
+| Collision                                 | Handling                                                                                   |
+|-------------------------------------------|--------------------------------------------------------------------------------------------|
+| **Write vs write, same Colly instance**   | Serialized by the repository lock. The second write runs after the first one, on top of it |
+| **Write vs `syncAll` folder replacement** | Serialized by the repository lock                                                          |
+| **Write vs direct Git push**              | The write starts from the latest remote state, so commits already pushed are preserved     |
+| **Push race**                             | Remote rejects the push as non-fast-forward → `409`                                        |
 
-## Versioning model
+## Not implemented
 
-### Version
+The following parts of the original design were not implemented:
 
-- **Versioning unit** = (environment × scope), scope ∈ {`environment`, `namespace`, `application`}.
-  One version per scope, covering all its contexts (`deployment`, `runtime`, `pipeline`).
-- **Version input** = the scope's `-ui-override` files only:
+- scope versions and conditional request headers;
+- detection of stale reads: Colly does not know which state the client read before sending a POST;
+- rebase and push retry: a rejected push fails immediately;
+- `409` response with the scope's current state;
+- per-file blob SHAs in the cache;
+- partial clone and sparse-checkout: clones are shallow (`depth=1`) and contain all files;
+- staging only the scope's files: Colly still runs `git add .`. The working copy is reset and cleaned
+  before each write, so a commit contains only the changes of that write.
 
-  ```text
-  version = SHA256( sort( { "<override-file-path>": "<git blob SHA>" } ) )
-  ```
+## Write serialization
 
-- **Not included:** repo HEAD, cache generation, `env_definition.yml`, other referenced paramsets.
-  A change to them does not change the version.
-- **Computation:** the cache stores per-file blob SHAs (filled by `syncAll`).
-    - GET: from the cached SHAs → `Vread`.
-    - POST: from the fetched tree → `Vcur`; from the committed tree → `Vnew`.
-- Identical content always yields an identical version.
+### Repository lock
 
-### ETag and If-Match
+`GitRepositoryLocks` keeps one `ReentrantLock` per local repository folder. The following operations run
+under it:
 
-- **Format:** quoted string `"<scheme>:" + hex(SHA-256(canonical))`, e.g. `"1:e3b0c442…"`. *canonical* = the scope's
-  override files as `(path, blob-SHA)` pairs, sorted by path, joined with fixed
-  separators. Current `scheme` = `1`. A tag with another scheme does not match → `409`.
-- **GET** returns the version in the `ETag` response header. GET is served from cache, the ETag may lag
-  the remote.
-- **POST** must send the last-read version in the `If-Match` request header.
-    - absent → `428`
-    - `*` or a multi-tag list → `400`
-    - mismatch with the current version → `409`
-- **Successful POST** returns `204 No Content` with the new version in the `ETag` header.
-- ETag is used only for `If-Match` on POST, not for GET caching.
+- the whole write sequence: sync, modify files, commit and push;
+- the `syncAll` step that replaces the stable folder with the fresh clone (`CloudPassportLoader.replaceStableFolder`).
+
+The clone itself runs outside the lock, into a `-tmp` folder. Clone folder names are stable,
+`<project name>-<first 12 hex chars of sha256(url)>`, so a cached `GitInfo.folderName` keeps pointing to
+the same repository across syncs.
+
+The lock is held during network calls to Git, so writes to the same repository wait for each other.
+Writes to different repositories do not block each other.
+
+### Sync before write
+
+`GitService.syncWithRemote` runs under the lock before any file is modified:
+
+1. Fetch the current branch from `origin` (`depth=1`).
+2. Hard-reset the working copy to `origin/<branch>`.
+3. Remove untracked files.
+
+Local commits and changes are discarded. This also removes leftovers of a previous failed write, such as a
+commit whose push was rejected.
+
+### Rejected push
+
+JGit reports a remote rejection in the push result instead of throwing an exception.
+`GitService.verifyPushResults` treats any status other than `OK` or `UP_TO_DATE` as a rejection and throws
+`GitPushRejectedException`, which `GitPushRejectedExceptionMapper` maps to `409`. This covers
+non-fast-forward rejections and any other remote refusal, such as a protected branch.
+
+The response body is the plain-text rejection message. The client retries by sending the POST again.
+
+A failure other than a remote rejection, for example a network error during fetch or push, returns `500`.
 
 ## Request flows
 
 ### GET
 
+`GET /ui-parameters` does not take the lock and does not touch Git. It is served from the cache filled by
+`syncAll` (every minute by default, `colly.eis.cron.schedule`) and updated by successful POSTs.
+
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as User
-    participant SSP as SSP
     participant Colly
     participant Cache as Cache
     participant Git as Git
-
-    Note over Cache,Git: Background syncAll (~every minute, configurable):<br/>re-clone, compute per-override-file blob SHA,<br/>store the SHAs in cache
-    Git-->>Cache: periodic - paramsets + override-file SHAs per scope
-
-    User->>SSP: open scope parameters
-    SSP->>Colly: GET /ui-parameters?namespaceName=... (no If-Match)
-    Colly->>Cache: read Environment + scope paramsets + override-file SHAs
+    Note over Cache, Git: Background syncAll (every minute by default):<br/>clone, replace stable folder under the lock, reload cache
+    Git -->> Cache: periodic - paramsets
+    User ->> Colly: GET /ui-parameters?namespaceName=...
+    Colly ->> Cache: read Environment + scope paramsets
     alt environment / namespace not found
         Cache-->>Colly: not found
-        Colly-->>SSP: 404
-        SSP-->>User: error
+        Colly -->> User: 404
     else found
-        Cache-->>Colly: merged paramsets + override-file SHAs
+        Cache -->> Colly: paramsets
         Colly->>Colly: build merged body per context (deployment/runtime/pipeline)
-        Colly->>Colly: compute version Vread = SHA256(sort(override-file SHAs))
-        Colly-->>SSP: 200 + body + ETag Vread
-        SSP-->>User: render values
+        Colly -->> User: 200 + body
     end
-    Note over SSP: stores ETag for next POST
-    Note over Colly,Git: GET never touches Git - served from cache,<br/>so Vread may lag the remote
 ```
 
 ### POST
@@ -98,119 +123,98 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor User as User
-    participant SSP as SSP
     participant Colly
     participant Cache as Cache
     participant Git as Git
-
-    User->>SSP: edit parameters, click Save
-    SSP->>Colly: POST /ui-parameters?scope<br/>If-Match Vread<br/>body - commitInfo + parameters
-
-    Colly->>Colly: require If-Match
-    alt If-Match missing
-        Colly-->>SSP: 428 Precondition Required
-    end
-
-    Colly->>Cache: resolve env / namespace / application
+    User ->> Colly: POST /ui-parameters?scope<br/>body - commitInfo + parameters
+    Colly ->> Cache: resolve environment / namespace
     alt not found
         Cache-->>Colly: not found
-        Colly-->>SSP: 404
+        Colly -->> User: 404
     else pipeline at namespace or application scope
-        Colly-->>SSP: 400 Bad Request
+        Colly -->> User: 400 Bad Request
     end
 
-    Colly ->> Colly: isolate working copy from syncAll swap
-    Colly->>Git: git fetch (shallow, partial blob:none) + sparse-checkout scope files
-    Git-->>Colly: latest commit + tree (path to blob SHA)
-    Colly->>Colly: read override file SHAs from fetched tree
-    Colly->>Colly: compute current version Vcur = SHA256(sort(override-file SHAs))
+    Colly ->> Colly: acquire repository lock
+    Colly ->> Git: fetch branch (depth=1)
+    Git -->> Colly: latest commit
+    Colly ->> Colly: hard reset + clean
+    Colly ->> Colly: write override files, remove null keys,<br/>update env_definition.yml (yq)
+    Colly ->> Colly: git add . + commit (author = commitInfo)
+    Colly ->> Git: push
 
-    rect rgba(0,0,0,0)
-    Note over Colly: Pre-write window
-    alt ACCEPT: Vread == Vcur
-        Colly->>Git: write scope files (override files + env_def slice)
-        Colly->>Git: stage ONLY those files, commit (author = commitInfo)
-        Colly->>Git: push
-
-        rect rgba(0,0,0,0)
-        Note over Colly,Git: Push-race window
-          loop up to N (=3) times, until push ok or scope-file overlap
-              Colly->>Git: fetch new tip, rebase our commit onto it
-              Git-->>Colly: new tip
-              Colly->>Git: push (retry)
-          end
-        alt push accepted (first try, or after a rebase)
-            Git-->>Colly: ok
-            Colly->>Colly: read override file SHAs from committed tree
-            Colly->>Colly: compute new version Vnew = SHA256(sort(override-file SHAs))
-            Colly->>Cache: invalidate and refresh env, store new override-file SHAs
-            Colly-->>SSP: 204 No Content + ETag Vnew header (no body)
-            SSP-->>User: saved
-            Note over SSP: replaces stored ETag with Vnew
-        else still rejected (scope-file overlap, or N exhausted)
-            Colly-->>SSP: 409 + current state + current ETag
-            SSP-->>User: show conflict
-        end
-        end
-    else REJECT: Vread != Vcur (stale version)
-        Colly-->>SSP: 409 + current state + current ETag
-        SSP-->>User: show conflict, re-read and retry
+    alt push accepted
+        Git -->> Colly: ok
+        Colly ->> Colly: release repository lock
+        Colly ->> Cache: store updated paramsets
+        Colly -->> User: 204 No Content
+    else push rejected
+        Git -->> Colly: rejected
+        Colly ->> Colly: release repository lock
+        Colly -->> User: 409 + rejection message
     end
-    end
-
-    Colly->>Colly: release working-copy isolation (on every outcome)
 ```
 
-## Conflict handling
+## Known limitations
 
-POST is atomic: any conflict rejects the whole request. Conflicts are detected in two windows, both
-return `409`:
-
-| Window        | Check                                                          | Result                                                   |
-|---------------|----------------------------------------------------------------|----------------------------------------------------------|
-| **Pre-write** | after `fetch`, before writing: `Vread` vs `Vcur`               | `Vread != Vcur` → `409`                                  |
-| **Push-race** | push rejected as non-fast-forward (someone pushed after fetch) | `fetch` new tip, rebase, retry push, up to `N = 3` times |
-
-Push-race outcome:
-
-- intervening commits did not touch the scope's files → rebase is clean → push succeeds → `204`;
-- rebase conflicts on the scope's files, or `N` retries exhausted → `409`.
-
-Resolution is strict: no parameter-level merge.
-
-- `409` body = the scope's current state, `ETag` header = its current version. The client re-applies its
-  edits and resubmits with the new ETag.
-- On `204`, Colly invalidates the environment's cache.
-- The window that fired is logged, not returned to the client.
+- **Lost update.** POST replaces the content of the scope's override file for each context present in the
+  body. If two users edit the same scope, the later POST silently overwrites the earlier one, including
+  when the request was built from an outdated read. This also applies to a direct Git push to the override
+  file. The overwritten values remain in the Git history.
+- **Null keys use the cached state.** The source files to remove a `null` key from are selected from the
+  cache, not from the synced working copy. A key added to another paramset by a commit that `syncAll` has
+  not loaded yet is not removed.
+- **Single instance scope.** The lock is local to the JVM. Instances of the service do not share it, and each
+  has its own clone. A race between instances is resolved only by the remote rejecting the push (`409`).
+- **`syncAll` reads files outside the lock.** Only the folder replacement is locked. Parsing the stable folder
+  can overlap with a write, so a sync may load uncommitted changes or changes of a write that then fails.
+  A later sync corrects the cache.
+- **Stale reads after a write.** A `syncAll` that cloned before a push can store the older state in the cache
+  after the POST has returned. GET returns the older values until the next sync.
+- **Other replicas.** On other instances, GET returns the new values only after their next `syncAll`.
 
 ## API reference
 
-Adds versioning to the endpoints in [ui-override.md](./ui-override.md#api-reference).
-
 ```http
-GET  /api/v2/environments/{id}/ui-parameters?namespaceName=env-01-core
-→ 200, ETag: "1:e3b0c44298fc1c14…"
+GET  /colly/v2/inventory-service/environments/{id}/ui-parameters?namespaceName=env-01-core
+→ 200
 
-POST /api/v2/environments/{id}/ui-parameters?namespaceName=env-01-core
-If-Match: "1:e3b0c44298fc1c14…"
-→ 204, ETag: "1:<new>"   (or 409 + current state + current ETag)
+POST /colly/v2/inventory-service/environments/{id}/ui-parameters?namespaceName=env-01-core
+→ 204 (or 409 + rejection message)
 ```
 
-| Status                      | When                                                               |
-|-----------------------------|--------------------------------------------------------------------|
-| `204 No Content`            | Success. New version in the `ETag` header, no body                 |
-| `400 Bad Request`           | Missing field, `pipeline` at ns/app scope, or malformed `If-Match` |
-| `404 Not Found`             | Environment, Namespace, or Application not found                   |
-| `409 Conflict`              | Version conflict (pre-write or push-race)                          |
-| `428 Precondition Required` | `If-Match` absent                                                  |
+POST status codes:
 
-## Enabling changes
+| Status                      | When                                                                           |
+|-----------------------------|--------------------------------------------------------------------------------|
+| `204 No Content`            | Success, no body                                                               |
+| `400 Bad Request`           | `pipeline` at namespace or application scope, or Inventory directory not found |
+| `404 Not Found`             | Environment or namespace not found                                             |
+| `409 Conflict`              | Push rejected by the remote                                                    |
+| `500 Internal Server Error` | Sync, commit or push failed for a reason other than a remote rejection         |
 
-Required changes to the current write path:
+`applicationName` is not validated: an unknown application does not return `404`.
 
-1. **Stage only the scope's files** instead of `git add .`.
-2. **Isolate the write working copy from `syncAll`** (dedicated checkout or lock) so an in-flight write
-   is not affected by the re-clone.
-3. **Partial clone (`--filter=blob:none`) + sparse-checkout** limited to the scope's files.
-4. **`fetch` + `rebase` in `GitService`** (today it exposes only clone / commit / push).
-5. **Cache invalidation on successful POST** for the affected environment.
+### History URL
+
+`GET /colly/v2/inventory-service/environments/{id}/ui-parameters-history-url` returns, as plain text, a
+link to the commit history of the scope's `-ui-override` file in the instance repository.
+
+| Query parameter   | Required | Description                                                                  |
+|-------------------|----------|------------------------------------------------------------------------------|
+| `context`         | yes      | `deployment`, `runtime` or `pipeline`                                        |
+| `namespaceName`   | no       | Selects namespace scope. Not allowed with `pipeline`                         |
+| `applicationName` | no       | With `namespaceName`, selects application scope. Not allowed with `pipeline` |
+
+```text
+<instance repository url>/commits/<branch or HEAD>/environments/<cluster>/<environment>/Inventory/parameters/<file>.yaml
+```
+
+The URL is built from the cached environment and does not check that the file exists.
+
+| Status | When                                                                      |
+|--------|---------------------------------------------------------------------------|
+| `200`  | URL returned                                                              |
+| `204`  | The cluster has no instance repository information                        |
+| `400`  | Unknown `context`, or `pipeline` with `namespaceName` / `applicationName` |
+| `404`  | Environment or namespace not found                                        |
