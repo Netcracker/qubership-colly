@@ -4,13 +4,18 @@ import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 import jakarta.inject.Inject;
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.colly.MockGitService;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Environment;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -456,5 +461,75 @@ class EffectiveSetRestTest {
                 .queryParam("applicationName", "no-such-app")
                 .when().post(ES, id)
                 .then().statusCode(404);
+    }
+
+    // ── NO_CMDB_V2: deployment/runtime from dcl, pipeline from instance ───────
+
+    private static final String ENV_V2 = "env-no-cmdb-v2-test";
+    private static final String NS_V2 = "no-cmdb-v2-core";
+    private static final String CLONE_ROOT = "target/test-cloud-passport-folder";
+
+    private ValidatableResponse requestScoped(String id, String context) {
+        return given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", context)
+                .queryParam("namespaceName", NS_V2)
+                .queryParam("applicationName", APP)
+                .when().post(ES, id)
+                .then().statusCode(200);
+    }
+
+    private ValidatableResponse requestPipeline(String id) {
+        return given()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .queryParam("context", "pipeline")
+                .when().post(ES, id)
+                .then().statusCode(200);
+    }
+
+    private void failDclClone() {
+        gitService.setCloneAction((url, dest) -> {
+            if ("gitrepo_dcl".equals(url)) {
+                throw new IOException("dcl is unavailable");
+            }
+            FileUtils.copyDirectory(new File("src/test/resources/" + url), dest);
+        });
+    }
+
+    @Test
+    void noCmdbV2_deploymentAndRuntimeFromDcl_pipelineFromInstance() {
+        String id = syncAndGetEnvId(ENV_V2);
+
+        requestScoped(id, "deployment").body("parameters.SOURCE._data.value", equalTo("dcl-deployment"));
+        requestScoped(id, "runtime").body("parameters.SOURCE._data.value", equalTo("dcl-runtime"));
+        requestPipeline(id).body("parameters.SOURCE._data.value", equalTo("instance-pipeline"));
+    }
+
+    @Test
+    void noCmdbV2_dclCloneFails_previousCopyIsRead() {
+        syncAndGetEnvId(ENV_V2);
+        failDclClone();
+
+        String id = syncAndGetEnvId(ENV_V2);
+
+        requestScoped(id, "deployment").body("parameters.SOURCE._data.value", equalTo("dcl-deployment"));
+        requestScoped(id, "runtime").body("parameters.SOURCE._data.value", equalTo("dcl-runtime"));
+    }
+
+    @Test
+    void noCmdbV2_dclCloneFailsWithoutPreviousCopy_returnsEmptySet() throws IOException {
+        String firstSyncId = syncAndGetEnvId(ENV_V2);
+        String dclPath = environmentRepository.findById(firstSyncId).getDclEffectiveSetPath();
+        Path dclFolder = Path.of(CLONE_ROOT).resolve(Path.of(CLONE_ROOT).relativize(Path.of(dclPath)).getName(0));
+        FileUtils.deleteDirectory(dclFolder.toFile());
+        failDclClone();
+
+        String id = syncAndGetEnvId(ENV_V2);
+
+        requestScoped(id, "deployment").body("parameters", anEmptyMap());
+        requestScoped(id, "runtime").body("parameters", anEmptyMap());
+        requestPipeline(id).body("parameters.SOURCE._data.value", equalTo("instance-pipeline"));
     }
 }

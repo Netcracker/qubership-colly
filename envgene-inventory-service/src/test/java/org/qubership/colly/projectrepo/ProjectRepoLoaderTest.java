@@ -36,7 +36,8 @@ class ProjectRepoLoaderTest {
             ),
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
-            List.of(new GitGroupUrl("cn", "https://gitlab.com/test-group")));
+            List.of(new GitGroupUrl("cn", "https://gitlab.com/test-group")),
+            List.of(new InstanceRepository("https://gitlab.com/test/dcl1.git", "main", "test-dcl-token", "cn")));
 
     public static final Project TEST_PROJECT_2 = new Project(
             "test-project-2",
@@ -46,7 +47,7 @@ class ProjectRepoLoaderTest {
             ),
             new EnvgeneTemplateRepository("https://gitlab.com/test/templateRepo2.git", "main",
                     new EnvgeneArtifact("my-app:feature-new-ui-0987654", "ci")),
-            List.of());
+            List.of(), List.of());
 
     @InjectMock
     GitService gitService;
@@ -114,7 +115,7 @@ class ProjectRepoLoaderTest {
                         new InstanceRepository("https://gitlab.com/test/repo2.git", null, "test-token-2", null)
                 ),
                 null,
-                List.of());
+                List.of(), List.of());
 
         Project project = loader.processProject(parametersFile, projectDir);
         assertThat(project, equalTo(expectedResult));
@@ -137,7 +138,7 @@ class ProjectRepoLoaderTest {
         Files.createDirectories(projectDir);
         Path parametersFile = projectDir.resolve("parameters.yaml");
         Files.writeString(parametersFile, yamlContent);
-        Project expectedResult = new Project("test-project", "Test Project", List.of(), null, List.of());
+        Project expectedResult = new Project("test-project", "Test Project", List.of(), null, List.of(), List.of());
 
         Project project = loader.processProject(parametersFile, projectDir);
 
@@ -185,6 +186,36 @@ class ProjectRepoLoaderTest {
                 "https://gitlab.com/test/repo1.git",
                 "https://gitlab.com/test/repo3.git"
         ));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void dclRepository_isSeparatedFromInstanceRepositories(@TempDir Path tempDir) throws IOException {
+        Path projectDir = tempDir.resolve("dcl-project");
+        Files.createDirectories(projectDir);
+        Path parametersFile = projectDir.resolve("parameters.yaml");
+        Files.writeString(parametersFile, """
+                name: Dcl Project
+                repositories:
+                  - type: envgeneInstance
+                    url: https://gitlab.com/test/instance.git
+                    token: instance-token
+                    region: cn
+                  - type: dcl
+                    url: https://gitlab.com/test/dcl.git
+                    token: dcl-token
+                    branch: main
+                    region: cn
+                """);
+
+        Project project = loader.processProject(parametersFile, projectDir);
+
+        assertNotNull(project);
+        assertThat(project.instanceRepositories(), contains(
+                new InstanceRepository("https://gitlab.com/test/instance.git", null, "instance-token", "cn")));
+        assertThat(project.dclRepositories(), contains(
+                new InstanceRepository("https://gitlab.com/test/dcl.git", "main", "dcl-token", "cn")));
     }
 
     @Test

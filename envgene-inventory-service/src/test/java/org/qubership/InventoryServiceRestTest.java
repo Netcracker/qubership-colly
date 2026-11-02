@@ -310,7 +310,7 @@ class InventoryServiceRestTest {
         // by-name:<projectId>:<name> entry yet, as if this row predates deploying the fix.
         Cluster legacyCluster = Cluster.builder()
                 .name(clusterName)
-                .gitInfo(new GitInfo(null, null, "solar_earth"))
+                .gitInfo(new GitInfo(null, null, "solar_earth", null))
                 .token("legacy_token_before_fix")
                 .region("legacy-region-before-fix")
                 .build();

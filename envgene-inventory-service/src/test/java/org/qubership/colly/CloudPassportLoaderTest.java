@@ -62,7 +62,7 @@ class CloudPassportLoaderTest {
                             CmApproach.NO_CMDB,
                             List.of(),
                             "target/test-cloud-passport-folder/project-1-316e864164e1/environments/test-cluster/env-test/effective-set",
-                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-test/effective-set"),
+                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-test/effective-set", null),
                     new CloudPassportEnvironment(
                             "env-metadata-test",
                             "description from metadata",
@@ -103,11 +103,11 @@ class CloudPassportLoaderTest {
                                     new SdApplication("postgres:1.32.6", "postgresql-dbaas"),
                                     new SdApplication("my-app:13.21.1", "core")),
                             "target/test-cloud-passport-folder/project-1-316e864164e1/environments/test-cluster/env-metadata-test/effective-set",
-                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/effective-set"),
+                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-metadata-test/effective-set", null),
                     new CloudPassportEnvironment(
                             "env-no-cmdb-v2-test",
                             "env for testing NO_CMDB_V2",
-                            List.of(),
+                            List.of(new CloudPassportNamespace("no-cmdb-v2-core", "core")),
                             List.of(),
                             List.of(),
                             List.of(),
@@ -120,9 +120,9 @@ class CloudPassportLoaderTest {
                             List.of(),
                             false,
                             CmApproach.NO_CMDB_V2,
-                            List.of(),
+                            List.of(new SdApplication("my-app:1.0.0", "core")),
                             "target/test-cloud-passport-folder/project-1-316e864164e1/environments/test-cluster/env-no-cmdb-v2-test/effective-set",
-                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-no-cmdb-v2-test/effective-set"),
+                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-no-cmdb-v2-test/effective-set", null),
                     new CloudPassportEnvironment(
                             "env-cmdb-with-v2-override-test",
                             "env with deployer present but noCmdbVersion=v2 overriding to NO_CMDB_V2",
@@ -141,7 +141,7 @@ class CloudPassportLoaderTest {
                             CmApproach.NO_CMDB_V2,
                             List.of(),
                             "target/test-cloud-passport-folder/project-1-316e864164e1/environments/test-cluster/env-cmdb-with-v2-override-test/effective-set",
-                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-cmdb-with-v2-override-test/effective-set"),
+                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-cmdb-with-v2-override-test/effective-set", null),
                     new CloudPassportEnvironment(
                             "env-cmdb-with-v1-override-test",
                             "env with deployer present but noCmdbVersion=v1 overriding to NO_CMDB",
@@ -160,7 +160,7 @@ class CloudPassportLoaderTest {
                             CmApproach.NO_CMDB,
                             List.of(),
                             "target/test-cloud-passport-folder/project-1-316e864164e1/environments/test-cluster/env-cmdb-with-v1-override-test/effective-set",
-                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-cmdb-with-v1-override-test/effective-set"),
+                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-cmdb-with-v1-override-test/effective-set", null),
                     new CloudPassportEnvironment(
                             "env-no-cmdb-v1-explicit-test",
                             "env with no deployer and noCmdbVersion=v1 explicitly",
@@ -179,10 +179,10 @@ class CloudPassportLoaderTest {
                             CmApproach.NO_CMDB,
                             List.of(),
                             "target/test-cloud-passport-folder/project-1-316e864164e1/environments/test-cluster/env-no-cmdb-v1-explicit-test/effective-set",
-                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-no-cmdb-v1-explicit-test/effective-set")),
+                            "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-no-cmdb-v1-explicit-test/effective-set", null)),
             "http://localhost:8428",
             new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),
-                    "target/test-cloud-passport-folder/project-1-316e864164e1", "1"),
+                    "target/test-cloud-passport-folder/project-1-316e864164e1", "1", null),
             "https://dashboard.example.com",
             "https://dbaas.example.com",
             "https://deployer.example.com",
@@ -211,9 +211,9 @@ class CloudPassportLoaderTest {
                     CmApproach.NO_CMDB,
                     List.of(),
                     "target/test-cloud-passport-folder/project-2-6de5cf162248/environments/unreachable-cluster/env-1/effective-set",
-                    "gitrepo_with_unreachable_cluster/commits/main/environments/unreachable-cluster/env-1/effective-set")),
+                    "gitrepo_with_unreachable_cluster/commits/main/environments/unreachable-cluster/env-1/effective-set", null)),
             "https://vmsingle-victoria.unreachable.url",
-            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/project-2-6de5cf162248", "2"),
+            new GitInfo(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb"), "target/test-cloud-passport-folder/project-2-6de5cf162248", "2", null),
             null,
             null,
             null,
@@ -244,7 +244,7 @@ class CloudPassportLoaderTest {
 
     @Test
     void repositoryFolderName_isProjectNamePlusUrlHash() {
-        Project project = new Project("1", "my project/1", List.of(), null, List.of());
+        Project project = new Project("1", "my project/1", List.of(), null, List.of(), List.of());
 
         assertThat(CloudPassportLoader.repositoryFolderName(project, "gitrepo_with_cloudpassports"),
                 is("my_project_1-316e864164e1"));
@@ -254,7 +254,7 @@ class CloudPassportLoaderTest {
 
     @Test
     void repositoryFolderName_fallsBackToProjectIdWhenNameIsBlank() {
-        Project project = new Project("proj-id", " ", List.of(), null, List.of());
+        Project project = new Project("proj-id", " ", List.of(), null, List.of(), List.of());
 
         assertThat(CloudPassportLoader.repositoryFolderName(project, "gitrepo_with_cloudpassports"),
                 is("proj-id-316e864164e1"));
@@ -266,11 +266,11 @@ class CloudPassportLoaderTest {
         Project project1 = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
-                List.of());
+                List.of(), List.of());
         Project project2 = new Project("2", "project-2",
                 List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb")),
                 new EnvgeneTemplateRepository("gitrepo_template2", "main", new EnvgeneArtifact("my-app:1.0", "qa")),
-                List.of());
+                List.of(), List.of());
 
         Map<String, String> folderByCluster = loader.loadCloudPassports(List.of(project2, project1)).stream()
                 .collect(java.util.stream.Collectors.toMap(CloudPassport::name, cp -> cp.gitInfo().folderName()));
@@ -287,7 +287,7 @@ class CloudPassportLoaderTest {
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),
                         new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
-                List.of());
+                List.of(), List.of());
 
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
 
@@ -301,11 +301,11 @@ class CloudPassportLoaderTest {
         Project project1 = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
-                List.of());
+                List.of(), List.of());
         Project project2 = new Project("2", "project-2",
                 List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb")),
                 new EnvgeneTemplateRepository("gitrepo_template2", "main", new EnvgeneArtifact("my-app:feature-new-ui-09876", "qa")),
-                List.of());
+                List.of(), List.of());
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
         assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 
@@ -317,18 +317,18 @@ class CloudPassportLoaderTest {
         Project project1 = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
-                List.of());
+                List.of(), List.of());
 
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project1));
         assertThat(result, contains(new CloudPassport("cluster-with-invalid-envs",
                 "some_token_for_cluster_with_invalid_envs",
                 "https://42.gr7.eu-west-1.eks.amazonaws.com:443",
                 "gr7.eu-west-1.eks.amazonaws.com",
-                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false, CmApproach.NO_CMDB, List.of(), "target/test-cloud-passport-folder/project-1-9e5418f16155/environments/cluster-with-invalid-envs/invalid-yaml-namespace/effective-set", "gitrepo_with_cloudpassports_invalid_cases/commits/main/environments/cluster-with-invalid-envs/invalid-yaml-namespace/effective-set"),
-                        new CloudPassportEnvironment("env-from-folder-name", "env with name derived from folder", List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false, CmApproach.NO_CMDB, List.of(), "target/test-cloud-passport-folder/project-1-9e5418f16155/environments/cluster-with-invalid-envs/env-from-folder-name/effective-set", "gitrepo_with_cloudpassports_invalid_cases/commits/main/environments/cluster-with-invalid-envs/env-from-folder-name/effective-set")),
+                Set.of(new CloudPassportEnvironment("invalid-yaml-namespace", null, List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false, CmApproach.NO_CMDB, List.of(), "target/test-cloud-passport-folder/project-1-9e5418f16155/environments/cluster-with-invalid-envs/invalid-yaml-namespace/effective-set", "gitrepo_with_cloudpassports_invalid_cases/commits/main/environments/cluster-with-invalid-envs/invalid-yaml-namespace/effective-set", null),
+                        new CloudPassportEnvironment("env-from-folder-name", "env with name derived from folder", List.of(), List.of(), List.of(), List.of(), EnvironmentStatus.FREE, null, EnvironmentType.ENVIRONMENT, null, List.of(), List.of(), List.of(), false, CmApproach.NO_CMDB, List.of(), "target/test-cloud-passport-folder/project-1-9e5418f16155/environments/cluster-with-invalid-envs/env-from-folder-name/effective-set", "gitrepo_with_cloudpassports_invalid_cases/commits/main/environments/cluster-with-invalid-envs/env-from-folder-name/effective-set", null)),
                 "http://localhost:8428",
                 new GitInfo(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn"),
-                        "target/test-cloud-passport-folder/project-1-9e5418f16155", "1"),
+                        "target/test-cloud-passport-folder/project-1-9e5418f16155", "1", null),
                 "https://dashboard.example.com",
                 "https://dbaas.example.com",
                 "https://deployer.example.com",
@@ -345,7 +345,7 @@ class CloudPassportLoaderTest {
         Project project = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
-                List.of());
+                List.of(), List.of());
 
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
 
@@ -365,7 +365,7 @@ class CloudPassportLoaderTest {
         Project project = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
-                List.of());
+                List.of(), List.of());
 
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
 
@@ -389,7 +389,7 @@ class CloudPassportLoaderTest {
         Project project = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports_invalid_cases", "main", "42", "cn")),
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
-                List.of());
+                List.of(), List.of());
 
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
 
@@ -403,12 +403,147 @@ class CloudPassportLoaderTest {
         Project project = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports_invalid_root_folder", "main", "42", "cn")),
                 null,
-                List.of());
+                List.of(), List.of());
 
         List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
 
         List<String> clusterNames = result.stream().map(CloudPassport::name).toList();
         assertThat(clusterNames, not(hasItem("cluster-outside-environments")));
+    }
+
+    private static final String DCL_URL = "gitrepo_dcl";
+    private static final String CLONE_ROOT = "target/test-cloud-passport-folder/";
+    private static final String DCL_ENV_RELATIVE_PATH = "/environments/test-cluster/env-no-cmdb-v2-test/effective-set";
+
+    private static Project dclProject(String name, String instanceRegion, InstanceRepository... dclRepositories) {
+        return new Project("1", name,
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", instanceRegion)),
+                null, List.of(), List.of(dclRepositories));
+    }
+
+    private static InstanceRepository dcl(String region) {
+        return new InstanceRepository(DCL_URL, "main", "dcl-token", region);
+    }
+
+    private static String dclFolder(Project project) {
+        return CLONE_ROOT + CloudPassportLoader.repositoryFolderName(project, DCL_URL);
+    }
+
+    private CloudPassport loadSingle(Project project) {
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        assertThat(result, hasSize(1));
+        return result.getFirst();
+    }
+
+    private static CloudPassportEnvironment environment(CloudPassport passport, String name) {
+        return passport.environments().stream().filter(e -> e.name().equals(name)).findFirst().orElseThrow();
+    }
+
+    private void assertDclCloned(Project project) {
+        CloudPassport passport = loadSingle(project);
+        assertThat(passport.gitInfo().dclFolderName(), is(dclFolder(project)));
+        assertThat(environment(passport, "env-no-cmdb-v2-test").dclEffectiveSetPath(),
+                is(dclFolder(project) + DCL_ENV_RELATIVE_PATH));
+    }
+
+    private void assertDclNotCloned(Project project) {
+        CloudPassport passport = loadSingle(project);
+        assertThat(passport.gitInfo().dclFolderName(), nullValue());
+        assertThat(environment(passport, "env-no-cmdb-v2-test").dclEffectiveSetPath(), nullValue());
+        verify(gitService, never()).cloneRepository(eq(DCL_URL), any(), any(), any());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_sameRegion_isCloned_andUsedOnlyForNoCmdbV2() {
+        Project project = dclProject("dcl-same-region", "mb", dcl("mb"));
+
+        assertDclCloned(project);
+
+        CloudPassport passport = loadSingle(project);
+        assertThat(environment(passport, "env-test").dclEffectiveSetPath(), nullValue());
+        assertThat(environment(passport, "env-no-cmdb-v2-test").effectiveSetPath(),
+                is(CLONE_ROOT + CloudPassportLoader.repositoryFolderName(project, "gitrepo_with_cloudpassports")
+                        + DCL_ENV_RELATIVE_PATH));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_differentRegion_isNotCloned() {
+        assertDclNotCloned(dclProject("dcl-other-region", "cn", dcl("mb")));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_regionMissingOnBoth_isCloned() {
+        assertDclCloned(dclProject("dcl-no-region", null, dcl(null)));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_instanceWithoutRegion_matchesDefaultRegion() {
+        assertDclCloned(dclProject("dcl-default-instance", null, dcl("cn")));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_withoutRegion_matchesInstanceInDefaultRegion() {
+        assertDclCloned(dclProject("dcl-default-dcl", "cn", dcl(" ")));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_instanceWithoutRegion_doesNotMatchOtherRegion() {
+        assertDclNotCloned(dclProject("dcl-default-mismatch", null, dcl("mb")));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_withoutRegionAndToken_usesDefaultRegionToken() {
+        when(gitService.resolveToken(null, "cn")).thenReturn("cn-token");
+
+        assertDclCloned(dclProject("dcl-default-token", "cn", new InstanceRepository(DCL_URL, "main", null, null)));
+
+        verify(gitService).cloneRepository(eq(DCL_URL), any(), eq("cn-token"), any());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_twoForOneRegion_firstWins() {
+        Project project = dclProject("dcl-two", "cn", dcl("cn"),
+                new InstanceRepository("gitrepo_dcl_second", "main", "dcl-token", "cn"));
+
+        assertDclCloned(project);
+
+        verify(gitService, never()).cloneRepository(eq("gitrepo_dcl_second"), any(), any(), any());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_cloneFailure_keepsPreviousCopy() {
+        Project project = dclProject("dcl-previous-copy", "cn", dcl("cn"));
+        assertDclCloned(project);
+
+        doThrow(new IllegalStateException("clone failed")).when(gitService)
+                .cloneRepository(eq(DCL_URL), any(), any(), any());
+
+        assertDclCloned(project);
+        assertTrue(Files.isDirectory(Path.of(dclFolder(project) + DCL_ENV_RELATIVE_PATH)));
+        assertFalse(Files.exists(Path.of(dclFolder(project) + "-tmp")));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_cloneFailure_withoutPreviousCopy_doesNotBreakInstanceLoading() throws IOException {
+        Project project = dclProject("dcl-no-copy", "cn", dcl("cn"));
+        FileUtils.deleteDirectory(new File(dclFolder(project)));
+        doThrow(new IllegalStateException("clone failed")).when(gitService)
+                .cloneRepository(eq(DCL_URL), any(), any(), any());
+
+        CloudPassport passport = loadSingle(project);
+
+        assertThat(passport.gitInfo().dclFolderName(), nullValue());
+        assertThat(environment(passport, "env-no-cmdb-v2-test").dclEffectiveSetPath(), nullValue());
     }
 
     @Test
