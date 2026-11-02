@@ -63,6 +63,38 @@ Template repositories for environment generation.
 | `name`                          | String | Yes      | Artifact name with optional version/tag (e.g., `my-app:feature-new-ui-123456`) |
 | `defaultTemplateDescriptorName` | String | Yes      | Default template descriptor to use                                             |
 
+#### 3. DCL Repository (`dcl`)
+
+Stores the `deployment` and `runtime` Effective Set contexts of `NO_CMDB_V2` environments. It has the
+same structure as the instance repository, with only `effective-set` under each environment folder.
+Colly only reads this repository.
+
+| Field    | Type   | Required | Description                                                           |
+|----------|--------|----------|-----------------------------------------------------------------------|
+| `type`   | String | Yes      | Must be `dcl`                                                         |
+| `url`    | String | Yes      | Git repository URL                                                    |
+| `token`  | String | No       | Access token. If omitted, the token configured for the region is used |
+| `branch` | String | No       | Branch to clone                                                       |
+| `region` | String | No       | Must match the region of the instance repository                      |
+
+A missing `region` means the default region, `cn`. It is set by `colly.eis.git.default-region` and applies
+to both instance and dcl repositories when they are matched. Rules:
+
+- A dcl repository without an instance repository in the same region is not cloned.
+- If several dcl repositories match a region, the first one is used and an error is logged.
+
+```yaml
+repositories:
+  - type: envgeneInstance
+    url: https://gitlab.com/my-group/instance.git
+    token: instance-token
+    region: cn
+  - type: dcl
+    url: https://gitlab.com/my-group/dcl.git
+    token: dcl-token
+    region: cn
+```
+
 ## Configuration Examples
 
 ### Example 1: Project with Multiple Regions
@@ -115,8 +147,8 @@ The `gitGroupUrl` field specifies the base URL of the Git group that contains pr
 
 ### Authentication Tokens
 
-The `token` field is supported only for `envgeneInstance` repositories, where it is used to authenticate when cloning
-the instance Git repository.
+The `token` field is supported for `envgeneInstance` and `dcl` repositories, where it is used to authenticate when
+cloning the Git repository.
 
 Tokens should be:
 - Personal Access Tokens (PAT) for GitHub/GitLab

@@ -7,10 +7,7 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.db.EnvironmentRepository;
-import org.qubership.colly.db.data.Environment;
-import org.qubership.colly.db.data.Namespace;
-import org.qubership.colly.db.data.ParamsetContext;
-import org.qubership.colly.db.data.ParamsetLevel;
+import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.EffectiveSetResponseDto;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -96,11 +93,11 @@ public class EffectiveSetCalculator {
             }
         }
 
-        Path filePath = resolveEffectiveSetFilePath(environment.getEffectiveSetPath(), ctx, deployPostfix, applicationName);
-        String cacheKey = environmentId + ":" + ctx.key() + ":" + deployPostfix + ":" + applicationName;
-
-        Map<String, Object> raw = effectiveSetCache.computeIfAbsent(cacheKey,
-                k -> readEffectiveSetFile(filePath, ctx));
+        boolean fromDcl = environment.getCmApproach() == CmApproach.NO_CMDB_V2 && ctx != ParamsetContext.PIPELINE;
+        String root = fromDcl ? environment.getDclEffectiveSetPath() : environment.getEffectiveSetPath();
+        Map<String, Object> raw = root == null
+                ? Collections.emptyMap()
+                : readCached(environmentId, root, ctx, deployPostfix, applicationName);
 
         Map<String, Object> paramsetLayer = deepCopy(raw);
         mergeApplicableParamsets(paramsetLayer, environment, ctx, deployPostfix, applicationName);
@@ -111,6 +108,13 @@ public class EffectiveSetCalculator {
 
         return new EffectiveSetResponseDto(ctx.key(), environmentId, namespaceName, applicationName,
                 wrapMap(requestLayer, paramsetLayer, raw));
+    }
+
+    private Map<String, Object> readCached(String environmentId, String root, ParamsetContext ctx,
+                                           String deployPostfix, String applicationName) {
+        Path filePath = resolveEffectiveSetFilePath(root, ctx, deployPostfix, applicationName);
+        String cacheKey = environmentId + ":" + ctx.key() + ":" + deployPostfix + ":" + applicationName;
+        return effectiveSetCache.computeIfAbsent(cacheKey, k -> readEffectiveSetFile(filePath, ctx));
     }
 
     private static Path resolveEffectiveSetFilePath(String root, ParamsetContext ctx, String deployPostfix, String applicationName) {

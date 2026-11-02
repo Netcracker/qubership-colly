@@ -17,6 +17,11 @@ repositories:
     url: https://gitlab.com/test/repo2.git
     token: test-token-2
     region: mb
+  - type: dcl
+    url: https://gitlab.com/test/dcl1.git
+    token: test-dcl-token
+    branch: main
+    region: cn
   - type: clusterProvision
     url: https://gitlab.com/test/pipeline-repo3.git
     token: test-token-3

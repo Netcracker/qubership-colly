@@ -72,11 +72,16 @@ public class ProjectRepoLoader {
                     .filter(repositoryEntity -> "envgeneTemplate".equals(repositoryEntity.type()))
                     .toList();
 
+            List<RepositoryEntity> dclRepos = projectEntity.repositories.stream()
+                    .filter(repositoryEntity -> "dcl".equals(repositoryEntity.type()))
+                    .toList();
+
             return new Project(projectId,
                     projectEntity.name(),
                     convertToInstanceRepositories(envgeneInstanceRepos),
                     convertToEnvgeneTemplateRepository(envgeneTemplateRepos, projectId),
-                    projectEntity.gitGroupUrls() == null ? List.of() : projectEntity.gitGroupUrls());
+                    projectEntity.gitGroupUrls() == null ? List.of() : projectEntity.gitGroupUrls(),
+                    convertToInstanceRepositories(dclRepos));
         } catch (Exception e) {
             Log.errorf("Can't read project with id %s from file: %s. %s", projectId, parametersFilePath, e.getMessage());
             return null;
