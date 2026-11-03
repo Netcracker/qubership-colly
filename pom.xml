@@ -16,6 +16,7 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <modules>
+                <module>pod-secrets-config-source</module>
                 <module>environment-operational-service</module>
                 <module>envgene-inventory-service</module>
                 <module>ui-service</module>
