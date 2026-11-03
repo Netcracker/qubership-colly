@@ -85,6 +85,14 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-redis-client</artifactId>
         </dependency>
+        <!-- In-repo Quarkus extension: exposes Kubernetes secret files mounted into the
+             pod (BASS Authenticators Handling Guide, req #4: authenticators must be files,
+             not environment variables) as configuration properties. -->
+        <dependency>
+            <groupId>org.qubership.qubership-colly</groupId>
+            <artifactId>colly-pod-secrets-config-source</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
