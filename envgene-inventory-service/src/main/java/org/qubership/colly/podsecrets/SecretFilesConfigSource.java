@@ -61,7 +61,12 @@ public class SecretFilesConfigSource implements ConfigSource {
 
     private static final Logger log = Logger.getLogger(SecretFilesConfigSource.class.getName());
 
-    /** Above EnvConfigSource (300) and SysPropsConfigSource (400), below Consul (500). */
+    /**
+     * Above EnvConfigSource (300) and SysPropsConfigSource (400), so mounted files win over
+     * environment variables and system properties. This is the highest-ordered source in
+     * these services (no Consul or other higher-priority config source is configured),
+     * which is the desired behaviour: a rotated mounted file must win over anything static.
+     */
     public static final int PRIORITY = 450;
 
     public static final Path DEFAULT_BASE_DIR = Path.of("/etc/secrets/pod-secrets");
@@ -185,7 +190,13 @@ public class SecretFilesConfigSource implements ConfigSource {
                             return;
                         }
                         try {
-                            result.put(name, Files.readString(file, StandardCharsets.UTF_8));
+                            // Strip a trailing line break only (never other whitespace):
+                            // secrets created via --from-file of an echo'd file carry one,
+                            // and a stray \n in an OIDC client secret or password breaks
+                            // authentication silently. Legitimate interior/leading
+                            // whitespace is preserved.
+                            String value = Files.readString(file, StandardCharsets.UTF_8);
+                            result.put(name, value.replaceFirst("[\\r\\n]+$", ""));
                         } catch (IOException e) {
                             // A file may vanish between listing and reading while
                             // Kubernetes swaps the ..data directory.

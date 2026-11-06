@@ -115,11 +115,21 @@ class SecretFilesConfigSourceTest {
     }
 
     @Test
-    void ordinal_isBetweenEnvAndConsul() {
+    void ordinal_isAboveEnvAndSysProps() {
+        // Mounted files must win over env vars (300) and system properties (400).
         assertTrue(SecretFilesConfigSource.PRIORITY > 300, "above EnvConfigSource");
         assertTrue(SecretFilesConfigSource.PRIORITY > 400, "above SysPropsConfigSource");
-        assertTrue(SecretFilesConfigSource.PRIORITY < 500, "below ConsulConfigSource");
         assertEquals(450, SecretFilesConfigSource.PRIORITY);
         assertFalse(SecretFilesConfigSource.DEFAULT_BASE_DIR.toString().isEmpty());
+    }
+
+    @Test
+    void trailingNewlineIsStrippedOtherWhitespaceKept(@TempDir Path tmp) throws Exception {
+        Files.writeString(tmp.resolve("quarkus.oidc.credentials.secret"), "s3cret\n");
+        Files.writeString(tmp.resolve("quarkus.redis.username"), "  user  \r\n");
+
+        SecretFilesConfigSource source = new SecretFilesConfigSource(tmp, Duration.ZERO);
+        assertEquals("s3cret", source.getValue("quarkus.oidc.credentials.secret"));
+        assertEquals("  user  ", source.getValue("quarkus.redis.username"));
     }
 }
