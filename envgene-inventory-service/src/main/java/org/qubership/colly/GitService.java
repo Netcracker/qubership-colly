@@ -25,11 +25,19 @@ public class GitService {
      * credential (mounted into the pod as a file, see the BASS Authenticators Handling
      * Guide) is picked up without a service restart.
      */
+    // Package-private (not private) so GitServiceSecretFilesTest in the same package
+    // can wire a test Config; @Inject overwrites it in the real application context.
     @Inject
     Config config;
 
     private String projectRepoGitToken() {
-        return config.getOptionalValue(PROJECT_REPO_GIT_TOKEN_PROPERTY, String.class).orElse("");
+        String token = config.getOptionalValue(PROJECT_REPO_GIT_TOKEN_PROPERTY, String.class).orElse(null);
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException("Cannot resolve git token: '" + PROJECT_REPO_GIT_TOKEN_PROPERTY
+                    + "' is not configured (expected from the k8s secret mounted as a file, "
+                    + "BASS Authenticators Handling Guide)");
+        }
+        return token;
     }
 
     private String regionalGitToken(String region) {

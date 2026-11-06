@@ -9,6 +9,8 @@ import org.qubership.colly.podsecrets.SecretFilesConfigSource;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -61,5 +63,63 @@ class GitServiceSecretFilesTest {
         // Simulates kubelet swapping the mounted file content on secret rotation.
         Files.writeString(tokenFile, "token-v2");
         assertEquals("token-v2", service.resolveToken(null, "file"));
+    }
+
+    @Test
+    void resolveToken_trailingNewlineFromFileDoesNotLeakIntoToken() throws Exception {
+        // Secrets created via --from-file of an echo'd file carry a trailing newline;
+        // it must not reach the GitLab API.
+        Files.writeString(secretsDir.resolve("colly.eis.git.tokens.file"), "token-from-file\n");
+        assertEquals("token-from-file", gitServiceWithMountedSecrets().resolveToken(null, "file"));
+    }
+
+    @Test
+    void mountedFileSourceWinsOverLowerOrdinalEnvLikeSource() throws Exception {
+        // Ordinal contract: the secret-files source (450) must override env-like sources
+        // (ordinal 300) for the same property, whatever the source registration order.
+        Config config = new SmallRyeConfigBuilder()
+                .withSources(
+                        new SecretFilesConfigSource(secretsDir, Duration.ZERO),
+                        lowOrdinalSource(Map.of("colly.eis.git.tokens.file", "env-value")))
+                .build();
+        Files.writeString(secretsDir.resolve("colly.eis.git.tokens.file"), "file-value");
+        assertEquals("file-value", config.getOptionalValue("colly.eis.git.tokens.file", String.class).orElse(null));
+
+        Config reversedOrder = new SmallRyeConfigBuilder()
+                .withSources(
+                        lowOrdinalSource(Map.of("colly.eis.git.tokens.file", "env-value")),
+                        new SecretFilesConfigSource(secretsDir, Duration.ZERO))
+                .build();
+        assertEquals("file-value",
+                reversedOrder.getOptionalValue("colly.eis.git.tokens.file", String.class).orElse(null));
+    }
+
+    private static org.eclipse.microprofile.config.spi.ConfigSource lowOrdinalSource(Map<String, String> values) {
+        return new org.eclipse.microprofile.config.spi.ConfigSource() {
+            @Override
+            public Map<String, String> getProperties() {
+                return values;
+            }
+
+            @Override
+            public int getOrdinal() {
+                return 300; // same ordinal as EnvConfigSource
+            }
+
+            @Override
+            public String getValue(String name) {
+                return values.get(name);
+            }
+
+            @Override
+            public Set<String> getPropertyNames() {
+                return values.keySet();
+            }
+
+            @Override
+            public String getName() {
+                return "test-env-like-source";
+            }
+        };
     }
 }
