@@ -2,27 +2,47 @@ package org.qubership.colly;
 
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.*;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.config.Config;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @ApplicationScoped
 public class GitService {
 
-    @ConfigProperty(name = "colly.eis.project.repo.git.token")
-    String projectRepoGitToken;
+    private static final String PROJECT_REPO_GIT_TOKEN_PROPERTY = "colly.eis.project.repo.git.token";
+    private static final String GIT_TOKENS_PROPERTY_PREFIX = "colly.eis.git.tokens.";
 
-    @ConfigProperty(name = "colly.eis.git.tokens")
-    Optional<Map<String, String>> gitTokens;
+    /**
+     * Git tokens are resolved on every use instead of at bean injection, so a rotated
+     * credential (mounted into the pod as a file, see the BASS Authenticators Handling
+     * Guide) is picked up without a service restart.
+     */
+    // Package-private (not private) so GitServiceSecretFilesTest in the same package
+    // can wire a test Config; @Inject overwrites it in the real application context.
+    @Inject
+    Config config;
+
+    private String projectRepoGitToken() {
+        String token = config.getOptionalValue(PROJECT_REPO_GIT_TOKEN_PROPERTY, String.class).orElse(null);
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException("Cannot resolve git token: '" + PROJECT_REPO_GIT_TOKEN_PROPERTY
+                    + "' is not configured (expected from the k8s secret mounted as a file, "
+                    + "BASS Authenticators Handling Guide)");
+        }
+        return token;
+    }
+
+    private String regionalGitToken(String region) {
+        return config.getOptionalValue(GIT_TOKENS_PROPERTY_PREFIX + region, String.class).orElse(null);
+    }
 
     public String resolveToken(String explicitToken, String region) {
         if (explicitToken != null && !explicitToken.isBlank()) {
@@ -32,7 +52,7 @@ public class GitService {
             throw new IllegalStateException(
                     "Cannot resolve git token: no explicit token and no region provided");
         }
-        String token = gitTokens.map(m -> m.get(region)).orElse(null);
+        String token = regionalGitToken(region);
         if (token == null || token.isBlank()) {
             throw new IllegalStateException(
                     "Cannot resolve git token: no token configured for region: " + region);
@@ -41,7 +61,7 @@ public class GitService {
     }
 
     public void cloneRepository(String repositoryUrl, String branch, String token, File destinationPath) {
-        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken;
+        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken();
         CredentialsProvider credentialsProvider =
                 new UsernamePasswordCredentialsProvider("", tokenToUse);
 
@@ -80,7 +100,7 @@ public class GitService {
      */
     public void syncWithRemote(File repositoryPath, String token) {
         Log.info("Syncing repository with remote: " + repositoryPath);
-        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken;
+        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken();
         try (Git git = Git.open(repositoryPath)) {
             String branch = git.getRepository().getBranch();
             String remoteRef = "refs/remotes/origin/" + branch;
@@ -99,7 +119,7 @@ public class GitService {
 
     public void commitAndPush(File repositoryPath, String commitMessage, String token, String gitUser, String gitEmail) {
         Log.info("Committing and pushing changes in repository: " + repositoryPath);
-        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken;
+        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken();
         Iterable<PushResult> pushResults;
         try (Git git = Git.open(repositoryPath)) {
             git.add().addFilepattern(".").call();
@@ -139,6 +159,6 @@ public class GitService {
     }
 
     public void commitAndPush(File repositoryPath, String commitMessage) {
-        commitAndPush(repositoryPath, commitMessage, projectRepoGitToken, null, null);
+        commitAndPush(repositoryPath, commitMessage, projectRepoGitToken(), null, null);
     }
 }
