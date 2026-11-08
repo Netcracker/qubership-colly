@@ -409,11 +409,17 @@ public class CloudPassportLoader {
     }
 
     private List<SdApplication> loadSolutionDescriptor(Path inventoryDir) {
-        Path sdPath = inventoryDir.resolve("solution-descriptor/sd.yaml");
-        if (!Files.isRegularFile(sdPath)) {
-            sdPath = inventoryDir.resolve("solution-descriptor/sd.yml");
+        Path deployPlanPath = findFirstExisting(inventoryDir,
+                "deploy-plan.yaml", "deploy-plan.yml");
+        if (deployPlanPath != null) {
+            List<SdApplication> fromDeployPlan = loadDeployPlan(deployPlanPath);
+            if (!fromDeployPlan.isEmpty()) {
+                return fromDeployPlan;
+            }
+            Log.warnf("Deploy plan at %s yielded no applications — falling back to SD", deployPlanPath);
         }
-        if (!Files.isRegularFile(sdPath)) {
+        Path sdPath = findFirstExisting(inventoryDir, "solution-descriptor/sd.yaml", "solution-descriptor/sd.yml");
+        if (sdPath == null) {
             return Collections.emptyList();
         }
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -423,19 +429,46 @@ public class CloudPassportLoader {
                 Log.warnf("SD at %s has no 'applications' section — skipping", sdPath);
                 return Collections.emptyList();
             }
-            List<SdApplication> result = new ArrayList<>();
-            for (SdApplication app : sd.applications()) {
-                if (app.version() == null || app.deployPostfix() == null) {
-                    Log.warnf("SD at %s has application entry with missing version or deployPostfix — discarding SD", sdPath);
-                    return Collections.emptyList();
-                }
-                result.add(app);
-            }
-            return result;
+            return validateApplications(sd.applications(), sdPath);
         } catch (Exception e) {
             Log.warnf("Failed to parse SD at %s: %s", sdPath, e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    private List<SdApplication> loadDeployPlan(Path deployPlanPath) {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try {
+            List<SdApplication> apps = mapper.readValue(deployPlanPath.toFile(),
+                    mapper.getTypeFactory().constructCollectionType(List.class, SdApplication.class));
+            if (apps == null || apps.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return validateApplications(apps, deployPlanPath);
+        } catch (Exception e) {
+            Log.warnf("Failed to parse deploy plan at %s: %s", deployPlanPath, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    private List<SdApplication> validateApplications(List<SdApplication> apps, Path source) {
+        for (SdApplication app : apps) {
+            if (app == null || app.version() == null || app.deployPostfix() == null) {
+                Log.warnf("%s has application entry with missing version or deployPostfix — discarding it", source);
+                return Collections.emptyList();
+            }
+        }
+        return List.copyOf(apps);
+    }
+
+    private static Path findFirstExisting(Path baseDir, String... relativePaths) {
+        for (String relativePath : relativePaths) {
+            Path candidate = baseDir.resolve(relativePath);
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private CloudPassportNamespace parseNamespaceFile(Path namespaceFilePath) {

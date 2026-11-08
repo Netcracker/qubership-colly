@@ -1749,6 +1749,18 @@ class InventoryServiceRestTest {
 
     @Test
     @TestSecurity(user = "test")
+    void get_applications_prefers_deploy_plan_over_sd() {
+        Environment environment = prepareEnvironmentForTests("env-no-cmdb-v2-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=no-cmdb-v2-core")
+                .then()
+                .statusCode(200)
+                .body(".", contains("my-app", "deploy-plan-app"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
     void get_applications_no_matching_deploy_postfix() {
         Environment environment = prepareEnvironmentForTests("env-metadata-test");
 
