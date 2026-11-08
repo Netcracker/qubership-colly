@@ -36,16 +36,17 @@ public class ProjectRepoLoader {
     public List<Project> loadProjects() {
         File directory = new File(projectRepoFolder);
 
-        try {
-            if (directory.exists()) {
-                FileUtils.deleteDirectory(directory);
+        if (!gitService.tryUpdateExistingRepository(directory, projectGitRepoUrl, null, null)) {
+            try {
+                if (directory.exists()) {
+                    FileUtils.deleteDirectory(directory);
+                }
+            } catch (IOException e) {
+                Log.errorf("Impossible to start git cloning. Failed to clean directory: %s. %s", projectRepoFolder, e.getMessage());
+                return null;
             }
-        } catch (IOException e) {
-            Log.errorf("Impossible to start git cloning. Failed to clean directory: %s. %s", projectRepoFolder, e.getMessage());
-            return null;
+            gitService.cloneRepository(projectGitRepoUrl, null, null, directory);
         }
-
-        gitService.cloneRepository(projectGitRepoUrl, null, null, directory);
 
         Path dir = Paths.get(projectRepoFolder);
 

@@ -282,6 +282,42 @@ class CloudPassportLoaderTest {
 
     @Test
     @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void existingCopy_isUpdatedInPlace_withoutReclone() {
+        Project project = new Project("1", "project-1",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
+                new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
+                List.of(), List.of());
+        loader.loadCloudPassports(List.of(project));
+        verify(gitService, times(1)).cloneRepository(eq("gitrepo_with_cloudpassports"), any(), any(), any());
+
+        File stableFolder = new File("target/test-cloud-passport-folder/project-1-316e864164e1");
+        when(gitService.tryUpdateExistingRepository(eq(stableFolder), eq("gitrepo_with_cloudpassports"), eq("main"), any()))
+                .thenReturn(true);
+
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+
+        assertThat(result, contains(TEST_CLUSTER));
+        verify(gitService, times(1)).cloneRepository(eq("gitrepo_with_cloudpassports"), any(), any(), any());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void existingCopy_notReusable_isRecloned() {
+        Project project = new Project("1", "project-1",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
+                new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
+                List.of(), List.of());
+        loader.loadCloudPassports(List.of(project));
+
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+
+        assertThat(result, contains(TEST_CLUSTER));
+        verify(gitService, times(2)).tryUpdateExistingRepository(any(), eq("gitrepo_with_cloudpassports"), any(), any());
+        verify(gitService, times(2)).cloneRepository(eq("gitrepo_with_cloudpassports"), any(), any(), any());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
     void duplicateRepositoryInProject_isClonedOnce() {
         Project project = new Project("1", "project-1",
                 List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn"),

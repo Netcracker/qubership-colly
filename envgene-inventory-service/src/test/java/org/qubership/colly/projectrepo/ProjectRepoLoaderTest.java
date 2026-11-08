@@ -19,10 +19,11 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.*;
 
 @QuarkusComponentTest
 class ProjectRepoLoaderTest {
@@ -72,6 +73,20 @@ class ProjectRepoLoaderTest {
         assertThat(result, containsInAnyOrder(TEST_PROJECT_1, TEST_PROJECT_2));
     }
 
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.project.repo.folder", value = "target/test-project-repo-folder")
+    @TestConfigProperty(key = "colly.eis.project.repo.url", value = "test-project-repo")
+    void existingCopy_isUpdatedInPlace_withoutReclone() {
+        loader.loadProjects();
+        when(gitService.tryUpdateExistingRepository(new File("target/test-project-repo-folder"), "test-project-repo", null, null))
+                .thenReturn(true);
+
+        List<Project> result = loader.loadProjects();
+
+        assertThat(result, containsInAnyOrder(TEST_PROJECT_1, TEST_PROJECT_2));
+        verify(gitService, times(1)).cloneRepository(anyString(), any(), any(), any());
+    }
 
     @Test
     @Disabled("Disabled until we support handling such cases")

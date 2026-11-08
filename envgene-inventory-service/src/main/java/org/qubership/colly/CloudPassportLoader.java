@@ -153,7 +153,18 @@ public class CloudPassportLoader {
         return foldersByRegion;
     }
 
+    /**
+     * Updates the existing copy in place (ls-remote, then fetch + reset only when the remote moved);
+     * falls back to a full clone into a tmp folder that atomically replaces the stable one.
+     */
     private void cloneToStableFolder(InstanceRepository repository, String token, String folderName) throws IOException {
+        File stableFolder = new File(cloudPassportFolder + "/" + folderName);
+        // Under the repository lock: a concurrent write (UpdateEnvironmentService) must not interleave with reset
+        boolean updated = gitRepositoryLocks.withLock(stableFolder, () ->
+                gitService.tryUpdateExistingRepository(stableFolder, repository.url(), repository.branch(), token));
+        if (updated) {
+            return;
+        }
         String tmpFolder = cloudPassportFolder + "/" + folderName + "-tmp";
         try {
             gitService.cloneRepository(repository.url(), repository.branch(), token, new File(tmpFolder));

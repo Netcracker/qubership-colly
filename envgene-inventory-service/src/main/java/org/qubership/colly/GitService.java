@@ -6,17 +6,21 @@ import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.*;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @ApplicationScoped
 public class GitService {
+
+    private static final long GC_LOOSE_OBJECTS_THRESHOLD = 2000;
+    private static final long GC_PACK_FILES_THRESHOLD = 20;
 
     @ConfigProperty(name = "colly.eis.project.repo.git.token")
     String projectRepoGitToken;
@@ -80,21 +84,101 @@ public class GitService {
      */
     public void syncWithRemote(File repositoryPath, String token) {
         Log.info("Syncing repository with remote: " + repositoryPath);
-        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken;
         try (Git git = Git.open(repositoryPath)) {
-            String branch = git.getRepository().getBranch();
-            String remoteRef = "refs/remotes/origin/" + branch;
-            git.fetch()
-                    .setRemote("origin")
-                    .setRefSpecs(new RefSpec("+refs/heads/" + branch + ":" + remoteRef))
-                    .setDepth(1)
-                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider("oauth2", tokenToUse))
-                    .call();
-            git.reset().setMode(ResetCommand.ResetType.HARD).setRef(remoteRef).call();
-            git.clean().setCleanDirectories(true).setForce(true).call();
+            fetchAndReset(git, git.getRepository().getBranch(), credentials(token));
         } catch (Exception e) {
             throw new IllegalStateException("Error during sync with remote: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Brings an existing local working copy up to date without re-cloning it.
+     * <p>
+     * First asks the remote for the head of the branch ({@code ls-remote}, a single lightweight request).
+     * If it matches the local {@code HEAD} and the working tree is clean, nothing else is done.
+     * Otherwise the branch is fetched (depth 1) and the working copy is hard-reset to it, like {@link #syncWithRemote}.
+     *
+     * @param branch expected branch; {@code null}/blank means "whatever branch the copy is on" (remote default branch)
+     * @return {@code true} if the copy is now up to date; {@code false} if it cannot be reused
+     * (missing, not a git repository, other remote url or branch, any git error) and the caller must clone from scratch
+     */
+    public boolean tryUpdateExistingRepository(File repositoryPath, String repositoryUrl, String branch, String token) {
+        if (!new File(repositoryPath, ".git").isDirectory()) {
+            return false;
+        }
+        try (Git git = Git.open(repositoryPath)) {
+            Repository repository = git.getRepository();
+            String remoteUrl = repository.getConfig().getString("remote", "origin", "url");
+            if (!repositoryUrl.equals(remoteUrl)) {
+                Log.infof("Local copy %s points to another remote (%s), it will be re-cloned", repositoryPath, remoteUrl);
+                return false;
+            }
+            String localBranch = repository.getBranch();
+            if (branch != null && !branch.isBlank() && !branch.equals(localBranch)) {
+                Log.infof("Local copy %s is on branch %s instead of %s, it will be re-cloned", repositoryPath, localBranch, branch);
+                return false;
+            }
+            CredentialsProvider credentialsProvider = credentials(token);
+            ObjectId remoteHead = git.lsRemote()
+                    .setRemote("origin")
+                    .setHeads(true)
+                    .setCredentialsProvider(credentialsProvider)
+                    .call().stream()
+                    .filter(ref -> ref.getName().equals(Constants.R_HEADS + localBranch))
+                    .map(Ref::getObjectId)
+                    .findFirst()
+                    .orElse(null);
+            if (remoteHead == null) {
+                Log.warnf("Branch %s is not found in remote %s, local copy %s will be re-cloned", localBranch, repositoryUrl, repositoryPath);
+                return false;
+            }
+            ObjectId localHead = repository.resolve(Constants.HEAD);
+            if (remoteHead.equals(localHead) && git.status().call().isClean()) {
+                Log.infof("Repository %s is up to date (%s), skipping fetch", repositoryUrl, remoteHead.abbreviate(8).name());
+                return true;
+            }
+            fetchAndReset(git, localBranch, credentialsProvider);
+            Log.infof("Repository %s updated: %s -> %s", repositoryUrl,
+                    localHead == null ? "none" : localHead.abbreviate(8).name(), remoteHead.abbreviate(8).name());
+            gcIfNeeded(git);
+            return true;
+        } catch (Exception e) {
+            Log.warnf("Failed to update local copy %s of %s, it will be re-cloned: %s", repositoryPath, repositoryUrl, e.getMessage());
+            return false;
+        }
+    }
+
+    private static void fetchAndReset(Git git, String branch, CredentialsProvider credentialsProvider) throws GitAPIException {
+        String remoteRef = Constants.R_REMOTES + "origin/" + branch;
+        git.fetch()
+                .setRemote("origin")
+                .setRefSpecs(new RefSpec("+" + Constants.R_HEADS + branch + ":" + remoteRef))
+                .setDepth(1)
+                .setCredentialsProvider(credentialsProvider)
+                .call();
+        git.reset().setMode(ResetCommand.ResetType.HARD).setRef(remoteRef).call();
+        git.clean().setCleanDirectories(true).setForce(true).call();
+    }
+
+    // Every incremental fetch leaves a new pack / loose objects behind; compact them once they pile up.
+    private static void gcIfNeeded(Git git) {
+        try {
+            Properties stats = git.gc().getStatistics();
+            long looseObjects = Long.parseLong(String.valueOf(stats.getOrDefault("numberOfLooseObjects", "0")));
+            long packFiles = Long.parseLong(String.valueOf(stats.getOrDefault("numberOfPackFiles", "0")));
+            if (looseObjects > GC_LOOSE_OBJECTS_THRESHOLD || packFiles > GC_PACK_FILES_THRESHOLD) {
+                Log.infof("Running gc for %s (loose objects=%d, pack files=%d)",
+                        git.getRepository().getDirectory(), looseObjects, packFiles);
+                git.gc().call();
+            }
+        } catch (Exception e) {
+            Log.warnf("gc failed for %s: %s", git.getRepository().getDirectory(), e.getMessage());
+        }
+    }
+
+    private CredentialsProvider credentials(String token) {
+        String tokenToUse = token != null && !token.isBlank() ? token : projectRepoGitToken;
+        return new UsernamePasswordCredentialsProvider("oauth2", tokenToUse);
     }
 
     public void commitAndPush(File repositoryPath, String commitMessage, String token, String gitUser, String gitEmail) {
