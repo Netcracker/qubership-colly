@@ -77,6 +77,13 @@ The Calculator emits several files per context. The API reads only one parameter
     parameters.yaml
 ```
 
+**`NO_CMDB_V2` environments.** The `deployment` and `runtime` contexts are read from the `dcl`
+repository at the same relative path, `/environments/<cluster>/<environment>/effective-set/`. The
+`pipeline` context stays in the instance repository. The dcl repository is matched to the instance
+repository by region. If its clone fails, Colly keeps reading the copy from the previous sync. If
+there is no dcl repository or local copy, `deployment` and `runtime` have an empty raw layer, so the
+API returns `200` with paramsets only. There is no fallback to the instance repository.
+
 **File read per context:**
 
 | Context      | File                          |

@@ -20,10 +20,10 @@ repositories:
     token: earth-cluster-token-123
     branch: test
     region: eu-west-1
-  - type: envProvision
-    url: https://github.com/example/env-provision-earth
-    token: earth-env-token-456
-    region: us-east-1
+  - type: dcl
+    url: gitrepo_dcl
+    token: earth-token-789
+    region: cn
   - type: envgeneTemplate
     url: https://gitlab.com/test/templateRepo.git
     token: test-token

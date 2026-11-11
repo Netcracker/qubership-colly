@@ -79,6 +79,8 @@ public class CollyStorage {
             Log.info("Cloud passports loaded: " + cloudPassports.size());
             removeDeletedClusters(cloudPassports);
             cloudPassports.forEach(this::saveDataToCache);
+            // Requests served while folders were being replaced may have cached stale or empty data
+            effectiveSetCalculator.clearCache();
             Date loadCompleteTime = new Date();
             long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
             Log.info("Task for loading data from git has completed. Duration = " + loadingDuration + "ms");
@@ -134,6 +136,7 @@ public class CollyStorage {
         List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(List.of(project));
         Log.info("Cloud passports loaded: " + cloudPassports.size());
         cloudPassports.forEach(this::saveDataToCache);
+        effectiveSetCalculator.clearCache();
     }
 
     private void saveDataToCache(CloudPassport cloudPassport) {
@@ -212,6 +215,7 @@ public class CollyStorage {
         finalEnvironment.setParamsets(cloudPassportEnvironment.paramsets());
         finalEnvironment.setSdApplications(cloudPassportEnvironment.sdApplications());
         finalEnvironment.setEffectiveSetPath(cloudPassportEnvironment.effectiveSetPath());
+        finalEnvironment.setDclEffectiveSetPath(cloudPassportEnvironment.dclEffectiveSetPath());
         finalEnvironment.setEffectiveSetHistoryUrl(cloudPassportEnvironment.effectiveSetHistoryUrl());
         finalEnvironment.setSspStandalone(cloudPassportEnvironment.sspStandalone());
         finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());

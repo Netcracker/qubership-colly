@@ -310,7 +310,7 @@ class InventoryServiceRestTest {
         // by-name:<projectId>:<name> entry yet, as if this row predates deploying the fix.
         Cluster legacyCluster = Cluster.builder()
                 .name(clusterName)
-                .gitInfo(new GitInfo(null, null, "solar_earth"))
+                .gitInfo(new GitInfo(null, null, "solar_earth", null))
                 .token("legacy_token_before_fix")
                 .region("legacy-region-before-fix")
                 .build();
@@ -1745,6 +1745,18 @@ class InventoryServiceRestTest {
                 .then()
                 .statusCode(200)
                 .body(".", containsInAnyOrder("MONITORING", "postgres", "postgres-services", "my-app"));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void get_applications_prefers_deploy_plan_over_sd() {
+        Environment environment = prepareEnvironmentForTests("env-no-cmdb-v2-test");
+
+        given()
+                .when().get("/colly/v2/inventory-service/environments/" + environment.getId() + "/applications?namespaceName=no-cmdb-v2-core")
+                .then()
+                .statusCode(200)
+                .body(".", contains("my-app", "deploy-plan-app"));
     }
 
     @Test

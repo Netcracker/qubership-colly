@@ -52,6 +52,9 @@ public class CloudPassportLoader {
     @ConfigProperty(name = "colly.eis.cloud.passport.folder")
     String cloudPassportFolder;
 
+    @ConfigProperty(name = "colly.eis.git.default-region", defaultValue = "cn")
+    String defaultRegion;
+
     public List<CloudPassport> loadCloudPassports(List<Project> projects) {
         List<GitInfo> gitInfos = cloneGitRepositories(projects);
         Path dir = Paths.get(cloudPassportFolder);
@@ -86,6 +89,7 @@ public class CloudPassportLoader {
         List<GitInfo> result = new ArrayList<>();
         Set<String> usedFolders = new HashSet<>();
         for (Project project : projects) {
+            Map<String, String> dclFoldersByRegion = cloneDclRepositories(project);
             for (InstanceRepository instanceRepository : project.instanceRepositories()) {
                 String folderName = repositoryFolderName(project, instanceRepository.url());
                 if (!usedFolders.add(folderName)) {
@@ -93,26 +97,79 @@ public class CloudPassportLoader {
                             instanceRepository.url(), project.name());
                     continue;
                 }
-                String tmpFolder = cloudPassportFolder + "/" + folderName + "-tmp";
                 String stableFolder = cloudPassportFolder + "/" + folderName;
                 String token = gitService.resolveToken(instanceRepository.token(), instanceRepository.region());
-                gitService.cloneRepository(instanceRepository.url(), instanceRepository.branch(), token, new File(tmpFolder));
                 try {
-                    replaceStableFolder(tmpFolder, stableFolder);
+                    cloneToStableFolder(instanceRepository, token, folderName);
                 } catch (IOException e) {
                     Log.errorf("Failed to replace stable directory %s, skipping repo %s",
                             stableFolder, instanceRepository.url());
-                    try {
-                        FileUtils.deleteDirectory(new File(tmpFolder));
-                    } catch (IOException ex) {
-                        Log.warnf("Failed to delete tmp directory %s after failed replacement: %s", tmpFolder, ex.getMessage());
-                    }
                     continue;
                 }
-                result.add(new GitInfo(instanceRepository, stableFolder, project.id()));
+                result.add(new GitInfo(instanceRepository, stableFolder, project.id(),
+                        dclFoldersByRegion.get(normalizeRegion(instanceRepository.region()))));
             }
         }
         return result;
+    }
+
+    /**
+     * Clones the project's dcl repositories that have a matching instance repository region.
+     * A dcl failure never stops the sync: the copy left by the previous sync, if any, keeps being read.
+     *
+     * @return stable clone folder by normalized region
+     */
+    private Map<String, String> cloneDclRepositories(Project project) {
+        Set<String> instanceRegions = project.instanceRepositories().stream()
+                .map(repository -> normalizeRegion(repository.region()))
+                .collect(Collectors.toSet());
+        Map<String, String> foldersByRegion = new HashMap<>();
+        Set<String> processedRegions = new HashSet<>();
+        for (InstanceRepository dclRepository : project.dclRepositories()) {
+            String region = normalizeRegion(dclRepository.region());
+            if (!instanceRegions.contains(region)) {
+                Log.warnf("Dcl repository %s of project %s has no instance repository in region %s, skipping",
+                        dclRepository.url(), project.name(), region);
+                continue;
+            }
+            if (!processedRegions.add(region)) {
+                Log.errorf("More than one dcl repository for region %s in project %s, skipping %s",
+                        region, project.name(), dclRepository.url());
+                continue;
+            }
+            String folderName = repositoryFolderName(project, dclRepository.url());
+            String stableFolder = cloudPassportFolder + "/" + folderName;
+            try {
+                cloneToStableFolder(dclRepository, gitService.resolveToken(dclRepository.token(), region), folderName);
+                foldersByRegion.put(region, stableFolder);
+            } catch (IOException | RuntimeException e) {
+                Log.errorf("Failed to clone dcl repository %s of project %s: %s", dclRepository.url(), project.name(), e.getMessage());
+                if (Files.isDirectory(Path.of(stableFolder))) {
+                    Log.warnf("Keeping previous copy of dcl repository in %s", stableFolder);
+                    foldersByRegion.put(region, stableFolder);
+                }
+            }
+        }
+        return foldersByRegion;
+    }
+
+    private void cloneToStableFolder(InstanceRepository repository, String token, String folderName) throws IOException {
+        String tmpFolder = cloudPassportFolder + "/" + folderName + "-tmp";
+        try {
+            gitService.cloneRepository(repository.url(), repository.branch(), token, new File(tmpFolder));
+            replaceStableFolder(tmpFolder, cloudPassportFolder + "/" + folderName);
+        } catch (IOException | RuntimeException e) {
+            try {
+                FileUtils.deleteDirectory(new File(tmpFolder));
+            } catch (IOException ex) {
+                Log.warnf("Failed to delete tmp directory %s after failed clone: %s", tmpFolder, ex.getMessage());
+            }
+            throw e;
+        }
+    }
+
+    private String normalizeRegion(String region) {
+        return StringUtils.isBlank(region) ? defaultRegion : region;
     }
 
     /**
@@ -330,19 +387,39 @@ public class CloudPassportLoader {
             return new CloudPassportEnvironment(environmentName, description, namespaces,
                     owners, labels, teams, environmentStatus, expirationDate, type, role,
                     accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications,
-                    effectiveSetPath, effectiveSetHistoryUrl);
+                    effectiveSetPath, effectiveSetHistoryUrl,
+                    resolveDclEffectiveSetPath(cmApproach, gitInfo, environmentPath, environmentName));
         } catch (IOException e) {
             Log.errorf("Error loading environment from %s. %s", environmentPath, e.getMessage());
             return null;
         }
     }
 
-    private List<SdApplication> loadSolutionDescriptor(Path inventoryDir) {
-        Path sdPath = inventoryDir.resolve("solution-descriptor/sd.yaml");
-        if (!Files.isRegularFile(sdPath)) {
-            sdPath = inventoryDir.resolve("solution-descriptor/sd.yml");
+    private String resolveDclEffectiveSetPath(CmApproach cmApproach, GitInfo gitInfo, Path environmentPath, String environmentName) {
+        if (cmApproach != CmApproach.NO_CMDB_V2 || gitInfo == null) {
+            return null;
         }
-        if (!Files.isRegularFile(sdPath)) {
+        if (gitInfo.dclFolderName() == null) {
+            Log.errorf("No dcl repository for NO_CMDB_V2 environment %s, region %s", environmentName,
+                    gitInfo.instanceRepository() != null ? normalizeRegion(gitInfo.instanceRepository().region()) : null);
+            return null;
+        }
+        Path relative = Path.of(gitInfo.folderName()).relativize(environmentPath);
+        return Path.of(gitInfo.dclFolderName()).resolve(relative).resolve("effective-set").toString();
+    }
+
+    private List<SdApplication> loadSolutionDescriptor(Path inventoryDir) {
+        Path deployPlanPath = findFirstExisting(inventoryDir,
+                "deploy-plan.yaml", "deploy-plan.yml");
+        if (deployPlanPath != null) {
+            List<SdApplication> fromDeployPlan = loadDeployPlan(deployPlanPath);
+            if (!fromDeployPlan.isEmpty()) {
+                return fromDeployPlan;
+            }
+            Log.warnf("Deploy plan at %s yielded no applications — falling back to SD", deployPlanPath);
+        }
+        Path sdPath = findFirstExisting(inventoryDir, "solution-descriptor/sd.yaml", "solution-descriptor/sd.yml");
+        if (sdPath == null) {
             return Collections.emptyList();
         }
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -352,19 +429,46 @@ public class CloudPassportLoader {
                 Log.warnf("SD at %s has no 'applications' section — skipping", sdPath);
                 return Collections.emptyList();
             }
-            List<SdApplication> result = new ArrayList<>();
-            for (SdApplication app : sd.applications()) {
-                if (app.version() == null || app.deployPostfix() == null) {
-                    Log.warnf("SD at %s has application entry with missing version or deployPostfix — discarding SD", sdPath);
-                    return Collections.emptyList();
-                }
-                result.add(app);
-            }
-            return result;
+            return validateApplications(sd.applications(), sdPath);
         } catch (Exception e) {
             Log.warnf("Failed to parse SD at %s: %s", sdPath, e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    private List<SdApplication> loadDeployPlan(Path deployPlanPath) {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try {
+            List<SdApplication> apps = mapper.readValue(deployPlanPath.toFile(),
+                    mapper.getTypeFactory().constructCollectionType(List.class, SdApplication.class));
+            if (apps == null || apps.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return validateApplications(apps, deployPlanPath);
+        } catch (Exception e) {
+            Log.warnf("Failed to parse deploy plan at %s: %s", deployPlanPath, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    private List<SdApplication> validateApplications(List<SdApplication> apps, Path source) {
+        for (SdApplication app : apps) {
+            if (app == null || app.version() == null || app.deployPostfix() == null) {
+                Log.warnf("%s has application entry with missing version or deployPostfix — discarding it", source);
+                return Collections.emptyList();
+            }
+        }
+        return List.copyOf(apps);
+    }
+
+    private static Path findFirstExisting(Path baseDir, String... relativePaths) {
+        for (String relativePath : relativePaths) {
+            Path candidate = baseDir.resolve(relativePath);
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private CloudPassportNamespace parseNamespaceFile(Path namespaceFilePath) {

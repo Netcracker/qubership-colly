@@ -24,5 +24,6 @@ public record CloudPassportEnvironment(String name,
                                        CmApproach cmApproach,
                                        List<SdApplication> sdApplications,
                                        String effectiveSetPath,
-                                       String effectiveSetHistoryUrl) {
+                                       String effectiveSetHistoryUrl,
+                                       String dclEffectiveSetPath) {
 }
