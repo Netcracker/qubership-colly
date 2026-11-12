@@ -13,7 +13,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.27.5.1</quarkus.platform.version>
+        <quarkus.platform.version>3.27.6.1</quarkus.platform.version>
+        <parsson.version>1.1.8</parsson.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.2</surefire-plugin.version>
@@ -26,6 +27,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- CVE-2026-9563: override parsson managed by Quarkus BOM (1.1.7) -->
+            <dependency>
+                <groupId>org.eclipse.parsson</groupId>
+                <artifactId>parsson</artifactId>
+                <version>${parsson.version}</version>
+            </dependency>
             <dependency>
                 <groupId>${quarkus.platform.group-id}</groupId>
                 <artifactId>${quarkus.platform.artifact-id}</artifactId>
