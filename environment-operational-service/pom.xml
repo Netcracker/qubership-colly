@@ -50,6 +50,27 @@
         </dependencies>
     </dependencyManagement>
 
+    <!-- Netcracker Artifactory (PDPLDEVOPS-25309): k8s-utils / security-common are
+         internal artifacts; CI runs plain `mvn clean install` with no settings.xml,
+         so the repos must be declared here. The group repo also proxies central,
+         mirroring the security-quarkus-extensions pom convention. -->
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>libs-release</name>
+            <url>https://artifactorycn.netcracker.com/pd.saas-release.mvn.group</url>
+        </repository>
+        <repository>
+            <snapshots />
+            <id>snapshots</id>
+            <name>libs-snapshot</name>
+            <url>https://artifactorycn.netcracker.com/pd.saas.mvn.group</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>io.kubernetes</groupId>
