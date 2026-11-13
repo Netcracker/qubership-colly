@@ -77,14 +77,17 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.3.7
+FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.5.13
 
 ENV LANGUAGE='en_US:en'
 
 # Install yq as root, then switch back to non-root user
 USER root
-RUN apk add --no-cache wget && \
-    wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.53.3/yq_linux_amd64 && \
+# curl is already present in the base image — no extra apk packages (avoids pulling GNU wget + pcre2 into the image)
+ARG YQ_VERSION=v4.54.3
+ARG YQ_SHA256=129534601871538efe0ba4c5e62a34fb1d5f469bcb975c4fddeb467d82974973
+RUN curl -fsSL -o /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" && \
+    echo "${YQ_SHA256}  /usr/local/bin/yq" | sha256sum -c - && \
     chmod +x /usr/local/bin/yq
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
@@ -96,5 +99,5 @@ COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
 EXPOSE 8080
 USER 185
 
-ENTRYPOINT ["java", "-Dquarkus.http.host=0.0.0.0", "-Djava.util.logging.manager=org.jboss.logmanager.LogManager", "-jar", "/deployments/quarkus-run.jar"]
+CMD ["java", "-Dquarkus.http.host=0.0.0.0", "-Djava.util.logging.manager=org.jboss.logmanager.LogManager", "-jar", "/deployments/quarkus-run.jar"]
 
