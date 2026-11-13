@@ -50,24 +50,16 @@
         </dependencies>
     </dependencyManagement>
 
-    <!-- Netcracker Artifactory (PDPLDEVOPS-25309): k8s-utils / security-common are
-         internal artifacts; CI runs plain `mvn clean install` with no settings.xml,
-         so the repos must be declared here. The group repo also proxies central,
-         mirroring the security-quarkus-extensions pom convention. -->
+    <!-- GitHub Packages (PDPLDEVOPS-25309): k8s-utils / security-common are not on
+         Maven Central and artifactorycn.netcracker.com has no public DNS, so CI
+         (public GitHub runners) resolves them from the org's GitHub Packages.
+         Same pattern as qubership-core-config-server; the CI action's settings.xml
+         already carries the `github` server (GITHUB_TOKEN). -->
     <repositories>
         <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>central</id>
-            <name>libs-release</name>
-            <url>https://artifactorycn.netcracker.com/pd.saas-release.mvn.group</url>
-        </repository>
-        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/netcracker/*</url>
             <snapshots />
-            <id>snapshots</id>
-            <name>libs-snapshot</name>
-            <url>https://artifactorycn.netcracker.com/pd.saas.mvn.group</url>
         </repository>
     </repositories>
 
