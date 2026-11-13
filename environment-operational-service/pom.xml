@@ -32,6 +32,21 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- kubernetes-client-api 25.0.0 ships okhttp 5.1.0, which needs okio
+                 >= 3.15 (okio.Socket); the 3.6.0 arriving via client-java-proto ->
+                 okhttp 4.12.0 is too old and breaks at runtime with
+                 NoClassDefFoundError: okio/Socket. 3.18.1 is what the pre-m2m-manager
+                 dependency tree (PDPLDEVOPS-25309) resolved to. -->
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio</artifactId>
+                <version>3.18.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-jvm</artifactId>
+                <version>3.18.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -64,6 +79,29 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-oidc-client</artifactId>
+        </dependency>
+        <!-- K8s M2M auth (PDPLDEVOPS-25309): only the token-reading classes are
+             needed (KubernetesAudienceToken/AudienceName). The full m2m-manager
+             Quarkus extension is deliberately not on the classpath: it registers
+             deployment build steps and beans this service never uses, and its
+             keycloak half (M2MManager/KeycloakUserProvider) reads the hard-coded
+             CLOUD_ADMIN_REALM instead of this deployment's idp.url realm, so the
+             keycloak side is served by our own service-client OIDC call
+             (M2mRequestFilter). 3.1.0 is the version the Quarkus 3.27-compatible
+             10.0.9 release line was paired with (verified via dependency:tree). -->
+        <dependency>
+            <groupId>com.netcracker.cloud.security.core.utils</groupId>
+            <artifactId>k8s-utils</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <!-- M2MUtils (M2M_AUTH_MODE parsing), UrlCache (per-URL 401-fallback
+             decision cache) and the M2M log constants used by M2mRequestFilter /
+             CollyStorage (PDPLDEVOPS-25309). 8.3.3 per the design doc
+             (0.transition-plan.md section 1, "security-common (Pure Java)"). -->
+        <dependency>
+            <groupId>com.netcracker.cloud.security.common</groupId>
+            <artifactId>security-common</artifactId>
+            <version>8.3.3</version>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>

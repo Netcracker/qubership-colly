@@ -2,6 +2,19 @@
 CLOUD_PUBLIC_HOST: fff
 NAMESPACE: qubership-colly
 MANAGED_BY: Helm
+# M2M authentication mode (PDPLDEVOPS-25309): legacy (default, current
+# Keycloak client-credentials behavior) | hybrid (k8s SA token with fallback
+# to Keycloak) | k8s (k8s SA token only). hybrid/k8s require the platform's
+# ServiceAccount token volumes rendered by the deployment templates and the
+# platform `topology` ConfigMap present in the namespace (mounted read-only
+# at /etc/topology; without it hybrid/k8s pods fail to start).
+# Any other value makes helm template fail.
+M2M_AUTH_MODE: legacy
+# Lifetime of the projected ServiceAccount tokens in seconds (platform coretpl
+# convention; the deployment template falls back to 3600 when unset). Keep it
+# within the cluster's max ServiceAccount token expiration (the TokenRequest
+# setting on the API server).
+KUBERNETES_M2M_EXPIRATION_SECONDS: 3600
 colly:
   global:
   envgeneInventoryService:
