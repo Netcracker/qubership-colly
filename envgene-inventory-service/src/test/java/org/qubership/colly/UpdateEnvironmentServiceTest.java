@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.InOrder;
 import org.qubership.colly.cloudpassport.GitInfo;
 import org.qubership.colly.cloudpassport.Paramset;
 import org.qubership.colly.cloudpassport.envgen.EnvDefinition;
@@ -16,6 +17,7 @@ import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.CommitInfoDto;
 import org.qubership.colly.projectrepo.InstanceRepository;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,11 +31,12 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-@QuarkusComponentTest
+@QuarkusComponentTest(GitRepositoryLocks.class)
 class UpdateEnvironmentServiceTest {
 
     public static final CommitInfoDto COMMIT_INFO = new CommitInfoDto("test", "some_user", "some_user@fff.com");
@@ -112,6 +115,47 @@ class UpdateEnvironmentServiceTest {
     }
 
     @Test
+    void updateEnvironment_shouldSyncWithRemoteBeforeCommit() {
+        File repo = Paths.get(testCluster.getGitInfo().folderName()).toFile();
+
+        updateEnvironmentService.updateEnvironment(testCluster, testEnvironment);
+
+        InOrder inOrder = inOrder(gitService);
+        inOrder.verify(gitService).syncWithRemote(repo, null);
+        inOrder.verify(gitService).commitAndPush(repo, "Update environment " + testEnvironment.getName(), null, null, null);
+    }
+
+    @Test
+    void updateParamset_shouldSyncWithRemoteBeforeModifyingFiles() {
+        File repo = Paths.get(testCluster.getGitInfo().folderName()).toFile();
+        Path uiOverrideFile = Paths.get(tempDir.toString(),
+                "gitrepo_with_cloudpassports/environments/test-cluster/env-test/Inventory/parameters/deploy-ui-override.yaml");
+        doAnswer(invocation -> {
+            assertFalse(Files.exists(uiOverrideFile), "files must not be modified before sync with remote");
+            return null;
+        }).when(gitService).syncWithRemote(repo, null);
+
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("ENV_DEPLOY_PARAM", "value")), COMMIT_INFO);
+
+        assertTrue(Files.exists(uiOverrideFile));
+        InOrder inOrder = inOrder(gitService);
+        inOrder.verify(gitService).syncWithRemote(repo, null);
+        inOrder.verify(gitService).commitAndPush(repo, COMMIT_INFO.commitMessage(), null, COMMIT_INFO.username(), COMMIT_INFO.email());
+    }
+
+    @Test
+    void updateParamset_shouldPropagatePushRejection() {
+        doThrow(new GitPushRejectedException("rejected"))
+                .when(gitService).commitAndPush(any(), any(), any(), any(), any());
+
+        assertThrows(GitPushRejectedException.class, () -> updateEnvironmentService.updateParamset(testCluster, testEnvironment,
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("ENV_DEPLOY_PARAM", "value")), COMMIT_INFO));
+    }
+
+    @Test
     void updateEnvironment_shouldHandleNonExistentEnvironment() {
         // Given
         Environment nonExistentEnv = new Environment("2", "non-existent-env");
@@ -130,6 +174,70 @@ class UpdateEnvironmentServiceTest {
         assertThrows(IllegalArgumentException.class, () -> updateEnvironmentService.updateEnvironment(invalidCluster, testEnvironment));
     }
 
+
+    @Test
+    void updateParamset_shouldWriteToEnvironmentOfGivenClusterWhenNameIsNotUnique() throws IOException {
+        Path environmentsDir = tempDir.resolve("gitrepo_with_cloudpassports/environments");
+        copyDirectory(environmentsDir.resolve("test-cluster"), environmentsDir.resolve("other-cluster"));
+        Cluster otherCluster = Cluster.builder().build();
+        otherCluster.setName("other-cluster");
+        otherCluster.setGitInfo(testCluster.getGitInfo());
+        Path testClusterFile = environmentsDir.resolve("test-cluster/env-test/Inventory/parameters/deploy-ui-override.yaml");
+        Path otherClusterFile = environmentsDir.resolve("other-cluster/env-test/Inventory/parameters/deploy-ui-override.yaml");
+        ParamsetService.ParamsetTarget target = new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud");
+
+        updateEnvironmentService.updateParamset(otherCluster, testEnvironment, target, null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "other")), COMMIT_INFO);
+
+        assertTrue(Files.exists(otherClusterFile));
+        assertFalse(Files.exists(testClusterFile));
+
+        updateEnvironmentService.updateParamset(testCluster, testEnvironment, target, null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "test")), COMMIT_INFO);
+
+        assertThat(Files.readString(testClusterFile), containsString("test"));
+        assertThat(Files.readString(otherClusterFile), containsString("other"));
+    }
+
+    @Test
+    void updateParamset_shouldFindEnvironmentByInventoryEnvironmentName() throws IOException {
+        Path clusterDir = tempDir.resolve("gitrepo_with_cloudpassports/environments/test-cluster");
+        Path renamedEnvDir = clusterDir.resolve("folder-name-differs");
+        copyDirectory(clusterDir.resolve("env-test"), renamedEnvDir);
+        Path envDefinition = renamedEnvDir.resolve("Inventory/env_definition.yml");
+        Files.writeString(envDefinition, Files.readString(envDefinition)
+                .replace("environmentName: \"env-test\"", "environmentName: \"renamed-env\""));
+
+        updateEnvironmentService.updateParamset(testCluster, new Environment("3", "renamed-env"),
+                new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "value")), COMMIT_INFO);
+
+        assertTrue(Files.exists(renamedEnvDir.resolve("Inventory/parameters/deploy-ui-override.yaml")));
+        assertFalse(Files.exists(clusterDir.resolve("env-test/Inventory/parameters/deploy-ui-override.yaml")));
+    }
+
+    @Test
+    void updateParamset_shouldFailWhenEnvironmentIsAmbiguousWithinCluster() throws IOException {
+        Path clusterDir = tempDir.resolve("gitrepo_with_cloudpassports/environments/test-cluster");
+        copyDirectory(clusterDir.resolve("env-test"), clusterDir.resolve("env-test-copy"));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> updateEnvironmentService.updateParamset(
+                testCluster, testEnvironment, new ParamsetService.ParamsetTarget(ParamsetLevel.ENVIRONMENT, "cloud"), null,
+                Map.of(ParamsetContext.DEPLOYMENT, Map.of("PARAM", "value")), COMMIT_INFO));
+        assertThat(ex.getMessage(), containsString("Found several Inventory directories"));
+        verify(gitService, never()).commitAndPush(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void updateEnvironment_shouldFailWhenClusterFolderNotFound() {
+        Cluster unknownCluster = Cluster.builder().build();
+        unknownCluster.setName("unknown-cluster");
+        unknownCluster.setGitInfo(testCluster.getGitInfo());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> updateEnvironmentService.updateEnvironment(unknownCluster, testEnvironment));
+        assertThat(ex.getMessage(), containsString("in cluster unknown-cluster"));
+    }
 
     @Test
     void updateParamset_shouldWriteNamespaceLevelParameters() throws IOException {

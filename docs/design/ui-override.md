@@ -14,7 +14,14 @@
   - [UI contract](#ui-contract)
   - [API reference](#api-reference)
     - [GET /api/v1/environments/{environmentId}/ui-parameters](#get-apiv1environmentsenvironmentidui-parameters)
+      - [Path parameters](#path-parameters)
+      - [Query parameters](#query-parameters)
+      - [Example GET requests](#example-get-requests)
+      - [Processing logic](#processing-logic)
     - [POST /api/v1/environments/{environmentId}/ui-parameters](#post-apiv1environmentsenvironmentidui-parameters)
+      - [Request body](#request-body)
+      - [Algorithm](#algorithm)
+      - [Example POST requests](#example-post-requests)
     - [DELETE /api/v1/environments/{environmentId}/ui-parameters](#delete-apiv1environmentsenvironmentidui-parameters)
   - [Open questions](#open-questions)
   - [Out of scope](#out-of-scope)
@@ -162,9 +169,11 @@ POST request body:
 
 ```json
 {
-  "commitMessage": "<string>",
-  "commitUser": "<string>",
-  "commitUserEmail": "<string>",
+  "commitInfo": {
+    "commitMessage": "<string>",
+    "username": "<string>",
+    "email": "<string>"
+  },
   "parameters": {
     "deployment": { "<key>": "<value>" },
     "runtime":    { "<key>": "<value>" },
@@ -173,17 +182,21 @@ POST request body:
 }
 ```
 
-A `null` value on a key means deletion of that key from the contract paramset. POST response echoes the
-request body.
+A `null` value on a key means deletion of that key from the contract paramset.
+
+A successful POST returns `204 No Content` with no body. See
+[ui-override-versioning.md](./ui-override-versioning.md).
 
 ### Status codes
 
-| Status            | Meaning                                                                                     |
-|-------------------|---------------------------------------------------------------------------------------------|
-| `200 OK`          | Success. At least one contract paramset for the touched scope existed before this request   |
-| `201 Created`     | Success. No contract paramset for the touched scope existed before                          |
-| `400 Bad Request` | Validation error (missing required field, `pipeline` at ns / app scope)                     |
-| `404 Not Found`   | Environment, Namespace, or Application not found                                            |
+| Status            | Meaning                                                  |
+|-------------------|----------------------------------------------------------|
+| `204 No Content`  | Success, no body                                         |
+| `400 Bad Request` | Validation error (missing field, `pipeline` at ns / app) |
+| `404 Not Found`   | Environment, Namespace, or Application not found         |
+| `409 Conflict`    | Push rejected by the remote                              |
+
+Concurrent writes: [ui-override-versioning.md](./ui-override-versioning.md).
 
 ## UI contract
 
@@ -265,9 +278,11 @@ covers all file edits, file deletions, and inventory updates.
 
 ```json
 {
-  "commitMessage": "FAKE-0000",
-  "commitUser": "Vasya A. Pupkin",
-  "commitUserEmail": "vasya@example.com",
+  "commitInfo": {
+    "commitMessage": "FAKE-0000",
+    "username": "Vasya A. Pupkin",
+    "email": "vasya@example.com"
+  },
   "parameters": {
     "deployment": { "CORE_LOG_LEVEL": "DEBUG" },
     "runtime":    {},
@@ -276,17 +291,15 @@ covers all file edits, file deletions, and inventory updates.
 }
 ```
 
-- `commitMessage`, `commitUser`, `commitUserEmail` (strings, required) - Git commit metadata used as commit
-  message and author.
+- `commitInfo` (object, required) - Git commit metadata with `commitMessage`, `username`, and `email`
+  (strings). `commitMessage` is the commit message. `username` and `email` are the commit author.
 - `parameters` (object, required) - per-context map of values. A `null` value on a key removes that key from
   the contract paramset.
 
 Namespace / application scope omits `pipeline` from `parameters`. Presence triggers `400`.
 
-**Response** - request body echoed back.
-
-- `201 Created` if no contract paramset for the touched scope existed before this POST.
-- `200 OK` if at least one did.
+**Response.** `204 No Content` with no body. A push rejected by the remote returns `409`. See
+[ui-override-versioning.md](./ui-override-versioning.md).
 
 **Write semantics per key** in the POST body:
 
@@ -301,7 +314,8 @@ Namespace / application scope omits `pipeline` from `parameters`. Presence trigg
 
 #### Algorithm
 
-1. Validate request fields (`commitMessage`, `commitUser`, `commitUserEmail`, `parameters` present).
+1. Validate request fields (`commitInfo` with `commitMessage` / `username` / `email`, and `parameters`
+   present).
 2. Resolve Environment / Namespace / Application as for GET. Reject `pipeline` context at namespace or
    application scope with `400`.
 3. Compute the UI override paramset filename and inventory list key for this scope and context from
@@ -314,11 +328,12 @@ Namespace / application scope omits `pipeline` from `parameters`. Presence trigg
    - entry missing → append at the end of the list.
    - entry present but not last → move to the end (self-heal).
    - entry already last → leave unchanged.
-7. Commit all changes - UI override edits, non-UI-override edits (DELETE case only), and inventory updates
-   - in a single Git commit authored with the supplied metadata.
-8. Invalidate the local cache for this environment.
-9. Return the request body. Status `201` if no UI override paramset for the touched scope existed before
-   this request, else `200`.
+7. Commit all changes - UI override edits, non-UI-override edits (DELETE case only), and inventory
+   updates - in a single Git commit authored with the supplied metadata, then push. Steps 3-7 run under
+   the repository lock on a working copy synced with the remote, see
+   [ui-override-versioning.md](./ui-override-versioning.md). A push rejected by the remote returns `409`.
+8. Store the updated paramsets in the local cache for this environment.
+9. Return `204 No Content` with no body.
 
 #### Example POST requests
 
@@ -330,9 +345,11 @@ POST /api/v1/environments/.../ui-parameters
 
 ```json
 {
-  "commitMessage": "raise log level",
-  "commitUser": "Vasya A. Pupkin",
-  "commitUserEmail": "vasya@example.com",
+  "commitInfo": {
+    "commitMessage": "raise log level",
+    "username": "Vasya A. Pupkin",
+    "email": "vasya@example.com"
+  },
   "parameters": {
     "deployment": { "CLUSTER_REGION": "us-east-1" },
     "runtime":    {},
@@ -349,9 +366,11 @@ POST /api/v1/environments/.../ui-parameters?namespaceName=env-01-core&applicatio
 
 ```json
 {
-  "commitMessage": "wire billing DB url",
-  "commitUser": "Vasya A. Pupkin",
-  "commitUserEmail": "vasya@example.com",
+  "commitInfo": {
+    "commitMessage": "wire billing DB url",
+    "username": "Vasya A. Pupkin",
+    "email": "vasya@example.com"
+  },
   "parameters": {
     "deployment": { "BILLING_DB_URL": "${creds.billing-db}" },
     "runtime":    {}
@@ -371,20 +390,9 @@ and atomic removal of all UI-override paramsets and their inventory entries.
   Outcome may change how Colly translates the POST `null` semantics on the storage side.
 - **Encrypted-repo guard.** Encrypted repositories are an unsupported assumption with no explicit POST-time
   guard. Whether Colly should refuse POST on detection - and how to detect cheaply - is undecided.
-- **Concurrent writes to non-UI-override paramsets.** On DELETE, Colly mutates non-UI-override paramsets.
-  External writers (CI, manual Git pushes, other tools) may modify the same files. A POST that races with
-  an external push will produce a Git push conflict. The current plan is to abort the POST and return
-  `409 Conflict`, leaving retry to the UI client. Detailed conflict-resolution flow needs further design.
-- **Alternative: never mutate non-UI-override paramsets.** A simpler variant of this design keeps Colly as
-  the sole writer of UI override only, never touching non-UI-override paramsets. In that variant, `null`
-  on a key removes it from UI override only. If the key also lives in a non-UI-override paramset, it
-  remains there and the effective value falls back to it. Users cannot fully remove a key from an
-  environment via UI when the key is defined in a project paramset. This variant removes the concurrency
-  concern above but limits the UI's expressiveness on deletion.
 - **DELETE endpoint.** Deferred to a follow-up iteration. Atomic removal of all UI-override paramsets and
   their inventory entries for an environment needs design.
 
 ## Out of scope
 
 - DELETE endpoint specification.
-- Concurrent-write conflict resolution.

@@ -539,10 +539,9 @@ Colly exposes a REST API for working with UI override parameters and the Effecti
    - Details: `colly-effective-set-api.md`
 
 3. **Versioning and conflicts:**
-   - Use of Git commit hash and HTTP ETag
-   - Optimistic locking (412 Precondition Failed)
-   - Conflict handling on Git push (409 Conflict)
-   - Details: `colly-versioning-conflicts.md`
+   - HTTP `ETag` over the scope's override-file content, with `If-Match` optimistic locking
+   - Conflict handling on both the pre-write check and the Git push race (`409 Conflict`)
+   - Details: [ui-override-versioning.md](../design/ui-override-versioning.md)
 
 **Properties of Option 4:**
 

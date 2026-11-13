@@ -7,6 +7,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -646,6 +647,37 @@ public class InventoryServiceRest {
         } else {
             collyStorage.syncProject(projectId);
         }
+    }
+
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/environments/{environmentId}/ui-parameters-history-url")
+    @Operation(
+            summary = "Returns URL to navigate to history of parameters",
+            description = "Returns a Git URL pointing at the commit history of the `-ui-override` paramset file for the " +
+                    "requested scope: no query params → environment level; namespaceName → namespace level; " +
+                    "namespaceName + applicationName → application level. `pipeline` context is environment-scope only."
+    )
+    @APIResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(mediaType = MediaType.TEXT_PLAIN, schema = @Schema(type = SchemaType.STRING))
+    )
+    @APIResponse(responseCode = "400", description = "Bad request – unknown context, or `pipeline` with namespaceName/applicationName")
+    @APIResponse(responseCode = "404", description = "Environment or namespace not found")
+    public String getUiParametersHistoryUrl(
+            @Parameter(
+                    description = "ID of the environment to retrieve UI parameters for",
+                    required = true,
+                    example = "96180fe7-f025-465f-bbbf-5e83f301a614"
+            )
+            @PathParam("environmentId") String environmentId,
+            @QueryParam("namespaceName") String namespaceName,
+            @QueryParam("applicationName") String applicationName,
+            @Parameter(description = "Parameter context: `deployment`, `runtime`, or `pipeline`", example = "deployment", required = true)
+            @QueryParam("context") String context) {
+        return collyStorage.getUiParametersHistoryUrl(environmentId, namespaceName, applicationName, context);
     }
 
     @GET

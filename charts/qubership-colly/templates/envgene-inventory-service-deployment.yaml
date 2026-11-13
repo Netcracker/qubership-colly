@@ -38,44 +38,17 @@ spec:
                   fieldPath: metadata.namespace
             - name: QUARKUS_REDIS_HOSTS
               value: {{ .Values.colly.envgeneInventoryService.redis.hosts }}
-            - name: QUARKUS_REDIS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  key: username
-                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
-            - name: QUARKUS_REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: password
-                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
+            # Authenticators are NOT environment variables (BASS Authenticators
+            # Handling Guide, req #4: env vars with secrets are prohibited).
+            # They are mounted as files from the k8s Secrets below; the app's
+            # secret-files config source exposes each file as the config property
+            # that carries the file name (e.g. quarkus.redis.username).
             - name: COLLY_EIS_PROJECT_REPO_URL
               value: {{ .Values.colly.envgeneInventoryService.projectRepoUrl }}
-            - name: COLLY_EIS_PROJECT_REPO_GIT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  key: projectRepoGitToken
-                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
-            {{- range .Values.colly.envgeneInventoryService.gitTokens }}
-            - name: COLLY_EIS_GIT_TOKENS_{{ .region | upper }}
-              valueFrom:
-                secretKeyRef:
-                  key: gitToken-{{ .region }}
-                  name: {{ $.Values.colly.envgeneInventoryService.serviceName }}-secret
-            {{- end }}
             - name: COLLY_EIS_CRON_SCHEDULE
               value: {{ .Values.colly.envgeneInventoryService.cronSchedule }}
             - name: QUARKUS_OIDC_AUTH_SERVER_URL
               value: {{ .Values.colly.envgeneInventoryService.idp.url }}
-            - name: QUARKUS_OIDC_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  key: name
-                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-client-credentials
-            - name: QUARKUS_OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  key: password
-                  name: {{ .Values.colly.envgeneInventoryService.serviceName }}-client-credentials
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
           image: {{ .Values.colly.envgeneInventoryService.image }}
@@ -103,3 +76,38 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
+          # File mounts instead of secretKeyRef env (BASS Authenticators Handling
+          # Guide, req #4). No `subPath` — so kubelet keeps propagating secret
+          # rotation to the files (req #8). Each file is named after the config
+          # property it provides; the app's secret-files config source maps file
+          # name -> property value.
+          volumeMounts:
+            - name: app-secret
+              mountPath: /etc/secrets/pod-secrets/app
+              readOnly: true
+            - name: app-client-credentials
+              mountPath: /etc/secrets/pod-secrets/oidc
+              readOnly: true
+      volumes:
+        - name: app-secret
+          secret:
+            secretName: {{ .Values.colly.envgeneInventoryService.serviceName }}-secret
+            items:
+              - key: username
+                path: quarkus.redis.username
+              - key: password
+                path: quarkus.redis.password
+              - key: projectRepoGitToken
+                path: colly.eis.project.repo.git.token
+              {{- range .Values.colly.envgeneInventoryService.gitTokens }}
+              - key: gitToken-{{ .region }}
+                path: colly.eis.git.tokens.{{ .region }}
+              {{- end }}
+        - name: app-client-credentials
+          secret:
+            secretName: {{ .Values.colly.envgeneInventoryService.serviceName }}-client-credentials
+            items:
+              - key: username
+                path: quarkus.oidc.client-id
+              - key: password
+                path: quarkus.oidc.credentials.secret

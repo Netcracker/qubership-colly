@@ -6,6 +6,7 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import org.qubership.colly.cloudpassport.*;
 import org.qubership.colly.db.ClusterRepository;
@@ -15,6 +16,7 @@ import org.qubership.colly.db.data.*;
 import org.qubership.colly.dto.PatchEnvironmentDto;
 import org.qubership.colly.dto.SetUiParametersDto;
 import org.qubership.colly.dto.UiParametersDto;
+import org.qubership.colly.projectrepo.InstanceRepository;
 import org.qubership.colly.projectrepo.Project;
 import org.qubership.colly.projectrepo.ProjectRepoLoader;
 import org.qubership.colly.services.EffectiveSetCalculator;
@@ -365,6 +367,40 @@ public class CollyStorage {
             result.put(ctx, Map.of());
         }
         return new UiParametersDto(result);
+    }
+
+    public String getUiParametersHistoryUrl(String environmentId, String namespaceName, String applicationName, String context) {
+        ParamsetContext ctx = ParamsetContext.fromKey(context);
+        if (ctx == null) {
+            throw new BadRequestException("context must be one of: " +
+                    Arrays.stream(ParamsetContext.values()).map(ParamsetContext::key).collect(Collectors.joining(", ")));
+        }
+        if (ctx == ParamsetContext.PIPELINE && (namespaceName != null || applicationName != null)) {
+            throw new BadRequestException("namespaceName and applicationName must not be present for context=" + ctx.key());
+        }
+
+        Environment environment = environmentRepository.findById(environmentId);
+        if (environment == null) {
+            throw new NotFoundException("Environment with id=" + environmentId + " not found");
+        }
+
+        ParamsetService.ParamsetTarget target = paramsetService.resolveParamsetTarget(environment, namespaceName, applicationName);
+        String fileName = paramsetService.calculateParamsetFileName(target.level(), target.deployPostfix(), applicationName, ctx);
+
+        Cluster cluster = clusterRepository.findById(environment.getClusterId());
+        InstanceRepository instanceRepository = cluster != null && cluster.getGitInfo() != null
+                ? cluster.getGitInfo().instanceRepository()
+                : null;
+        if (instanceRepository == null) {
+            return null;
+        }
+
+        return "%s/commits/%s/environments/%s/%s/Inventory/parameters/%s.yaml".formatted(
+                instanceRepository.url(),
+                Objects.requireNonNullElse(instanceRepository.branch(), "HEAD"),
+                environment.getClusterName(),
+                environment.getName(),
+                fileName);
     }
 
     public void setUiParameters(String environmentId, String namespaceName, String applicationName, SetUiParametersDto setUiParametersDto) {

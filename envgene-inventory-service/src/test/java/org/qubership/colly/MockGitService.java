@@ -18,13 +18,19 @@ public class MockGitService extends GitService {
     }
 
     private CloneAction cloneAction = null;
+    private boolean rejectPush = false;
 
     public void setCloneAction(CloneAction action) {
         this.cloneAction = action;
     }
 
+    public void setRejectPush(boolean rejectPush) {
+        this.rejectPush = rejectPush;
+    }
+
     public void reset() {
         this.cloneAction = null;
+        this.rejectPush = false;
     }
 
     @Override
@@ -49,7 +55,15 @@ public class MockGitService extends GitService {
     }
 
     @Override
+    public void syncWithRemote(File repositoryPath, String token) {
+        Log.info("MockGitService: syncWithRemote " + repositoryPath);
+    }
+
+    @Override
     public void commitAndPush(File repositoryPath, String commitMessage, String token, String gitUser, String gitEmail) {
+        if (rejectPush) {
+            throw new GitPushRejectedException("MockGitService: push rejected");
+        }
         Log.info("MockGitService: commitAndPush " + repositoryPath + " " + commitMessage);
     }
 }
