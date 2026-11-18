@@ -25,7 +25,6 @@ Design docs: `docs/design/` — read the relevant one before changing a feature 
 ```
 
 - Tests use Quarkus Dev Services for Redis → **Docker must be running**. Write-path tests also need `yq` on `PATH`.
-- `RealRepoEgorEffectiveSetTest` and `src/test/resources/real_repo_egor/` are local, untracked — don't commit them.
 
 ## Definition of done
 
