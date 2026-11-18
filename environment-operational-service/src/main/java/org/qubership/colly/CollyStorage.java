@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -66,6 +67,16 @@ public class CollyStorage {
 
     @Scheduled(cron = "{colly.environment-operational-service.cron.schedule}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void syncAllClusters() {
+        // Own MDC scope: the scheduled lines must carry a requestId too (log_traceability, PDPLDEVOPS-27279).
+        TraceMdc.put(UUID.randomUUID().toString(), TraceMdc.NO_TENANT);
+        try {
+            doSyncAllClusters();
+        } finally {
+            TraceMdc.clear();
+        }
+    }
+
+    void doSyncAllClusters() {
         Log.info("Task for sync resources from clusters has started");
         Date startTime = new Date();
         List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();

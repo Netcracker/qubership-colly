@@ -85,6 +85,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-redis-client</artifactId>
         </dependency>
+        <!-- log_traceability MDC population (PDPLDEVOPS-27279): slf4j is bridged to jboss-logmanager, that MDC feeds the %X console lookups -->
+        <dependency>
+            <groupId>org.jboss.logmanager</groupId>
+            <artifactId>jboss-logmanager</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

@@ -63,6 +63,16 @@ public class CollyStorage {
 
     @Scheduled(cron = "{colly.eis.cron.schedule}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void syncAll() {
+        // Own MDC scope: the scheduled lines must carry a requestId too (log_traceability, PDPLDEVOPS-27279).
+        TraceMdc.put(UUID.randomUUID().toString(), TraceMdc.NO_TENANT);
+        try {
+            doSyncAll();
+        } finally {
+            TraceMdc.clear();
+        }
+    }
+
+    void doSyncAll() {
         if (!syncRunning.compareAndSet(false, true)) {
             Log.info("syncAll is already running, skipping");
             return;
