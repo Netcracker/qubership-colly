@@ -120,7 +120,10 @@ class CloudPassportLoaderTest {
                             List.of(),
                             false,
                             CmApproach.NO_CMDB_V2,
-                            List.of(new SdApplication("my-app:1.0.0", "core")),
+                            List.of(new SdApplication("my-app:2.0.0-Test", "core"),
+                                    new SdApplication("deploy-plan-app:0.0.1-Test", "core"),
+                                    new SdApplication("deploy-plan-db:0.0.1-Test", "app-core"),
+                                    new SdApplication("deploy-plan-app:0.0.2-Test", "core")),
                             "target/test-cloud-passport-folder/project-1-316e864164e1/environments/test-cluster/env-no-cmdb-v2-test/effective-set",
                             "gitrepo_with_cloudpassports/commits/main/environments/test-cluster/env-no-cmdb-v2-test/effective-set", null),
                     new CloudPassportEnvironment(

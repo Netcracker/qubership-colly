@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @ApplicationScoped
 public class CollyStorage {
@@ -39,6 +40,7 @@ public class CollyStorage {
     private final Executor executor;
     private final EnvironmentMapper environmentMapper;
     private final ClusterSyncLock clusterSyncLock;
+    private final AtomicBoolean syncRunning = new AtomicBoolean(false);
 
     @Inject
     public CollyStorage(ClusterResourcesLoader clusterResourcesLoader,
@@ -65,32 +67,48 @@ public class CollyStorage {
     }
 
     @Scheduled(cron = "{colly.environment-operational-service.cron.schedule}", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
-    void syncAllClusters() {
-        Log.info("Task for sync resources from clusters has started");
-        Date startTime = new Date();
-        List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
-        List<String> clusterNames = clusterInfos.stream().map(ClusterInfo::name).toList();
-        Log.info("Cloud passports loaded for clusters: " + clusterNames);
-
-        List<CompletableFuture<Void>> futures = clusterInfos.stream()
-                .map(clusterInfo -> CompletableFuture.runAsync(
-                                () -> syncClusterWithLock(clusterInfo), executor)
-                        .exceptionally(e -> {
-                            Log.errorf("Sync failed for cluster %s (id=%s). %s", clusterInfo.name(), clusterInfo.id(), e.getMessage());
-                            return null;
-                        }))
-                .toList();
-
-        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+    void scheduledSyncAllClusters() {
         try {
-            allFutures.join();
+            syncAllClusters();
         } catch (Exception e) {
-            Log.errorf("Error occurred while loading cluster resources in parallel. %s", e.getMessage());
+            Log.warn("Scheduled sync failed: " + e.getMessage());
         }
+    }
 
-        Date loadCompleteTime = new Date();
-        long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
-        Log.info("Task for sync resources from clusters has completed. Duration = " + loadingDuration + "ms");
+    void syncAllClusters() {
+        if (!syncRunning.compareAndSet(false, true)) {
+            Log.info("syncAllClusters is already running, skipping");
+            return;
+        }
+        try {
+            Log.info("Task for sync resources from clusters has started");
+            Date startTime = new Date();
+            List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
+            List<String> clusterNames = clusterInfos.stream().map(ClusterInfo::name).toList();
+            Log.info("Cloud passports loaded for clusters: " + clusterNames);
+
+            List<CompletableFuture<Void>> futures = clusterInfos.stream()
+                    .map(clusterInfo -> CompletableFuture.runAsync(
+                                    () -> syncClusterWithLock(clusterInfo), executor)
+                            .exceptionally(e -> {
+                                Log.errorf("Sync failed for cluster %s (id=%s). %s", clusterInfo.name(), clusterInfo.id(), e.getMessage());
+                                return null;
+                            }))
+                    .toList();
+
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            try {
+                allFutures.join();
+            } catch (Exception e) {
+                Log.errorf("Error occurred while loading cluster resources in parallel. %s", e.getMessage());
+            }
+
+            Date loadCompleteTime = new Date();
+            long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
+            Log.info("Task for sync resources from clusters has completed. Duration = " + loadingDuration + "ms");
+        } finally {
+            syncRunning.set(false);
+        }
     }
 
     void syncCluster(String clusterId) {

@@ -179,7 +179,9 @@ paramset namespace resolution. Namespace not found → 404.
   — same pattern as the `paramsets` field, serialized as part of the Environment JSON blob in Redis.
 - SD is loaded in `CloudPassportLoader.loadSolutionDescriptor(inventoryDir)` and carried via
   `CloudPassportEnvironment.sdApplications` (new field, empty list if SD absent/invalid).
-- SD file path: `{Inventory}/solution-descriptor/sd.yaml` (fallback: `sd.yml`).
+- App list source, in priority order: `{Inventory}/deploy-plan.yaml` (or `.yml`) — a top-level
+  list of `{version, deployPostfix, namespace, wave, ...}` entries; if absent/invalid/empty → fall back to
+  `{Inventory}/solution-descriptor/sd.yaml` (or `sd.yml`).
 - Wired in `CollyStorage.saveEnvironmentToCache()` → `finalEnvironment.setSdApplications(...)`.
 - Populated during the existing `@Scheduled syncAll()` pass — no new scheduler.
 
