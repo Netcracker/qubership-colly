@@ -21,6 +21,7 @@ public class GitService {
 
     private static final long GC_LOOSE_OBJECTS_THRESHOLD = 2000;
     private static final long GC_PACK_FILES_THRESHOLD = 20;
+    private static final String REMOTE_ORIGIN = "origin";
 
     @ConfigProperty(name = "colly.eis.project.repo.git.token")
     String projectRepoGitToken;
@@ -108,7 +109,7 @@ public class GitService {
         }
         try (Git git = Git.open(repositoryPath)) {
             Repository repository = git.getRepository();
-            String remoteUrl = repository.getConfig().getString("remote", "origin", "url");
+            String remoteUrl = repository.getConfig().getString("remote", REMOTE_ORIGIN, "url");
             if (!repositoryUrl.equals(remoteUrl)) {
                 Log.infof("Local copy %s points to another remote (%s), it will be re-cloned", repositoryPath, remoteUrl);
                 return false;
@@ -120,7 +121,7 @@ public class GitService {
             }
             CredentialsProvider credentialsProvider = credentials(token);
             ObjectId remoteHead = git.lsRemote()
-                    .setRemote("origin")
+                    .setRemote(REMOTE_ORIGIN)
                     .setHeads(true)
                     .setCredentialsProvider(credentialsProvider)
                     .call().stream()
@@ -151,7 +152,7 @@ public class GitService {
     private static void fetchAndReset(Git git, String branch, CredentialsProvider credentialsProvider) throws GitAPIException {
         String remoteRef = Constants.R_REMOTES + "origin/" + branch;
         git.fetch()
-                .setRemote("origin")
+                .setRemote(REMOTE_ORIGIN)
                 .setRefSpecs(new RefSpec("+" + Constants.R_HEADS + branch + ":" + remoteRef))
                 .setDepth(1)
                 .setCredentialsProvider(credentialsProvider)

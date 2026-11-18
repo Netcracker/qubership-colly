@@ -158,7 +158,7 @@ public class CloudPassportLoader {
      * falls back to a full clone into a tmp folder that atomically replaces the stable one.
      */
     private void cloneToStableFolder(InstanceRepository repository, String token, String folderName) throws IOException {
-        File stableFolder = new File(cloudPassportFolder + "/" + folderName);
+        File stableFolder = Path.of(cloudPassportFolder, folderName).toFile();
         // Under the repository lock: a concurrent write (UpdateEnvironmentService) must not interleave with reset
         boolean updated = gitRepositoryLocks.withLock(stableFolder, () ->
                 gitService.tryUpdateExistingRepository(stableFolder, repository.url(), repository.branch(), token));
