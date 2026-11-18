@@ -3,6 +3,7 @@ package org.qubership.colly;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.annotation.RegisterClientHeaders;
+import org.eclipse.microprofile.rest.client.annotation.RegisterProvider;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.qubership.colly.cloudpassport.ClusterInfo;
 
@@ -10,6 +11,7 @@ import java.util.List;
 
 @RegisterRestClient(configKey = "envgene-inventory-service")
 @RegisterClientHeaders(OidcClientHeadersFactory.class)
+@RegisterProvider(M2mRequestFilter.class)
 @Path("/colly/v2/inventory-service")
 public interface EnvgeneInventoryServiceRest {
 

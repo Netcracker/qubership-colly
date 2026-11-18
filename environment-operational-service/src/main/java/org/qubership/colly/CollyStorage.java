@@ -1,5 +1,6 @@
 package org.qubership.colly;
 
+import com.netcracker.cloud.security.common.util.M2MUtils;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
@@ -8,6 +9,7 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.qubership.colly.cloudpassport.CloudPassportEnvironment;
 import org.qubership.colly.cloudpassport.ClusterInfo;
@@ -58,6 +60,31 @@ public class CollyStorage {
         this.clusterSyncLock = clusterSyncLock;
     }
 
+    /**
+     * getClusterInfos with the M2M 401 fallback from the transition plan
+     * (docs/design/m2m-kubernetes/0.transition-plan.md, section 0.2): when a request
+     * sent with a kubernetes token is rejected with 401 in hybrid mode (peer not
+     * migrated yet), retry once with the keycloak token and remember the URL so
+     * subsequent calls skip the k8s attempt. k8s mode and user-token requests never
+     * retry: their 401s propagate to the caller as is.
+     */
+    List<ClusterInfo> fetchClusterInfos() {
+        try {
+            return envgeneInventoryServiceRest.getClusterInfos();
+        } catch (WebApplicationException e) {
+            if (e.getResponse().getStatus() == Response.Status.UNAUTHORIZED.getStatusCode()
+                    && M2mTokenRoute.route() == M2mTokenRoute.Route.KUBERNETES
+                    && M2MUtils.isKubernetesM2MFallbackEnabled()) {
+                Log.debugf("M2M 401 from inventory-service, retrying with keycloak token");
+                M2mTokenRoute.forceKeycloakOnce();
+                return envgeneInventoryServiceRest.getClusterInfos();
+            }
+            throw e;
+        } finally {
+            M2mTokenRoute.endRequest();
+        }
+    }
+
     void onStart(@Observes StartupEvent event) {
         try {
             syncAllClusters();
@@ -83,7 +110,7 @@ public class CollyStorage {
         try {
             Log.info("Task for sync resources from clusters has started");
             Date startTime = new Date();
-            List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
+            List<ClusterInfo> clusterInfos = fetchClusterInfos();
             List<String> clusterNames = clusterInfos.stream().map(ClusterInfo::name).toList();
             Log.info("Cloud passports loaded for clusters: " + clusterNames);
 
@@ -115,7 +142,7 @@ public class CollyStorage {
         if (clusterId == null || clusterId.isEmpty()) {
             throw new IllegalArgumentException("Cluster id is null");
         }
-        List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
+        List<ClusterInfo> clusterInfos = fetchClusterInfos();
         ClusterInfo clusterToSync = clusterInfos.stream()
                 .filter(clusterInfo -> clusterId.equals(clusterInfo.id()))
                 .findFirst()
@@ -146,7 +173,7 @@ public class CollyStorage {
     }
 
     public List<EnvironmentDTO> getEnvironments() {
-        List<ClusterInfo> clusterInfos = envgeneInventoryServiceRest.getClusterInfos();
+        List<ClusterInfo> clusterInfos = fetchClusterInfos();
 
         List<Environment> operationalEnvironments = environmentRepository.findAll();
         List<EnvironmentDTO> result = new ArrayList<>();
