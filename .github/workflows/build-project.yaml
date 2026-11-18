@@ -34,8 +34,11 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
         with:
           java-version: 21
+          # Build the whole reactor from the repository root so the in-repo
+          # pod-secrets-config-source extension (a Maven dependency of the Java
+          # services) is installed before the services are built.
           maven-command: clean install
-          working-directory: ${{ matrix.component }}
+          working-directory: "."
           upload-artifact: "true"
           artifact-id: ${{ matrix.component }}
           maven-token: ${{ secrets.GITHUB_TOKEN }}

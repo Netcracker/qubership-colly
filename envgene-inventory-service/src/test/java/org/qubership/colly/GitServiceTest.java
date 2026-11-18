@@ -291,4 +291,9 @@ class GitServiceTest {
         Path notARepo = tempDir.resolve("not-a-repo-sync");
         assertThrows(IllegalStateException.class, () -> gitService.syncWithRemote(notARepo.toFile(), ""));
     }
+
+    // Mounted-secret (file-based) token coverage lives in GitServiceSecretFilesTest:
+    // component tests use a static-only configuration, so the secret-files config
+    // source (a runtime config source registered by the colly-pod-secrets extension)
+    // is exercised there by wiring the source into GitService directly.
 }
