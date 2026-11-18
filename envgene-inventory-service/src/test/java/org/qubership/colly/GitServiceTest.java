@@ -287,6 +287,132 @@ class GitServiceTest {
     }
 
     @Test
+    void tryUpdateExistingRepository_returnsFalseWhenFolderIsMissing() {
+        assertFalse(gitService.tryUpdateExistingRepository(tempDir.resolve("missing").toFile(), bareRepoUri, "main", ""));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_returnsFalseWhenFolderIsNotAGitRepository() throws Exception {
+        Path plain = tempDir.resolve("plain");
+        Files.createDirectories(plain);
+        Files.writeString(plain.resolve("file.txt"), "content");
+
+        assertFalse(gitService.tryUpdateExistingRepository(plain.toFile(), bareRepoUri, "main", ""));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_returnsFalseWhenRemoteUrlDiffers() {
+        Path localRepo = tempDir.resolve("local-other-url");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+
+        assertFalse(gitService.tryUpdateExistingRepository(localRepo.toFile(), "file:///some/other/repo.git", "main", ""));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_returnsFalseWhenBranchDiffers() {
+        Path localRepo = tempDir.resolve("local-other-branch");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+
+        assertFalse(gitService.tryUpdateExistingRepository(localRepo.toFile(), bareRepoUri, "develop", ""));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_returnsFalseWhenRemoteIsUnreachable() throws Exception {
+        Path localRepo = tempDir.resolve("local-unreachable");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+        org.apache.commons.io.FileUtils.deleteDirectory(tempDir.resolve("remote.git").toFile());
+
+        assertFalse(gitService.tryUpdateExistingRepository(localRepo.toFile(), bareRepoUri, "main", ""));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_upToDate_keepsCopyAndReturnsTrue() throws Exception {
+        Path localRepo = tempDir.resolve("local-up-to-date");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+        String headBefore = head(localRepo);
+
+        assertTrue(gitService.tryUpdateExistingRepository(localRepo.toFile(), bareRepoUri, "main", ""));
+        assertEquals(headBefore, head(localRepo));
+        assertEquals("initial content", Files.readString(localRepo.resolve("README.md")));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_nullBranch_usesCurrentBranch() throws Exception {
+        Path localRepo = tempDir.resolve("local-null-branch");
+        try (Git bare = Git.open(tempDir.resolve("remote.git").toFile())) {
+            bare.getRepository().updateRef("HEAD").link("refs/heads/main");
+        }
+        gitService.cloneRepository(bareRepoUri, null, "", localRepo.toFile());
+        pushRemoteChange("remote-file.txt", "from remote");
+
+        assertTrue(gitService.tryUpdateExistingRepository(localRepo.toFile(), bareRepoUri, null, ""));
+        assertEquals("from remote", Files.readString(localRepo.resolve("remote-file.txt")));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_remoteMoved_fetchesAndResets() throws Exception {
+        Path localRepo = tempDir.resolve("local-behind");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+        pushRemoteChange("README.md", "updated remotely");
+        Files.writeString(localRepo.resolve("untracked.txt"), "untracked");
+
+        assertTrue(gitService.tryUpdateExistingRepository(localRepo.toFile(), bareRepoUri, "main", ""));
+
+        assertEquals("updated remotely", Files.readString(localRepo.resolve("README.md")));
+        assertFalse(Files.exists(localRepo.resolve("untracked.txt")));
+        assertEquals(remoteHead(), head(localRepo));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_sameHeadButDirtyTree_discardsLocalChanges() throws Exception {
+        Path localRepo = tempDir.resolve("local-dirty");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+        Files.writeString(localRepo.resolve("README.md"), "dirty");
+        Files.writeString(localRepo.resolve("untracked.txt"), "untracked");
+
+        assertTrue(gitService.tryUpdateExistingRepository(localRepo.toFile(), bareRepoUri, "main", ""));
+
+        assertEquals("initial content", Files.readString(localRepo.resolve("README.md")));
+        assertFalse(Files.exists(localRepo.resolve("untracked.txt")));
+    }
+
+    @Test
+    void tryUpdateExistingRepository_localUnpushedCommit_isReplacedByRemoteState() throws Exception {
+        Path localRepo = tempDir.resolve("local-ahead");
+        gitService.cloneRepository(bareRepoUri, "main", "", localRepo.toFile());
+        try (Git git = Git.open(localRepo.toFile())) {
+            Files.writeString(localRepo.resolve("local.txt"), "local");
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage("local only").setAuthor("u", "u@test.com").call();
+        }
+
+        assertTrue(gitService.tryUpdateExistingRepository(localRepo.toFile(), bareRepoUri, "main", ""));
+
+        assertFalse(Files.exists(localRepo.resolve("local.txt")));
+        assertEquals(remoteHead(), head(localRepo));
+    }
+
+    private void pushRemoteChange(String fileName, String content) throws Exception {
+        Path otherRepo = Files.createTempDirectory(tempDir, "other");
+        Files.delete(otherRepo);
+        gitService.cloneRepository(bareRepoUri, "main", "", otherRepo.toFile());
+        Files.writeString(otherRepo.resolve(fileName), content);
+        gitService.commitAndPush(otherRepo.toFile(), "remote change", "", "Other", "other@test.com");
+    }
+
+    private static String head(Path repo) throws Exception {
+        try (Git git = Git.open(repo.toFile())) {
+            return git.getRepository().resolve("HEAD").name();
+        }
+    }
+
+    private String remoteHead() throws Exception {
+        try (Git git = Git.open(tempDir.resolve("remote.git").toFile())) {
+            return git.getRepository().resolve("refs/heads/main").name();
+        }
+    }
+
+    @Test
     void syncWithRemote_shouldThrowOnInvalidRepository() {
         Path notARepo = tempDir.resolve("not-a-repo-sync");
         assertThrows(IllegalStateException.class, () -> gitService.syncWithRemote(notARepo.toFile(), ""));

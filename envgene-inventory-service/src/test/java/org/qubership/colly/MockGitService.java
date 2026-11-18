@@ -49,6 +49,12 @@ public class MockGitService extends GitService {
         }
     }
 
+    // Fixtures are plain folders without .git: always "re-clone" so tests changing cloneAction see fresh data
+    @Override
+    public boolean tryUpdateExistingRepository(File repositoryPath, String repositoryUrl, String branch, String token) {
+        return false;
+    }
+
     @Override
     public void commitAndPush(File repositoryPath, String commitMessage) {
         Log.info("MockGitService: commitAndPush " + repositoryPath + " " + commitMessage);
