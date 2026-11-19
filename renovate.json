@@ -5,7 +5,9 @@
   "lockFileMaintenance": {
     "enabled": false
   },
-  "dependencyDashboard": true,
+  "dependencyDashboard": {
+    "enabled": true
+  },
   "prConcurrentLimit": 1,
   "branchConcurrentLimit": 1,
   "timezone": "Europe/Moscow",
