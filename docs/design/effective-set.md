@@ -130,22 +130,22 @@ read by Colly. The Effective Set API does not read UI override paramsets directl
 
 ### Cache
 
-Colly caches Effective Set files from the Git repository. The API serves requests exclusively from
-this cache and does not read the repository directly on every request.
+Colly caches Effective Set files in memory. A file is read from the local copy of the Git repository on
+the first request for it, the following requests are served from the cache.
 
-**Refresh schedule.** A background job refreshes the cache for all environments every N minutes
-(configurable), independently of API requests.
+**Invalidation.** The whole cache is cleared at the start and at the end of every successful
+[sync](sync.md); a sync that aborts clears it only at the start. Nothing is loaded in advance.
 
-**Cache build / refresh:**
+**On a cache miss:**
 
-1. Read the per-context parameters file (see [Storage model](#storage-model)) from Git for each
-   (context, scope) tuple in the environment.
+1. Read the per-context parameters file (see [Storage model](#storage-model)) of the requested
+   (context, scope) from the local copy. A missing file gives an empty map, which is cached as well.
 2. Extract the cached subset from the parsed file:
    - Exclude the `global` key.
    - Exclude any top-level key whose value is the same parsed-map object as the value of
      `global`.
    - Keep all remaining top-level keys.
-3. Store the extracted subset as the cache entry, keyed by `(context, scope)`.
+3. Store the extracted subset as the cache entry, keyed by `(environment id, context, scope)`.
 
 The cache is read-only for API requests. The request-body overlay must not mutate the cached
 map.

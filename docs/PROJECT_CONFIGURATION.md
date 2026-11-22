@@ -25,7 +25,7 @@ project-git-repo/
 
 | Field          | Type   | Required | Description                                                       |
 |----------------|--------|----------|-------------------------------------------------------------------|
-| `name`         | String | Yes      | Project name (unique identifier)                                  |
+| `name`         | String | Yes      | Project name, must be unique (the id is the folder name)          |
 | `repositories` | Array  | Yes      | List of repository configurations (instance repos, template repo) |
 | `gitGroupUrls` | Array  | No       | List of Git group URL entries (each with `region` and `url`)      |
 
@@ -78,7 +78,7 @@ Colly only reads this repository.
 | `region` | String | No       | Must match the region of the instance repository                      |
 
 A missing `region` means the default region, `cn`. It is set by `colly.eis.git.default-region` and applies
-to both instance and dcl repositories when they are matched. Rules:
+to both instance and dcl repositories, when they are matched and when their token is chosen. Rules:
 
 - A dcl repository without an instance repository in the same region is not cloned.
 - If several dcl repositories match a region, the first one is used and an error is logged.
@@ -134,7 +134,8 @@ repositories:
 
 ### Region
 
-The `region` field is optional and can be used to:
+The `region` field is optional. It selects the Git token and matches dcl repositories to instance repositories
+(blank means the default region). It can also be used to:
 - Organize environments by geographic location
 - Map environments to specific cloud regions (AWS, Azure, GCP)
 - Filter and group environments in the UI
@@ -167,28 +168,31 @@ COLLY_EIS_PROJECT_REPO_URL=https://github.com/your-org/project-configs.git
 
 ### Multiple Projects
 
-The inventory service scans all subdirectories under `projects/` and loads each `parameters.yaml` or `parameters.yml` file as a separate project configuration.
+The inventory service scans the whole repository, not only `projects/`, and loads each `parameters.yaml` or
+`parameters.yml` file as a separate project. The project id is the name of the folder that contains the file.
 
 ### Synchronization
 
-Projects are synchronized according to the cron schedule:
+Projects are synchronized at startup, on request (`POST /colly/v2/inventory-service/manual-sync`) and according
+to the cron schedule (details: [Synchronization](design/sync.md)):
 
 ```properties
-# Default: every hour
+# Default, development included: every minute
 colly.eis.cron.schedule=0 * * * * ?
 
-# Development: disabled
-%dev.colly.eis.cron.schedule=0 0 0 1 1 ? 2020
+# Tests: disabled
+%test.colly.eis.cron.schedule=0 0 0 1 1 ? 2020
 ```
 
 ## Validation
 
-When loading project configurations, Qubership Colly validates:
+The fields marked as required are not validated when a project is loaded:
 
-1. **Required fields**: `name` must be present
-2. **Repository types**: Each repository must have a valid `type`
-3. **URL format**: Repository URLs should be valid Git URLs
-4. **Template configuration**: If `envgeneTemplate` is used, `envgeneArtifact` is required
+1. A file that is not valid YAML or has no `repositories` is not loaded. **A project loaded before is then removed
+   from Colly together with its clusters and environments.**
+2. A repository with an unknown `type` is ignored.
+3. An instance or dcl repository with a missing or invalid `url` is skipped during sync, with an error in the log.
+4. A missing `name` or `envgeneArtifact` is accepted.
 
 ## Troubleshooting
 
@@ -207,7 +211,7 @@ When loading project configurations, Qubership Colly validates:
 1. Verify the token has access to the repository
 2. Check token permissions (read access required)
 3. Ensure token is not expired
-4. For private repositories, token must be provided
+4. For private repositories, a token must be provided: in the repository entry or for its region
 
 ### Region Not Showing
 

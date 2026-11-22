@@ -75,22 +75,24 @@ public class CollyStorage {
             removeDeletedProjects(projects);
             projects.forEach(projectRepository::persist);
             Log.info("Projects loaded: " + projects.size());
-            List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(projects);
+            CloudPassportLoadResult loadResult = cloudPassportLoader.loadCloudPassports(projects);
+            List<CloudPassport> cloudPassports = loadResult.cloudPassports();
             Log.info("Cloud passports loaded: " + cloudPassports.size());
-            removeDeletedClusters(cloudPassports);
+            removeDeletedClusters(loadResult);
             cloudPassports.forEach(this::saveDataToCache);
             // Requests served while folders were being replaced may have cached stale or empty data
             effectiveSetCalculator.clearCache();
             Date loadCompleteTime = new Date();
             long loadingDuration = loadCompleteTime.getTime() - startTime.getTime();
             Log.info("Task for loading data from git has completed. Duration = " + loadingDuration + "ms");
+            logFailedProjects(loadResult.failedProjectIds());
         } finally {
             syncRunning.set(false);
         }
     }
 
-    private void removeDeletedClusters(List<CloudPassport> currentCloudPassports) {
-        Map<String, Set<String>> currentNamesByProject = currentCloudPassports.stream()
+    private void removeDeletedClusters(CloudPassportLoadResult loadResult) {
+        Map<String, Set<String>> currentNamesByProject = loadResult.cloudPassports().stream()
                 .collect(Collectors.groupingBy(
                         cp -> cp.gitInfo().projectId(),
                         Collectors.mapping(CloudPassport::name, Collectors.toSet())));
@@ -98,6 +100,10 @@ public class CollyStorage {
         clusterRepository.listAll().stream()
                 .filter(cached -> {
                     String projectId = cached.getGitInfo().projectId();
+                    // By project, not by url: the url of the failed repository may have just been changed
+                    if (loadResult.failedProjectIds().contains(projectId)) {
+                        return false;
+                    }
                     Set<String> currentNames = currentNamesByProject.getOrDefault(projectId, Set.of());
                     return !currentNames.contains(cached.getName());
                 })
@@ -133,10 +139,17 @@ public class CollyStorage {
             throw new NotFoundException("Project is not found. ID=" + projectId);
         }
         effectiveSetCalculator.clearCache();
-        List<CloudPassport> cloudPassports = cloudPassportLoader.loadCloudPassports(List.of(project));
-        Log.info("Cloud passports loaded: " + cloudPassports.size());
-        cloudPassports.forEach(this::saveDataToCache);
+        CloudPassportLoadResult loadResult = cloudPassportLoader.loadCloudPassports(List.of(project));
+        Log.info("Cloud passports loaded: " + loadResult.cloudPassports().size());
+        loadResult.cloudPassports().forEach(this::saveDataToCache);
         effectiveSetCalculator.clearCache();
+        logFailedProjects(loadResult.failedProjectIds());
+    }
+
+    private void logFailedProjects(Set<String> failedProjectIds) {
+        if (!failedProjectIds.isEmpty()) {
+            Log.errorf("Failed to sync %d project(s): %s", failedProjectIds.size(), failedProjectIds);
+        }
     }
 
     private void saveDataToCache(CloudPassport cloudPassport) {

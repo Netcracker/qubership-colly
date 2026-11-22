@@ -22,6 +22,8 @@ public class GitService {
     private static final long GC_LOOSE_OBJECTS_THRESHOLD = 2000;
     private static final long GC_PACK_FILES_THRESHOLD = 20;
     private static final String REMOTE_ORIGIN = "origin";
+    static final String DEFAULT_REGION_PROPERTY = "colly.eis.git.default-region";
+    static final String DEFAULT_REGION = "cn";
 
     @ConfigProperty(name = "colly.eis.project.repo.git.token")
     String projectRepoGitToken;
@@ -29,18 +31,21 @@ public class GitService {
     @ConfigProperty(name = "colly.eis.git.tokens")
     Optional<Map<String, String>> gitTokens;
 
+    @ConfigProperty(name = DEFAULT_REGION_PROPERTY, defaultValue = DEFAULT_REGION)
+    String defaultRegion;
+
+    /**
+     * @param region blank means the default region
+     */
     public String resolveToken(String explicitToken, String region) {
         if (explicitToken != null && !explicitToken.isBlank()) {
             return explicitToken;
         }
-        if (region == null || region.isBlank()) {
-            throw new IllegalStateException(
-                    "Cannot resolve git token: no explicit token and no region provided");
-        }
-        String token = gitTokens.map(m -> m.get(region)).orElse(null);
+        String effectiveRegion = region == null || region.isBlank() ? defaultRegion : region;
+        String token = gitTokens.map(m -> m.get(effectiveRegion)).orElse(null);
         if (token == null || token.isBlank()) {
             throw new IllegalStateException(
-                    "Cannot resolve git token: no token configured for region: " + region);
+                    "Cannot resolve git token: no token configured for region: " + effectiveRegion);
         }
         return token;
     }

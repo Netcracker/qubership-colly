@@ -194,8 +194,10 @@ helm uninstall qubership-colly
     - Ensure proper authentication tokens
    - For project repository: check `COLLY_EIS_PROJECT_REPO_GIT_TOKEN` is set correctly
    - For instance repositories: check that either an explicit `token` is set in `parameters.yaml` or
-     `COLLY_EIS_GIT_TOKENS_<REGION>` is configured for the repository's region (
-     see [Git Token Configuration](#git-token-configuration))
+     `COLLY_EIS_GIT_TOKENS_<REGION>` is configured for the repository's region, or for the default region
+     if it has none (see [Git Token Configuration](#git-token-configuration))
+   - A failed repository does not fail the sync, and manual sync still returns 204: look for `Failed to sync`
+     in the inventory service log (see [Synchronization](design/sync.md#failures))
 
 4. **Redis Connection Issues**
     - Verify Redis is running and accessible
@@ -277,6 +279,7 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 | `COLLY_EIS_CLOUD_PASSPORT_FOLDER`  | Local folder for cloned Cloud Passport repositories                                                                                                                                                           | `./git-repo`                      |
 | `COLLY_EIS_PROJECT_REPO_GIT_TOKEN` | Git token for cloning the project repository                                                                                                                                                                  | -                                 |
 | `COLLY_EIS_GIT_TOKENS_<REGION>`    | Git token for the given region (e.g. `COLLY_EIS_GIT_TOKENS_CN`). Used to clone instance repositories when no explicit token is set on the repository. See [Git Token Configuration](#git-token-configuration) | -                                 |
+| `COLLY_EIS_GIT_DEFAULT_REGION`     | Region assumed for instance and dcl repositories without `region`                                                                                                                                             | `cn`                              |
 | `COLLY_EIS_CRON_SCHEDULE`          | Synchronization schedule for inventory data                                                                                                                                                                   | `0 * * * * ?`                     |
 | `QUARKUS_OIDC_AUTH_SERVER_URL`     | OIDC provider URL (e.g., Keycloak realm URL)                                                                                                                                                                  | -                                 |
 | `QUARKUS_OIDC_CLIENT_ID`           | OIDC client ID                                                                                                                                                                                                | `colly-envgene-inventory-service` |
@@ -329,12 +332,15 @@ projects and their instance repositories).
 
 ### Per-Region Instance Repository Tokens
 
-Used when cloning **instance repositories** (Cloud Passport repositories listed in `parameters.yaml`). The token is
-resolved in this order:
+Used for **instance repositories** (Cloud Passport repositories listed in `parameters.yaml`), both reading and
+writing, and for **dcl repositories**, which are only read. The token is resolved in this order:
 
 1. If `token` is explicitly set on the repository in `parameters.yaml` — use it.
 2. If `token` is not set but `region` is — look up the token configured for that region.
-3. If neither `token` nor `region` is set — the service fails with an error during sync.
+3. If neither `token` nor `region` is set — look up the token of the default region
+   (`colly.eis.git.default-region`, `cn` unless configured).
+4. If no token is found — the repository is skipped and the error is logged, the sync of the others continues
+   (see [Synchronization](design/sync.md#failures)).
 
 **Helm configuration:**
 
@@ -371,9 +377,9 @@ repositories:
     branch: main
     region: cn
 
-  # No token, no region — sync will fail for this repository
+  # No token, no region — uses the default region: COLLY_EIS_GIT_TOKENS_CN
   - type: envgeneInstance
-    url: https://gitlab.com/my-org/broken-repo.git
+    url: https://gitlab.com/my-org/default-region-repo.git
     branch: main
 ```
 

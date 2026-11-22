@@ -33,7 +33,7 @@ The same write path is used by `UpdateEnvironmentService.updateParamset` (UI par
 | Collision                                 | Handling                                                                                   |
 |-------------------------------------------|--------------------------------------------------------------------------------------------|
 | **Write vs write, same Colly instance**   | Serialized by the repository lock. The second write runs after the first one, on top of it |
-| **Write vs `syncAll` folder replacement** | Serialized by the repository lock                                                          |
+| **Write vs sync update of the folder**    | Serialized by the repository lock                                                          |
 | **Write vs direct Git push**              | The write starts from the latest remote state, so commits already pushed are preserved     |
 | **Push race**                             | Remote rejects the push as non-fast-forward → `409`                                        |
 
@@ -58,7 +58,9 @@ The following parts of the original design were not implemented:
 under it:
 
 - the whole write sequence: sync, modify files, commit and push;
-- the `syncAll` step that replaces the stable folder with the fresh clone (`CloudPassportLoader.replaceStableFolder`).
+- the sync step that updates the existing copy in place (`GitService.tryUpdateExistingRepository`);
+- the sync step that replaces the stable folder with a fresh clone, when the copy cannot be updated
+  (`CloudPassportLoader.replaceStableFolder`).
 
 The clone itself runs outside the lock, into a `-tmp` folder. Clone folder names are stable,
 `<project name>-<first 12 hex chars of sha256(url)>`, so a cached `GitInfo.folderName` keeps pointing to
@@ -103,7 +105,7 @@ sequenceDiagram
     participant Colly
     participant Cache as Cache
     participant Git as Git
-    Note over Cache, Git: Background syncAll (every minute by default):<br/>clone, replace stable folder under the lock, reload cache
+    Note over Cache, Git: Background syncAll (every minute by default):<br/>update the copy under the lock (or clone and replace it), reload cache
     Git -->> Cache: periodic - paramsets
     User ->> Colly: GET /ui-parameters?namespaceName=...
     Colly ->> Cache: read Environment + scope paramsets
@@ -166,10 +168,10 @@ sequenceDiagram
   not loaded yet is not removed.
 - **Single instance scope.** The lock is local to the JVM. Instances of the service do not share it, and each
   has its own clone. A race between instances is resolved only by the remote rejecting the push (`409`).
-- **`syncAll` reads files outside the lock.** Only the folder replacement is locked. Parsing the stable folder
+- **`syncAll` reads files outside the lock.** Only updating and replacing the folder is locked. Parsing the stable folder
   can overlap with a write, so a sync may load uncommitted changes or changes of a write that then fails.
   A later sync corrects the cache.
-- **Stale reads after a write.** A `syncAll` that cloned before a push can store the older state in the cache
+- **Stale reads after a write.** A `syncAll` that read the files before a push can store the older state in the cache
   after the POST has returned. GET returns the older values until the next sync.
 - **Other replicas.** On other instances, GET returns the new values only after their next `syncAll`.
 

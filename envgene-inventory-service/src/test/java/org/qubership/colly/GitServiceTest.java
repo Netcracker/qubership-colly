@@ -174,17 +174,19 @@ class GitServiceTest {
     }
 
     @Test
-    void resolveToken_shouldThrowWhenNoTokenAndNoRegion() {
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> gitService.resolveToken(null, null));
-        assertTrue(ex.getMessage().contains("no explicit token and no region provided"));
+    void resolveToken_shouldUseDefaultRegionWhenNoRegion() {
+        assertEquals("token-for-cn", gitService.resolveToken(null, null));
     }
 
     @Test
-    void resolveToken_shouldThrowWhenNoTokenAndBlankRegion() {
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> gitService.resolveToken("", ""));
-        assertTrue(ex.getMessage().contains("no explicit token and no region provided"));
+    void resolveToken_shouldUseDefaultRegionWhenBlankRegion() {
+        assertEquals("token-for-cn", gitService.resolveToken("", " "));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.git.default-region", value = "mb")
+    void resolveToken_shouldUseConfiguredDefaultRegion() {
+        assertEquals("token-for-mb", gitService.resolveToken(null, null));
     }
 
     @Test
