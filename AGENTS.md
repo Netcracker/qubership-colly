@@ -14,7 +14,7 @@ Qubership Colly: Kubernetes environment tracking across many clusters. Most work
 
 Design docs: `docs/design/` — read the relevant one before changing a feature it describes
 (e.g. `paramset-architecture.md`, `ui-override.md`, `applications-api.md`, `effective-set.md`,
-`git-repository-handling.md`, `envgene-inventory-service-openapi.yaml`).
+`sync.md`, `git-repository-handling.md`, `envgene-inventory-service-openapi.yaml`).
 
 ## Commands
 
@@ -32,6 +32,11 @@ Design docs: `docs/design/` — read the relevant one before changing a feature 
 2. If test data under `gitrepo_with_cloudpassports/` changed → update `CloudPassportLoaderTest` expectations (it hardcodes
    paramsets per environment, including `sourceName`, and `sdApplications`).
 3. If a REST contract changed → update `docs/design/envgene-inventory-service-openapi.yaml` and the related design doc.
+4. After every change, verify that the documentation is still correct:
+   - search `docs/` (not only `docs/design/`), `README.md` and this file for the changed behavior, classes,
+     properties, endpoints and status codes. Search by meaning too: "fails with an error" may have become false;
+   - compare what you find with the code, not with memory or the plan; fix what is wrong, describe what is new;
+   - in the final report, say which docs were checked and which were updated.
 
 ## Working conventions
 
@@ -144,7 +149,7 @@ Spec: `docs/design/applications-api.md`. Key points:
   `Inventory/solution-descriptor/sd.y(a)ml`. Any entry with null `version`/`deployPostfix` invalidates the whole SD
   (empty list + warning).
 - Stored as `List<SdApplication>` on `db/data/Environment.sdApplications` (Redis), set in
-  `CollyStorage.saveEnvironmentToCache()` during the scheduled `syncAll()`. `SolutionDescriptor` is a read-only
+  `CollyStorage.saveEnvironmentToCache()` during sync (`docs/design/sync.md`). `SolutionDescriptor` is a read-only
   Jackson model, not stored.
 - Name = part of `version` before `:` (`"postgres:1.32.6"` → `postgres`), whole string if no `:`, then `.distinct()`.
 - Fixture: `gitrepo_with_cloudpassports/environments/test-cluster/env-1/Inventory/solution-descriptor/sd.yaml`.

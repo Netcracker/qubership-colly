@@ -196,6 +196,8 @@ helm uninstall qubership-colly
    - For instance repositories: check that either an explicit `token` is set in `parameters.yaml` or
      `COLLY_EIS_GIT_TOKENS_<REGION>` is configured for the repository's region, or for the default region
      if it has none (see [Git Token Configuration](#git-token-configuration))
+   - A failed repository does not fail the sync, and manual sync still returns 204: look for `Failed to sync`
+     in the inventory service log (see [Synchronization](design/sync.md#failures))
 
 4. **Redis Connection Issues**
     - Verify Redis is running and accessible
@@ -337,7 +339,8 @@ writing, and for **dcl repositories**, which are only read. The token is resolve
 2. If `token` is not set but `region` is — look up the token configured for that region.
 3. If neither `token` nor `region` is set — look up the token of the default region
    (`colly.eis.git.default-region`, `cn` unless configured).
-4. If no token is found — the repository is skipped and the error is logged, the sync of the others continues.
+4. If no token is found — the repository is skipped and the error is logged, the sync of the others continues
+   (see [Synchronization](design/sync.md#failures)).
 
 **Helm configuration:**
 

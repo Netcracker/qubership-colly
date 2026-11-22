@@ -117,14 +117,16 @@ over earlier paramsets in the same list.
 Colly caches paramset files from the Git repository. The API serves GET requests exclusively
 from this cache and does not read the repository directly on every request.
 
-**Refresh schedule.** A background job refreshes the cache for all environments every N minutes
-(configurable), independently of API requests.
+The cache is `Environment.paramsets` in Redis.
+
+**Refresh.** Every [sync](sync.md) rebuilds it: at startup, on the cron schedule and on manual sync. A successful
+POST updates it immediately.
 
 **Cache build / refresh:**
 
-1. Read the paramset files associated with the environment from Git.
-2. Validate file structure against the paramset schema.
-3. On successful validation, create or update the cache entry.
+1. Read the paramset files referenced from `env_definition.yml` in the local copy of the Git repository.
+2. Parse them. There is no schema validation: a file that is missing or is not valid YAML is skipped with a log message.
+3. Replace the paramsets of the environment. Values of a skipped file are no longer in the cache.
 
 ## General API rules
 

@@ -3,6 +3,8 @@
 How `envgene-inventory-service` keeps local copies of Git repositories, how it brings them up to date,
 and how reads and writes are kept apart.
 
+When a sync runs and what it does with the files is described in [sync.md](sync.md).
+
 ## Repositories and where they live
 
 | Repository           | Source                                     | Local folder                                    | Token                                        |
@@ -16,23 +18,25 @@ and how reads and writes are kept apart.
 Tokens are resolved by `GitService.resolveToken(explicitToken, region)`: the repository's explicit token wins,
 otherwise the token for its region comes from `colly.eis.git.tokens`. A blank region means
 `colly.eis.git.default-region` (`cn`), for reads and writes alike. If no token is found, an error is raised.
-Git authentication always uses `oauth2` / `<token>`.
+Git authentication uses `oauth2` / `<token>` for fetch, `ls-remote` and push. A clone uses an empty user name and
+the token, or no credentials if the token is blank.
 
 ### Stable folder name
 
 `CloudPassportLoader.repositoryFolderName(project, url)` → `<project name>-<sha256(url)[0..12]>`
 (project id if the name is blank; unsafe characters are replaced with `_`).
 
-The name depends only on the project and the URL, not on the order of projects or repositories. So:
+The name depends only on the project name and the URL, not on the branch or on the order of projects and
+repositories (collisions are listed in [sync.md](sync.md#known-limitations)). So:
 
 - `GitInfo.folderName` of a cluster points to the same repository on every sync;
 - the local copy from the previous sync can be reused (see below);
 - a repository listed twice in one project is cloned once (the duplicate is skipped with an error log).
 
-## Read path — scheduled sync
+## Read path — sync
 
-`CollyStorage.syncAll()` runs on `colly.eis.cron.schedule`. Overlapping runs are skipped
-(`ConcurrentExecution.SKIP` plus the `syncRunning` flag).
+`CollyStorage.syncAll()` runs at startup, on `colly.eis.cron.schedule` and on `POST /manual-sync`; `syncProject` runs
+only the `CloudPassportLoader` part, for one project. See [sync.md](sync.md#triggers).
 
 ```
 CollyStorage.syncAll
@@ -62,7 +66,8 @@ cloneToStableFolder(repository, token, folderName)
 ```
 
 The full clone goes to a `-tmp` folder and replaces the stable folder only when it is complete,
-so readers never see a half-cloned repository.
+so readers never see a half-cloned repository. Readers take no lock, so they can find the folder missing
+during the replacement or partly updated during a reset.
 
 ### `GitService.tryUpdateExistingRepository`
 
@@ -70,8 +75,8 @@ The copy is reused only if all of these hold. Otherwise the method returns `fals
 
 1. `<folder>/.git` exists and the folder opens as a Git repository;
 2. `remote.origin.url` equals the expected URL;
-3. the local branch equals the expected branch (`null`/blank branch means "the branch the copy is on",
-   used for the project repository, which follows the remote default branch);
+3. the local branch equals the expected branch (`null`/blank branch means "the branch the copy is on", which is
+   the remote default branch at clone time. Always so for the project repository, optional for the others);
 4. `ls-remote` finds that branch on the remote.
 
 Then:
@@ -90,19 +95,18 @@ of a full clone. A changed repository downloads only the new head commit.
 
 ### Failure handling
 
+What a failure means for Redis, the log and the HTTP status is described in [sync.md](sync.md#failures).
+
 - **Instance repository**: on any failure (no url, no token, git error, folder replacement) the repository is skipped
-  for this sync and the others continue. Its project is reported in `CloudPassportLoadResult.failedProjectIds`:
-  - no cluster of that project is removed from Redis until all its instance repositories sync again, otherwise
-    an outage would delete the clusters and environments and give them new ids on recovery;
-  - the failed projects are logged at the end of the sync. Startup, cron and `POST /manual-sync` (with or without
-    `projectId`) behave the same: a failed instance repository does not fail the sync, so manual sync answers 204.
+  for this sync and the others continue. Its project is reported in `CloudPassportLoadResult.failedProjectIds`.
 - **DCL repository**: a failure never stops the sync. If a copy from a previous sync exists, it keeps being read.
-- **Project repository**: if the folder cannot be cleaned before cloning, `loadProjects` returns `null`.
+- **Project repository**: a failure to clone it aborts `syncAll`. A failed clone throws, and the old copy is already deleted
+  by then. If the folder cannot be cleaned, `loadProjects` returns `null`, which `syncAll` does not handle (NPE).
 
 ## Write path — committing changes
 
 Used by `UpdateEnvironmentService` (`POST /environments/{id}/ui-parameters`, `PATCH /environments/{id}`).
-Writes go to the same local copy that the scheduled sync reads.
+Writes go to the same local copy that the sync reads.
 
 ```
 withLock(<instance repository folder>):
@@ -125,8 +129,8 @@ These operations on the same folder never overlap:
 | `cloneToStableFolder` → `tryUpdateExistingRepository` | `reset --hard` / `clean` must not wipe files a write is preparing |
 | `replaceStableFolder`                      | a write must never see a deleted or half-moved folder                  |
 
-The lock is held only while the folder is being changed. The full clone into `-tmp` runs without it,
-so a slow clone does not block writes. The project repository is not locked because nothing writes to it.
+The lock is held during the network calls of writes and in-place updates (`ls-remote`, fetch, push). The full clone
+into `-tmp` runs without it, so a slow clone does not block writes. The project repository is not locked because nothing writes to it.
 
 ## Code map
 
@@ -138,5 +142,5 @@ so a slow clone does not block writes. The project repository is not locked beca
 | Folder naming                          | `CloudPassportLoader.repositoryFolderName`               |
 | Project repository sync                | `ProjectRepoLoader.loadProjects`                         |
 | Writes                                 | `UpdateEnvironmentService`                               |
-| Scheduler                              | `CollyStorage.syncAll`                                   |
+| Sync orchestration                     | `CollyStorage.syncAll`, `syncProject`, see [sync.md](sync.md) |
 | Tests                                  | `GitServiceTest`, `CloudPassportLoaderTest`, `ProjectRepoLoaderTest` (`MockGitService` in tests) |
