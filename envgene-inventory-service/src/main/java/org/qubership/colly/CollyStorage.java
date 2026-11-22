@@ -134,6 +134,7 @@ public class CollyStorage {
     }
 
     void syncProject(String projectId) {
+        Log.info("Manual sync for project with id= " + projectId);
         Project project = projectRepository.findById(projectId);
         if (project == null) {
             throw new NotFoundException("Project is not found. ID=" + projectId);
@@ -144,6 +145,7 @@ public class CollyStorage {
         loadResult.cloudPassports().forEach(this::saveDataToCache);
         effectiveSetCalculator.clearCache();
         logFailedProjects(loadResult.failedProjectIds());
+        Log.info("Manual sync completed for project with id= " + projectId);
     }
 
     private void logFailedProjects(Set<String> failedProjectIds) {
