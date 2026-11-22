@@ -36,6 +36,9 @@ Design docs: `docs/design/` — read the relevant one before changing a feature 
 ## Working conventions
 
 - The user often writes in Russian — reply in the language of the request; code, commits, and docs stay in English.
+- **Start every change on a new branch**: before the first edit, create it from an up-to-date `main`
+  (`feature/…`, `fix/…`, `docs/…`, `refactor/…`). Never edit on `main`. Follow-ups to the same task stay on its branch.
+  Uncommitted files of the user are carried over untouched — don't stash, reset or commit them.
 - Commit messages: Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`). Commit only when asked.
 - The repo root and `tmp/` contain many untracked personal scripts/notes (`*.sh`, `*.md`, `logs.log`) — leave them alone
   and never stage them.
