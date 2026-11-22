@@ -47,6 +47,9 @@ applications:         # → application-level (one record per application)
       OTHER_PARAM: "other value"
 ```
 
+A file without content or with invalid YAML, and an empty item in `applications`, are skipped with an error in the
+log. They do not remove the environment, see [sync.md](sync.md#broken-files).
+
 ---
 
 ## Reserved deployPostfix "cloud"

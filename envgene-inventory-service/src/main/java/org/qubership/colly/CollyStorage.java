@@ -192,7 +192,7 @@ public class CollyStorage {
         environmentRepository.findByClusterId(finalCluster.getId()).stream()
                 .filter(env -> !currentEnvNames.contains(env.getName()))
                 .forEach(env -> {
-                    Log.infof("Environment %s no longer exists in cluster %s - removing from cache", env.getName(), finalCluster.getName());
+                    Log.infof("Environment %s was not loaded from Git for cluster %s - removing from cache", env.getName(), finalCluster.getName());
                     environmentRepository.deleteById(env.getId());
                 });
     }
@@ -236,6 +236,9 @@ public class CollyStorage {
         finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());
 
         Log.infof("Environment %s has been loaded from CloudPassport", finalEnvironment.getName());
+        if (finalEnvironment.removeNamespacesWithoutName()) {
+            Log.infof("Namespaces without name have been removed from cache for environment %s", finalEnvironment.getName());
+        }
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));
 
         // Persist environment separately for fast access

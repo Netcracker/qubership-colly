@@ -77,7 +77,8 @@ public class CloudPassportLoader {
                         .filter(Objects::nonNull)
                         .toList());
             } catch (Exception e) {
-                Log.errorf("Error loading CloudPassports from %s. %s", environmentsDir, e.getMessage());
+                Log.errorf(e, "Error loading CloudPassports from %s", environmentsDir);
+                failedProjectIds.add(gitInfo.projectId());
             }
         }
         return new CloudPassportLoadResult(cloudPassports, failedProjectIds);
@@ -320,23 +321,35 @@ public class CloudPassportLoader {
     }
 
     private Set<CloudPassportEnvironment> processEnvironmentsInClusterFolder(Path clusterFolderPath, GitInfo gitInfo, String clusterName) {
+        List<Path> envDefinitionPaths;
         try (Stream<Path> paths = Files.walk(clusterFolderPath)) {
-            return paths.filter(Files::isDirectory)
+            envDefinitionPaths = paths.filter(Files::isDirectory)
                     .map(path -> path.resolve(ENV_DEFINITION_YML_FILENAME))
                     .filter(Files::isRegularFile)
-                    .map(path -> processEnvDefinition(path, gitInfo, clusterName))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-        } catch (Exception e) {
-            Log.errorf("Error loading Environments from %s. %s", clusterFolderPath, e.getMessage());
+                    .toList();
+        } catch (IOException e) {
+            // must not become an empty list: the sync deletes the environments that are not loaded
+            throw new UncheckedIOException(e);
         }
-        return Collections.emptySet();
+        return envDefinitionPaths.stream()
+                .map(path -> loadEnvironmentOrSkip(path, gitInfo, clusterName))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
-    private CloudPassportEnvironment processEnvDefinition(Path envDevinitionPath, GitInfo gitInfo, String clusterName) {
+    private CloudPassportEnvironment loadEnvironmentOrSkip(Path envDefinitionPath, GitInfo gitInfo, String clusterName) {
+        try {
+            return processEnvDefinition(envDefinitionPath, gitInfo, clusterName);
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to load environment from %s, skipping it", envDefinitionPath);
+            return null;
+        }
+    }
+
+    private CloudPassportEnvironment processEnvDefinition(Path envDevinitionPath, GitInfo gitInfo, String clusterName) throws IOException {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         Path environmentPath = envDevinitionPath.getParent().getParent();
-        List<CloudPassportNamespace> namespaces = Collections.emptyList();
+        List<CloudPassportNamespace> namespaces;
         try (Stream<Path> paths = Files.walk(environmentPath)) {
             namespaces = paths.map(path -> path.resolve(NAMESPACE_YML_FILENAME))
                     .filter(Files::isRegularFile)
@@ -344,14 +357,17 @@ public class CloudPassportLoader {
                     .map(this::parseNamespaceFile)
                     .filter(Objects::nonNull)
                     .toList();
-        } catch (IOException e) {
-            Log.errorf("Error loading namespaces from %s. %s", environmentPath, e.getMessage());
         }
         try (FileInputStream inputStream = new FileInputStream(envDevinitionPath.toFile())) {
             Log.info("Processing environment in folder: " + envDevinitionPath);
             EnvDefinition envDefinition = mapper.readValue(inputStream, EnvDefinition.class);
+            if (envDefinition == null) {
+                Log.errorf("No YAML content in %s, skipping the environment", envDevinitionPath);
+                return null;
+            }
             Inventory inventory = envDefinition.inventory();
             if (inventory == null) {
+                Log.errorf("No inventory in %s, skipping the environment", envDevinitionPath);
                 return null;
             }
             EnvDefinitionMetadata envDefinitionMetadata = envDefinition.metadata();
@@ -411,9 +427,6 @@ public class CloudPassportLoader {
                     accessGroups, effectiveAccessGroups, paramsets, sspStandalone, cmApproach, sdApplications,
                     effectiveSetPath, effectiveSetHistoryUrl,
                     resolveDclEffectiveSetPath(cmApproach, gitInfo, environmentPath, environmentName));
-        } catch (IOException e) {
-            Log.errorf("Error loading environment from %s. %s", environmentPath, e.getMessage());
-            return null;
         }
     }
 
@@ -497,6 +510,10 @@ public class CloudPassportLoader {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try (FileInputStream inputStream = new FileInputStream(namespaceFilePath.toFile())) {
             Namespace namespace = mapper.readValue(inputStream, Namespace.class);
+            if (namespace == null || StringUtils.isBlank(namespace.getName())) {
+                Log.errorf("No namespace name in %s, skipping the file", namespaceFilePath);
+                return null;
+            }
             Log.info("Processing namespace " + namespace.getName());
             String deployPostfix = namespaceFilePath.getParent().getFileName().toString();
             return new CloudPassportNamespace(namespace.getName(), deployPostfix);

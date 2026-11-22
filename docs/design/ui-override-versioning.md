@@ -170,7 +170,8 @@ sequenceDiagram
   has its own clone. A race between instances is resolved only by the remote rejecting the push (`409`).
 - **`syncAll` reads files outside the lock.** Only updating and replacing the folder is locked. Parsing the stable folder
   can overlap with a write, so a sync may load uncommitted changes or changes of a write that then fails.
-  A later sync corrects the cache.
+  A later sync corrects the cache. If `env_definition.yml` could not be parsed at that moment, the environment is
+  [deleted](sync.md#broken-files) and comes back with a new id.
 - **Stale reads after a write.** A `syncAll` that read the files before a push can store the older state in the cache
   after the POST has returned. GET returns the older values until the next sync.
 - **Other replicas.** On other instances, GET returns the new values only after their next `syncAll`.

@@ -615,7 +615,7 @@ public class InventoryServiceRest {
     @APIResponse(
             responseCode = "204",
             description = "Synchronization triggered successfully (no content returned). " +
-                    "Also returned if some instance repositories failed to sync: their projects are listed in the service log"
+                    "Also returned if some instance repositories or environments failed to sync: see the service log"
     )
     @APIResponse(
             responseCode = "401",
