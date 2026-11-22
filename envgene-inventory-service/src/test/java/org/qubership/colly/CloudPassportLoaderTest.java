@@ -275,7 +275,7 @@ class CloudPassportLoaderTest {
                 new EnvgeneTemplateRepository("gitrepo_template2", "main", new EnvgeneArtifact("my-app:1.0", "qa")),
                 List.of(), List.of());
 
-        Map<String, String> folderByCluster = loader.loadCloudPassports(List.of(project2, project1)).stream()
+        Map<String, String> folderByCluster = loader.loadCloudPassports(List.of(project2, project1)).cloudPassports().stream()
                 .collect(java.util.stream.Collectors.toMap(CloudPassport::name, cp -> cp.gitInfo().folderName()));
 
         assertThat(folderByCluster, is(Map.of(
@@ -297,7 +297,7 @@ class CloudPassportLoaderTest {
         when(gitService.tryUpdateExistingRepository(eq(stableFolder), eq("gitrepo_with_cloudpassports"), eq("main"), any()))
                 .thenReturn(true);
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
 
         assertThat(result, contains(TEST_CLUSTER));
         verify(gitService, times(1)).cloneRepository(eq("gitrepo_with_cloudpassports"), any(), any(), any());
@@ -312,7 +312,7 @@ class CloudPassportLoaderTest {
                 List.of(), List.of());
         loader.loadCloudPassports(List.of(project));
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
 
         assertThat(result, contains(TEST_CLUSTER));
         verify(gitService, times(2)).tryUpdateExistingRepository(any(), eq("gitrepo_with_cloudpassports"), any(), any());
@@ -328,7 +328,7 @@ class CloudPassportLoaderTest {
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
                 List.of(), List.of());
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
 
         assertThat(result, contains(TEST_CLUSTER));
         verify(gitService, times(1)).cloneRepository(eq("gitrepo_with_cloudpassports"), any(), any(), any());
@@ -345,7 +345,7 @@ class CloudPassportLoaderTest {
                 List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "mb")),
                 new EnvgeneTemplateRepository("gitrepo_template2", "main", new EnvgeneArtifact("my-app:feature-new-ui-09876", "qa")),
                 List.of(), List.of());
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project1, project2)).cloudPassports();
         assertThat(result, containsInAnyOrder(TEST_CLUSTER, UNREACHABLE_CLUSTER));
 
     }
@@ -358,7 +358,7 @@ class CloudPassportLoaderTest {
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
                 List.of(), List.of());
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project1));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project1)).cloudPassports();
         assertThat(result, contains(new CloudPassport("cluster-with-invalid-envs",
                 "some_token_for_cluster_with_invalid_envs",
                 "https://42.gr7.eu-west-1.eks.amazonaws.com:443",
@@ -386,7 +386,7 @@ class CloudPassportLoaderTest {
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
                 List.of(), List.of());
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
 
         Map<String, Boolean> sspByEnv = result.stream()
                 .flatMap(cp -> cp.environments().stream())
@@ -406,7 +406,7 @@ class CloudPassportLoaderTest {
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:1.0", "dev")),
                 List.of(), List.of());
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
 
         Map<String, CmApproach> cmApproachByEnv = result.stream()
                 .flatMap(cp -> cp.environments().stream())
@@ -430,7 +430,7 @@ class CloudPassportLoaderTest {
                 new EnvgeneTemplateRepository("gitrepo_template", "main", new EnvgeneArtifact("my-app:feature-new-ui-123456", "dev")),
                 List.of(), List.of());
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
 
         List<String> clusterNames = result.stream().map(CloudPassport::name).toList();
         assertThat(clusterNames, not(hasItem("cluster-outside-environments")));
@@ -444,7 +444,7 @@ class CloudPassportLoaderTest {
                 null,
                 List.of(), List.of());
 
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
 
         List<String> clusterNames = result.stream().map(CloudPassport::name).toList();
         assertThat(clusterNames, not(hasItem("cluster-outside-environments")));
@@ -469,7 +469,7 @@ class CloudPassportLoaderTest {
     }
 
     private CloudPassport loadSingle(Project project) {
-        List<CloudPassport> result = loader.loadCloudPassports(List.of(project));
+        List<CloudPassport> result = loader.loadCloudPassports(List.of(project)).cloudPassports();
         assertThat(result, hasSize(1));
         return result.getFirst();
     }
@@ -583,6 +583,51 @@ class CloudPassportLoaderTest {
 
         assertThat(passport.gitInfo().dclFolderName(), nullValue());
         assertThat(environment(passport, "env-no-cmdb-v2-test").dclEffectiveSetPath(), nullValue());
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void instance_cloneFailure_doesNotStopNextProjects() {
+        doThrow(new IllegalStateException("clone failed")).when(gitService)
+                .cloneRepository(eq("broken_repo"), any(), any(), any());
+
+        assertNextProjectIsSynced(new InstanceRepository("broken_repo", "main", "42", "cn"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void instance_withoutToken_doesNotStopNextProjects() {
+        when(gitService.resolveToken(null, "no-token")).thenThrow(new IllegalStateException("no token"));
+
+        assertNextProjectIsSynced(new InstanceRepository("broken_repo", "main", null, "no-token"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void instance_withoutUrl_doesNotStopNextProjects() {
+        assertNextProjectIsSynced(new InstanceRepository(null, "main", "42", "cn"));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void dcl_withoutUrl_doesNotBreakInstanceLoading() {
+        Project project = dclProject("dcl-no-url", "cn", new InstanceRepository(null, "main", "dcl-token", "cn"));
+
+        CloudPassportLoadResult result = loader.loadCloudPassports(List.of(project));
+
+        assertThat(result.cloudPassports(), hasSize(1));
+        assertThat(result.failedProjectIds(), empty());
+    }
+
+    private void assertNextProjectIsSynced(InstanceRepository brokenRepository) {
+        Project broken = new Project("broken", "broken", List.of(brokenRepository), null, List.of(), List.of());
+        Project next = dclProject("after-broken", "cn", dcl("cn"));
+
+        CloudPassportLoadResult result = loader.loadCloudPassports(List.of(broken, next));
+
+        assertThat(result.failedProjectIds(), contains("broken"));
+        assertThat(result.cloudPassports(), hasSize(1));
+        assertThat(result.cloudPassports().getFirst().gitInfo().dclFolderName(), is(dclFolder(next)));
     }
 
     @Test

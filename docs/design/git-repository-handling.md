@@ -14,7 +14,8 @@ and how reads and writes are kept apart.
 `<cloud.passport.folder>` is `colly.eis.cloud.passport.folder` (`./git-repo` by default).
 
 Tokens are resolved by `GitService.resolveToken(explicitToken, region)`: the repository's explicit token wins,
-otherwise the token for its region comes from `colly.eis.git.tokens`. If neither is set, an error is raised.
+otherwise the token for its region comes from `colly.eis.git.tokens`. A blank region means
+`colly.eis.git.default-region` (`cn`), for reads and writes alike. If no token is found, an error is raised.
 Git authentication always uses `oauth2` / `<token>`.
 
 ### Stable folder name
@@ -89,7 +90,12 @@ of a full clone. A changed repository downloads only the new head commit.
 
 ### Failure handling
 
-- **Instance repository**: if the stable folder cannot be replaced, the repository is skipped for this sync (error log).
+- **Instance repository**: on any failure (no url, no token, git error, folder replacement) the repository is skipped
+  for this sync and the others continue. Its project is reported in `CloudPassportLoadResult.failedProjectIds`:
+  - no cluster of that project is removed from Redis until all its instance repositories sync again, otherwise
+    an outage would delete the clusters and environments and give them new ids on recovery;
+  - the failed projects are logged at the end of the sync. Startup, cron and `POST /manual-sync` (with or without
+    `projectId`) behave the same: a failed instance repository does not fail the sync, so manual sync answers 204.
 - **DCL repository**: a failure never stops the sync. If a copy from a previous sync exists, it keeps being read.
 - **Project repository**: if the folder cannot be cleaned before cloning, `loadProjects` returns `null`.
 

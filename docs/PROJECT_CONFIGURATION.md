@@ -78,7 +78,7 @@ Colly only reads this repository.
 | `region` | String | No       | Must match the region of the instance repository                      |
 
 A missing `region` means the default region, `cn`. It is set by `colly.eis.git.default-region` and applies
-to both instance and dcl repositories when they are matched. Rules:
+to both instance and dcl repositories, when they are matched and when their token is chosen. Rules:
 
 - A dcl repository without an instance repository in the same region is not cloned.
 - If several dcl repositories match a region, the first one is used and an error is logged.

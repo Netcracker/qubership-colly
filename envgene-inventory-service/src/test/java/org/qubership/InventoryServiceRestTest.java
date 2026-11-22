@@ -18,9 +18,11 @@ import org.qubership.colly.db.data.Environment;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
@@ -1733,6 +1735,57 @@ class InventoryServiceRestTest {
                 .statusCode(200)
                 .body("name", hasItem("env-1"))
                 .body("name", not(hasItems("env-test", "env-metadata-test")));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void sync_failedInstanceRepository_keepsItsCache_andSyncsOtherProjects() {
+        given().when().post("/colly/v2/inventory-service/manual-sync").then().statusCode(204);
+        String clusterId = clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster").getId();
+        List<String> environmentIds = environmentIdsOfCluster(clusterId);
+        assertThat(environmentIds, not(empty()));
+
+        mockGitService.setCloneAction((url, dest) -> {
+            if ("gitrepo_with_cloudpassports".equals(url)) {
+                throw new IOException("remote is unavailable");
+            }
+            FileUtils.copyDirectory(new File("src/test/resources/" + url), dest);
+            FileUtils.deleteDirectory(new File(dest, "environments/unreachable-cluster"));
+        });
+        given().when().post("/colly/v2/inventory-service/manual-sync").then().statusCode(204);
+
+        // the failed project is left as is, the healthy one is fully synced, deletions included
+        assertThat(environmentIdsOfCluster(clusterId), is(environmentIds));
+        assertThat(clusterRepository.findById(clusterId), notNullValue());
+        assertThat(clusterRepository.findByProjectIdAndName("solar_saturn", "unreachable-cluster"), nullValue());
+
+        mockGitService.reset();
+        given().when().post("/colly/v2/inventory-service/manual-sync").then().statusCode(204);
+
+        assertThat(clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster").getId(), is(clusterId));
+        assertThat(environmentIdsOfCluster(clusterId), is(environmentIds));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void syncProject_failedInstanceRepository_keepsItsCache() {
+        given().when().post("/colly/v2/inventory-service/manual-sync").then().statusCode(204);
+        String clusterId = clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster").getId();
+        List<String> environmentIds = environmentIdsOfCluster(clusterId);
+        mockGitService.setCloneAction((url, dest) -> {
+            throw new IOException("remote is unavailable");
+        });
+
+        given().queryParam("projectId", "solar_earth")
+                .when().post("/colly/v2/inventory-service/manual-sync")
+                .then().statusCode(204);
+
+        assertThat(clusterRepository.findById(clusterId), notNullValue());
+        assertThat(environmentIdsOfCluster(clusterId), is(environmentIds));
+    }
+
+    private List<String> environmentIdsOfCluster(String clusterId) {
+        return environmentRepository.findByClusterId(clusterId).stream().map(Environment::getId).sorted().toList();
     }
 
     @Test

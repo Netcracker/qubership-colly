@@ -52,14 +52,15 @@ public class CloudPassportLoader {
     @ConfigProperty(name = "colly.eis.cloud.passport.folder")
     String cloudPassportFolder;
 
-    @ConfigProperty(name = "colly.eis.git.default-region", defaultValue = "cn")
+    @ConfigProperty(name = GitService.DEFAULT_REGION_PROPERTY, defaultValue = GitService.DEFAULT_REGION)
     String defaultRegion;
 
-    public List<CloudPassport> loadCloudPassports(List<Project> projects) {
-        List<GitInfo> gitInfos = cloneGitRepositories(projects);
+    public CloudPassportLoadResult loadCloudPassports(List<Project> projects) {
+        Set<String> failedProjectIds = new HashSet<>();
+        List<GitInfo> gitInfos = cloneGitRepositories(projects, failedProjectIds);
         Path dir = Paths.get(cloudPassportFolder);
         if (!dir.toFile().exists()) {
-            return Collections.emptyList();
+            return new CloudPassportLoadResult(List.of(), failedProjectIds);
         }
         List<CloudPassport> cloudPassports = new ArrayList<>();
         for (GitInfo gitInfo : gitInfos) {
@@ -79,10 +80,10 @@ public class CloudPassportLoader {
                 Log.errorf("Error loading CloudPassports from %s. %s", environmentsDir, e.getMessage());
             }
         }
-        return cloudPassports;
+        return new CloudPassportLoadResult(cloudPassports, failedProjectIds);
     }
 
-    private List<GitInfo> cloneGitRepositories(List<Project> projects) {
+    private List<GitInfo> cloneGitRepositories(List<Project> projects, Set<String> failedProjectIds) {
         new File(cloudPassportFolder).mkdirs();
         cleanupTmpDirectories();
 
@@ -91,6 +92,11 @@ public class CloudPassportLoader {
         for (Project project : projects) {
             Map<String, String> dclFoldersByRegion = cloneDclRepositories(project);
             for (InstanceRepository instanceRepository : project.instanceRepositories()) {
+                if (StringUtils.isBlank(instanceRepository.url())) {
+                    Log.errorf("Instance repository of project %s has no url, skipping", project.name());
+                    failedProjectIds.add(project.id());
+                    continue;
+                }
                 String folderName = repositoryFolderName(project, instanceRepository.url());
                 if (!usedFolders.add(folderName)) {
                     Log.errorf("Instance repository %s is listed more than once in project %s, skipping duplicate",
@@ -98,12 +104,13 @@ public class CloudPassportLoader {
                     continue;
                 }
                 String stableFolder = cloudPassportFolder + "/" + folderName;
-                String token = gitService.resolveToken(instanceRepository.token(), instanceRepository.region());
                 try {
+                    String token = gitService.resolveToken(instanceRepository.token(), instanceRepository.region());
                     cloneToStableFolder(instanceRepository, token, folderName);
-                } catch (IOException e) {
-                    Log.errorf("Failed to replace stable directory %s, skipping repo %s",
-                            stableFolder, instanceRepository.url());
+                } catch (IOException | RuntimeException e) {
+                    Log.errorf(e, "Failed to sync instance repository %s of project %s, skipping",
+                            instanceRepository.url(), project.name());
+                    failedProjectIds.add(project.id());
                     continue;
                 }
                 result.add(new GitInfo(instanceRepository, stableFolder, project.id(),
@@ -127,6 +134,10 @@ public class CloudPassportLoader {
         Set<String> processedRegions = new HashSet<>();
         for (InstanceRepository dclRepository : project.dclRepositories()) {
             String region = normalizeRegion(dclRepository.region());
+            if (StringUtils.isBlank(dclRepository.url())) {
+                Log.errorf("Dcl repository of project %s in region %s has no url, skipping", project.name(), region);
+                continue;
+            }
             if (!instanceRegions.contains(region)) {
                 Log.warnf("Dcl repository %s of project %s has no instance repository in region %s, skipping",
                         dclRepository.url(), project.name(), region);
