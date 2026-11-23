@@ -15,10 +15,12 @@ import org.qubership.colly.db.ClusterRepository;
 import org.qubership.colly.db.EnvironmentRepository;
 import org.qubership.colly.db.data.Cluster;
 import org.qubership.colly.db.data.Environment;
+import org.qubership.colly.db.data.Namespace;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.allOf;
@@ -28,6 +30,9 @@ import static org.hamcrest.Matchers.*;
 @QuarkusTest
 @TestTransaction
 class InventoryServiceRestTest {
+
+    private static final String ENV_TEST_DEFINITION = "environments/test-cluster/env-test/Inventory/env_definition.yml";
+    private static final String METADATA_ENV_PARAMETERS = "environments/test-cluster/env-metadata-test/Inventory/parameters/";
 
     @Inject
     MockGitService mockGitService;
@@ -1782,6 +1787,213 @@ class InventoryServiceRestTest {
 
         assertThat(clusterRepository.findById(clusterId), notNullValue());
         assertThat(environmentIdsOfCluster(clusterId), is(environmentIds));
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void sync_brokenEnvironment_isDeleted_andOthersAreUpdated() {
+        assertOnlyBrokenEnvironmentIsDeleted(null);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void syncProject_brokenEnvironment_isDeleted_andOthersAreUpdated() {
+        assertOnlyBrokenEnvironmentIsDeleted("solar_earth");
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void sync_allEnvironmentsBroken_keepsClusterWithoutEnvironments() {
+        manualSync(null);
+        String clusterId = clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster").getId();
+        changeInstanceRepository(dest -> {
+            for (File file : FileUtils.listFiles(new File(dest, "environments/test-cluster"), new String[]{"yml"}, true)) {
+                if ("env_definition.yml".equals(file.getName())) {
+                    FileUtils.writeStringToFile(file, "---\n", "UTF-8");
+                }
+            }
+        });
+
+        manualSync(null);
+
+        assertThat(clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster").getId(), is(clusterId));
+        assertThat(environmentIdsOfCluster(clusterId), empty());
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void sync_namespaceWithoutName_doesNotBreakNextSyncs() {
+        String envDir = "environments/test-cluster/env-new/";
+        changeInstanceRepository(dest -> {
+            writeMinimalEnvironment(new File(dest, envDir), "new");
+            FileUtils.writeStringToFile(new File(dest, envDir + "Namespaces/core/namespace.yml"), "kind: namespace\n", "UTF-8");
+        });
+        try {
+            manualSync(null);
+            manualSync(null);
+            assertThat(environmentInTestCluster("env-new").getNamespaces(), empty());
+
+            changeInstanceRepository(dest -> {
+                writeMinimalEnvironment(new File(dest, envDir), "new");
+                FileUtils.writeStringToFile(new File(dest, envDir + "Namespaces/core/namespace.yml"), "name: env-new-core\n", "UTF-8");
+            });
+            manualSync(null);
+            assertThat(environmentInTestCluster("env-new").getNamespaces().stream().map(Namespace::getName).toList(),
+                    contains("env-new-core"));
+        } finally {
+            environmentRepository.deleteById(environmentInTestCluster("env-new").getId());
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void sync_removesNamespaceWithoutNameStoredBefore() {
+        manualSync(null);
+        Environment environment = environmentInTestCluster("env-test");
+        List<Namespace> validNamespaces = environment.getNamespaces();
+        Namespace withoutName = new Namespace();
+        withoutName.setUid("namespace-without-name");
+        environment.setNamespaces(Stream.concat(Stream.of(withoutName), validNamespaces.stream()).toList());
+        environmentRepository.persist(environment);
+        try {
+            manualSync(null);
+
+            assertThat(environmentRepository.findById(environment.getId()).getNamespaces().stream().map(Namespace::getUid).toList(),
+                    is(validNamespaces.stream().map(Namespace::getUid).toList()));
+        } finally {
+            environment.setNamespaces(validNamespaces);
+            environmentRepository.persist(environment);
+        }
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void updateEnvironment_worksNextToEnvironmentWithoutContent() {
+        changeInstanceRepository(dest ->
+                FileUtils.writeStringToFile(new File(dest, ENV_TEST_DEFINITION), "---\n", "UTF-8"));
+        manualSync(null);
+
+        given()
+                .contentType("application/json")
+                .body("{\"description\":\"updated next to a broken one\"}")
+                .when().patch("/colly/v2/inventory-service/environments/" + environmentInTestCluster("env-metadata-test").getId())
+                .then().statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void setUiParameters_worksWhenParamsetFileHasNoContent() {
+        changeInstanceRepository(dest -> FileUtils.writeStringToFile(
+                new File(dest, METADATA_ENV_PARAMETERS + "core-my-app-deploy-ui-override.yaml"), "---\n", "UTF-8"));
+        manualSync(null);
+
+        setMyAppParameters("{\"deployment\":{\"KEY\":\"value\"}}");
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void setUiParameters_worksWhenParamsetHasEmptyApplicationItem() {
+        changeInstanceRepository(dest -> FileUtils.writeStringToFile(
+                new File(dest, METADATA_ENV_PARAMETERS + "core-my-app-deploy-ui-override.yaml"), """
+                        applications:
+                          -
+                          - appName: my-app
+                            parameters:
+                              OLD_KEY: value
+                        """, "UTF-8"));
+        manualSync(null);
+
+        setMyAppParameters("{\"deployment\":{\"KEY\":\"value\"}}");
+    }
+
+    @Test
+    @TestSecurity(user = "test")
+    void deleteUiParameter_worksWhenParamsetHasEmptyApplicationItem() {
+        changeInstanceRepository(dest -> FileUtils.writeStringToFile(
+                new File(dest, METADATA_ENV_PARAMETERS + "core-my-app-runtime-manual-params.yaml"), """
+                        applications:
+                          -
+                          - appName: my-app
+                            parameters:
+                              MANUAL_KEY: value
+                        """, "UTF-8"));
+        manualSync(null);
+
+        setMyAppParameters("{\"runtime\":{\"MANUAL_KEY\":null}}");
+    }
+
+    private void assertOnlyBrokenEnvironmentIsDeleted(String projectId) {
+        manualSync(null);
+        String clusterId = clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster").getId();
+        String brokenId = environmentInTestCluster("env-test").getId();
+        List<String> otherIds = environmentIdsOfCluster(clusterId).stream().filter(id -> !id.equals(brokenId)).toList();
+        changeInstanceRepository(dest -> {
+            FileUtils.writeStringToFile(new File(dest, ENV_TEST_DEFINITION), """
+                    inventory:
+                      environmentName: env-test
+                    metadata:
+                      status: BROKEN
+                    """, "UTF-8");
+            File healthy = new File(dest, "environments/test-cluster/env-metadata-test/Inventory/env_definition.yml");
+            FileUtils.writeStringToFile(healthy, FileUtils.readFileToString(healthy, "UTF-8")
+                    .replace("description from metadata", "changed in git"), "UTF-8");
+        });
+
+        manualSync(projectId);
+
+        assertThat(environmentIdsOfCluster(clusterId), is(otherIds));
+        assertThat(environmentInTestCluster("env-metadata-test").getDescription(), is("changed in git"));
+        given().when().get("/colly/v2/inventory-service/environments/" + brokenId).then().statusCode(404);
+
+        mockGitService.reset();
+        manualSync(projectId);
+
+        assertThat(environmentInTestCluster("env-test").getId(), not(brokenId));
+        assertThat(environmentIdsOfCluster(clusterId), hasItems(otherIds.toArray(String[]::new)));
+    }
+
+    @FunctionalInterface
+    private interface RepositoryChange {
+        void apply(File dest) throws IOException;
+    }
+
+    private void changeInstanceRepository(RepositoryChange change) {
+        mockGitService.setCloneAction((url, dest) -> {
+            File source = new File("src/test/resources/" + url);
+            if (source.exists()) {
+                FileUtils.copyDirectory(source, dest);
+            }
+            if ("gitrepo_with_cloudpassports".equals(url)) {
+                change.apply(dest);
+            }
+        });
+    }
+
+    private void manualSync(String projectId) {
+        var request = given();
+        if (projectId != null) {
+            request.queryParam("projectId", projectId);
+        }
+        request.when().post("/colly/v2/inventory-service/manual-sync").then().statusCode(204);
+    }
+
+    private void setMyAppParameters(String parameters) {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"commitInfo": {"username": "test", "email": "test@mail.com", "commitMessage": "test"},
+                         "parameters": %s}
+                        """.formatted(parameters))
+                .when().post("/colly/v2/inventory-service/environments/" + environmentInTestCluster("env-metadata-test").getId()
+                        + "/ui-parameters?namespaceName=test-ns&applicationName=my-app")
+                .then().statusCode(204);
+    }
+
+    private Environment environmentInTestCluster(String name) {
+        Cluster cluster = clusterRepository.findByProjectIdAndName("solar_earth", "test-cluster");
+        return environmentRepository.findByClusterId(cluster.getId()).stream()
+                .filter(environment -> name.equals(environment.getName()))
+                .findFirst().orElseThrow();
     }
 
     private List<String> environmentIdsOfCluster(String clusterId) {

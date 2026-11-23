@@ -198,6 +198,8 @@ helm uninstall qubership-colly
      if it has none (see [Git Token Configuration](#git-token-configuration))
    - A failed repository does not fail the sync, and manual sync still returns 204: look for `Failed to sync`
      in the inventory service log (see [Synchronization](design/sync.md#failures))
+   - An environment that disappeared may have a broken `env_definition.yml`: look for `Failed to load environment`,
+     `No YAML content in` or `No inventory in` in the same log (see [Broken files](design/sync.md#broken-files))
 
 4. **Redis Connection Issues**
     - Verify Redis is running and accessible

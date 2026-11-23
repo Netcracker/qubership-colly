@@ -22,14 +22,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
+import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -628,6 +636,189 @@ class CloudPassportLoaderTest {
         assertThat(result.failedProjectIds(), contains("broken"));
         assertThat(result.cloudPassports(), hasSize(1));
         assertThat(result.cloudPassports().getFirst().gitInfo().dclFolderName(), is(dclFolder(next)));
+    }
+
+    private static final String CLUSTER_DIR = "environments/test-cluster/";
+    private static final String ENV_TEST_DEFINITION = CLUSTER_DIR + "env-test/Inventory/env_definition.yml";
+    private static final String ENV_TEST_NAMESPACE = CLUSTER_DIR + "env-test/Namespaces/bss/namespace.yml";
+    private static final Set<String> ENVS_EXCEPT_ENV_TEST = Set.of("env-metadata-test", "env-no-cmdb-v2-test",
+            "env-cmdb-with-v2-override-test", "env-cmdb-with-v1-override-test", "env-no-cmdb-v1-explicit-test");
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void environment_withInvalidMetadata_isTheOnlyOneNotLoaded() {
+        for (String metadata : List.of("status: BROKEN", "status: free", "status: ''", "type: environment",
+                "expirationDate: '31.12.2025'", "expirationDate: ''")) {
+            assertOnlyEnvTestIsNotLoaded("""
+                    inventory:
+                      environmentName: env-test
+                    metadata:
+                      %s
+                    """.formatted(metadata));
+        }
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void environment_withoutContentOrWithInvalidYaml_isTheOnlyOneNotLoaded() {
+        for (String content : List.of("---\n", "", "# only a comment\n", "inventory: [broken")) {
+            assertOnlyEnvTestIsNotLoaded(content);
+        }
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void environment_withoutInventory_isTheOnlyOneNotLoaded() {
+        for (String content : List.of("metadata:\n  status: FREE\n", "inventory:\n")) {
+            assertOnlyEnvTestIsNotLoaded(content);
+        }
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void namespace_withoutContentOrName_isSkipped() {
+        for (String content : List.of("---\n", "kind: namespace\n", "name: ''\n", "name: '  '\n")) {
+            LoadWithLog load = loadWithFile(ENV_TEST_NAMESPACE, content);
+
+            assertThat(content, load.passport().environments(), hasSize(6));
+            assertThat(content, environment(load.passport(), "env-test").namespaceDtos(), empty());
+            assertThat(content, load.errors(), hasItem(containsString(ENV_TEST_NAMESPACE)));
+        }
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void paramset_withoutContent_isSkipped() {
+        String file = CLUSTER_DIR + "parameters/bss-my-app-deploy-ui-override.yaml";
+        LoadWithLog load = loadWithFile(file, "---\n");
+
+        assertThat(load.passport().environments(), hasSize(6));
+        assertThat(environment(load.passport(), "env-test").paramsets().stream().map(Paramset::sourceName).toList(),
+                containsInAnyOrder("bss-deploy-ui-override", "deploy-ui-override"));
+        assertThat(load.errors(), hasItem(containsString(file)));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void globalParamset_withoutContent_doesNotRemoveEnvironments() {
+        String file = "environments/parameters/deploy-ui-override.yaml";
+        LoadWithLog load = loadWithFile(file, "---\n");
+
+        assertThat(load.passport().environments(), hasSize(6));
+        assertThat(environment(load.passport(), "env-test").paramsets().stream().map(Paramset::sourceName).toList(),
+                containsInAnyOrder("bss-deploy-ui-override", "bss-my-app-deploy-ui-override"));
+        assertThat(load.errors(), hasItem(containsString(file)));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void paramset_emptyApplicationItem_isSkipped() {
+        String file = CLUSTER_DIR + "parameters/bss-my-app-deploy-ui-override.yaml";
+        LoadWithLog load = loadWithFile(file, """
+                applications:
+                  -
+                  - appName: my-app
+                    parameters:
+                      KEY: value
+                """);
+
+        assertThat(load.passport().environments(), hasSize(6));
+        assertThat(environment(load.passport(), "env-test").paramsets(), hasItem(new Paramset(ParamsetContext.DEPLOYMENT,
+                ParamsetLevel.APPLICATION, "bss", "my-app", Map.of("KEY", "value"), "bss-my-app-deploy-ui-override")));
+        assertThat(load.errors(), hasItem(containsString(file)));
+    }
+
+    @Test
+    @TestConfigProperty(key = "colly.eis.cloud.passport.folder", value = "target/test-cloud-passport-folder")
+    void unreadableFolder_marksProjectAsFailed_andDoesNotStopNextProjects() {
+        Project broken = new Project("broken", "unreadable-folder",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
+                null, List.of(), List.of());
+        Project next = new Project("next", "after-unreadable-folder",
+                List.of(new InstanceRepository("gitrepo_with_unreachable_cluster", "main", "43", "cn")),
+                null, List.of(), List.of());
+        String lockedPath = CLUSTER_DIR + "env-test/locked";
+        File lockedInStableFolder = new File(CLONE_ROOT
+                + CloudPassportLoader.repositoryFolderName(broken, "gitrepo_with_cloudpassports"), lockedPath);
+        changeClone("gitrepo_with_cloudpassports", dest -> {
+            File locked = new File(dest, lockedPath);
+            FileUtils.forceMkdir(locked);
+            locked.setReadable(false);
+            // root and file systems without POSIX permissions can read it anyway
+            assumeFalse(locked.canRead());
+        });
+        try {
+            CloudPassportLoadResult result = loader.loadCloudPassports(List.of(broken, next));
+
+            assertThat(result.failedProjectIds(), contains("broken"));
+            assertThat(result.cloudPassports().stream().map(CloudPassport::name).toList(), contains("unreachable-cluster"));
+        } finally {
+            lockedInStableFolder.setReadable(true);
+        }
+    }
+
+    @FunctionalInterface
+    private interface CloneChange {
+        void apply(File dest) throws IOException;
+    }
+
+    private record LoadWithLog(CloudPassport passport, List<String> errors) {
+    }
+
+    private void changeClone(String url, CloneChange change) {
+        doAnswer(invocation -> {
+            File dest = invocation.getArgument(3);
+            FileUtils.copyDirectory(new File("src/test/resources/" + invocation.getArgument(0)), dest);
+            if (url.equals(invocation.getArgument(0))) {
+                change.apply(dest);
+            }
+            return null;
+        }).when(gitService).cloneRepository(anyString(), any(), any(), any());
+    }
+
+    private LoadWithLog loadWithFile(String path, String content) {
+        changeClone("gitrepo_with_cloudpassports",
+                dest -> FileUtils.writeStringToFile(new File(dest, path), content, "UTF-8"));
+        Project project = new Project("1", "broken-file",
+                List.of(new InstanceRepository("gitrepo_with_cloudpassports", "main", "42", "cn")),
+                null, List.of(), List.of());
+        List<String> errors = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord logRecord) {
+                if (logRecord.getLevel().intValue() >= Level.SEVERE.intValue()) {
+                    errors.add(logRecord.getMessage() + " " + Arrays.toString(logRecord.getParameters()));
+                }
+            }
+
+            @Override
+            public void flush() {
+                // nothing is buffered
+            }
+
+            @Override
+            public void close() {
+                // nothing to release
+            }
+        };
+        Logger logger = Logger.getLogger("org.qubership.colly");
+        logger.addHandler(handler);
+        try {
+            CloudPassportLoadResult result = loader.loadCloudPassports(List.of(project));
+            assertThat(result.failedProjectIds(), empty());
+            assertThat(result.cloudPassports(), hasSize(1));
+            return new LoadWithLog(result.cloudPassports().getFirst(), errors);
+        } finally {
+            logger.removeHandler(handler);
+        }
+    }
+
+    private void assertOnlyEnvTestIsNotLoaded(String definition) {
+        LoadWithLog load = loadWithFile(ENV_TEST_DEFINITION, definition);
+
+        assertThat(definition, load.passport().environments().stream().map(CloudPassportEnvironment::name).collect(toSet()),
+                is(ENVS_EXCEPT_ENV_TEST));
+        assertThat(definition, load.errors(), hasItem(containsString(ENV_TEST_DEFINITION)));
     }
 
     @Test

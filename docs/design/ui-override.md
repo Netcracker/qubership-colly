@@ -125,8 +125,13 @@ POST updates it immediately.
 **Cache build / refresh:**
 
 1. Read the paramset files referenced from `env_definition.yml` in the local copy of the Git repository.
-2. Parse them. There is no schema validation: a file that is missing or is not valid YAML is skipped with a log message.
-3. Replace the paramsets of the environment. Values of a skipped file are no longer in the cache.
+2. Parse them. There is no schema validation. A file that is missing, has no YAML content or is not valid YAML is
+   skipped with a log message, so is an empty item in `applications`.
+3. Replace the paramsets of the environment. Values of a skipped file or item are no longer in the cache.
+
+When a POST reads a file that has no YAML document (only `---`), it treats it as empty. Empty items in
+`applications` are dropped when a POST rewrites the file. Known limitation: if the file it has to read is 0 bytes,
+only a comment or invalid YAML, the POST answers 500.
 
 ## General API rules
 

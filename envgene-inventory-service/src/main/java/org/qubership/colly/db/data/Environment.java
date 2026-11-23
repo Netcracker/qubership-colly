@@ -61,6 +61,10 @@ public class Environment {
         this.namespaces.add(namespace);
     }
 
+    public boolean removeNamespacesWithoutName() {
+        return namespaces != null && namespaces.removeIf(namespace -> namespace.getName() == null);
+    }
+
     public List<Paramset> getParamsets() {
         return paramsets != null ? Collections.unmodifiableList(paramsets) : Collections.emptyList();
     }

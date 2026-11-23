@@ -234,6 +234,9 @@ public class UpdateEnvironmentService {
     private String resolveEnvironmentName(Path inventoryDir) {
         try {
             EnvDefinition envDefinition = YAML_MAPPER.readValue(inventoryDir.resolve(ENV_DEFINITION_FILE).toFile(), EnvDefinition.class);
+            if (envDefinition == null) {
+                return null; // no YAML content: the sync does not load it, must not break updates of the other environments
+            }
             Inventory inventory = envDefinition.inventory();
             if (inventory == null) {
                 return null;

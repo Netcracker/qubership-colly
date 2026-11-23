@@ -15,7 +15,6 @@ import org.qubership.colly.db.data.Namespace;
 import org.qubership.colly.db.data.ParamsetContext;
 import org.qubership.colly.db.data.ParamsetLevel;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,8 +81,8 @@ public class ParamsetService {
             return List.of();
         }
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        try (FileInputStream inputStream = new FileInputStream(paramsetFilePath.toFile())) {
-            ParamsetFileData fileData = mapper.readValue(inputStream, ParamsetFileData.class);
+        try {
+            ParamsetFileData fileData = readParamsetFile(mapper, paramsetFilePath);
             List<Paramset> result = new ArrayList<>();
 
             // Use paramsetName (= entry in env_definition.yml = filename without .yaml),
@@ -115,6 +114,21 @@ public class ParamsetService {
         }
     }
 
+    // Used by both sync and write paths. Invalid or empty (0 bytes) YAML is still an IOException, each caller handles it
+    private ParamsetFileData readParamsetFile(ObjectMapper mapper, Path filePath) throws IOException {
+        ParamsetFileData data = mapper.readValue(filePath.toFile(), ParamsetFileData.class);
+        if (data == null) {
+            Log.errorf("No YAML content in %s, skipping the file", filePath);
+            return new ParamsetFileData(null, Map.of(), List.of());
+        }
+        if (data.applications() != null && data.applications().stream().anyMatch(Objects::isNull)) {
+            Log.errorf("Empty application item in %s, skipping the item", filePath);
+            return new ParamsetFileData(data.name(), data.parameters(),
+                    data.applications().stream().filter(Objects::nonNull).toList());
+        }
+        return data;
+    }
+
     // Fallback hierarchy: <env>/Inventory/parameters/ → <cluster>/parameters/ → environments/parameters/
     private Path resolveParamsetFilePath(Path inventoryDir, String paramsetName) {
         String fileName = paramsetName + YAML_EXT;
@@ -142,7 +156,7 @@ public class ParamsetService {
         if (target.level() == ParamsetLevel.APPLICATION) {
             List<ParamsetFileData.ParamsetApplicationData> apps = new ArrayList<>();
             if (Files.isRegularFile(filePath)) {
-                ParamsetFileData existing = mapper.readValue(filePath.toFile(), ParamsetFileData.class);
+                ParamsetFileData existing = readParamsetFile(mapper, filePath);
                 if (existing.applications() != null) {
                     existing.applications().stream()
                             .filter(a -> !applicationName.equals(a.appName()))
@@ -236,7 +250,7 @@ public class ParamsetService {
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        ParamsetFileData existing = mapper.readValue(filePath.toFile(), ParamsetFileData.class);
+        ParamsetFileData existing = readParamsetFile(mapper, filePath);
 
         Map<String, Object> newTopParams;
         List<ParamsetFileData.ParamsetApplicationData> newApps;

@@ -31,6 +31,9 @@ repository.
 `inventory.environmentName` is optional. When omitted, the environment name is taken from the `<environment>` folder
 name (i.e. the parent directory of the `Inventory` folder).
 
+`inventory` itself is required. Values of `status` and `type` are case-sensitive, `expirationDate` cannot be an empty
+string. An environment with an invalid file is not loaded and is removed from Colly, see [sync.md](sync.md#broken-files).
+
 ```yaml
 metadata:
   description: "QA environment for core services"

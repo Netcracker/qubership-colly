@@ -134,6 +134,7 @@ public class CollyStorage {
     }
 
     void syncProject(String projectId) {
+        Log.info("Manual sync for project with id= " + projectId);
         Project project = projectRepository.findById(projectId);
         if (project == null) {
             throw new NotFoundException("Project is not found. ID=" + projectId);
@@ -144,6 +145,7 @@ public class CollyStorage {
         loadResult.cloudPassports().forEach(this::saveDataToCache);
         effectiveSetCalculator.clearCache();
         logFailedProjects(loadResult.failedProjectIds());
+        Log.info("Manual sync completed for project with id= " + projectId);
     }
 
     private void logFailedProjects(Set<String> failedProjectIds) {
@@ -190,7 +192,7 @@ public class CollyStorage {
         environmentRepository.findByClusterId(finalCluster.getId()).stream()
                 .filter(env -> !currentEnvNames.contains(env.getName()))
                 .forEach(env -> {
-                    Log.infof("Environment %s no longer exists in cluster %s - removing from cache", env.getName(), finalCluster.getName());
+                    Log.infof("Environment %s was not loaded from Git for cluster %s - removing from cache", env.getName(), finalCluster.getName());
                     environmentRepository.deleteById(env.getId());
                 });
     }
@@ -234,6 +236,9 @@ public class CollyStorage {
         finalEnvironment.setCmApproach(cloudPassportEnvironment.cmApproach());
 
         Log.infof("Environment %s has been loaded from CloudPassport", finalEnvironment.getName());
+        if (finalEnvironment.removeNamespacesWithoutName()) {
+            Log.infof("Namespaces without name have been removed from cache for environment %s", finalEnvironment.getName());
+        }
         cloudPassportEnvironment.namespaceDtos().forEach(cloudPassportNamespace -> saveNamespaceToCache(cloudPassportNamespace, finalEnvironment));
 
         // Persist environment separately for fast access
