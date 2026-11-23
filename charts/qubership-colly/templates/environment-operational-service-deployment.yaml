@@ -1,4 +1,7 @@
 ---
+{{- if not (or (eq .Values.M2M_AUTH_MODE "legacy") (eq .Values.M2M_AUTH_MODE "hybrid") (eq .Values.M2M_AUTH_MODE "k8s")) }}
+{{- fail "M2M_AUTH_MODE must be 'legacy', 'hybrid' or 'k8s' (got: " .Values.M2M_AUTH_MODE ")" }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,6 +33,40 @@ spec:
         app.kubernetes.io/part-of: qubership-colly
         app.kubernetes.io/technology: java
     spec:
+      serviceAccountName: {{ .Values.colly.environmentOperationalService.serviceName }}
+      {{- if or (eq .Values.M2M_AUTH_MODE "hybrid") (eq .Values.M2M_AUTH_MODE "k8s") }}
+      # Projected SA tokens + topology ConfigMap (PDPLDEVOPS-25309). Mirrors
+      # coretpl.volumes.default (core-helm-library >= 2.1.0), inlined because
+      # this chart has no coretpl dependency. Renders nothing in legacy mode.
+      volumes:
+        - name: topology
+          configMap:
+            name: topology
+        - name: projected-netcracker-token
+          projected:
+            defaultMode: 292
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  audience: netcracker
+                  expirationSeconds: {{ default 3600 .Values.KUBERNETES_M2M_EXPIRATION_SECONDS }}
+        - name: projected-dbaas-token
+          projected:
+            defaultMode: 292
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  audience: dbaas
+                  expirationSeconds: {{ default 3600 .Values.KUBERNETES_M2M_EXPIRATION_SECONDS }}
+        - name: projected-maas-token
+          projected:
+            defaultMode: 292
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  audience: maas
+                  expirationSeconds: {{ default 3600 .Values.KUBERNETES_M2M_EXPIRATION_SECONDS }}
+      {{- end }}
       containers:
         - env:
             - name: KUBERNETES_NAMESPACE
@@ -66,6 +103,8 @@ spec:
                   name: {{ .Values.colly.environmentOperationalService.serviceName }}-client-credentials
             - name: QUARKUS_OIDC_TLS_VERIFICATION
               value: none
+            - name: M2M_AUTH_MODE
+              value: {{ .Values.M2M_AUTH_MODE | quote }}
             {{- range $key, $value := .Values.colly.environmentOperationalService.sdPatterns }}
             - name: COLLY_ENVIRONMENT_OPERATIONAL_SERVICE_SD_{{ $key | upper }}_PATTERN
               value: {{ $value | quote }}
@@ -101,3 +140,19 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
+          {{- if or (eq .Values.M2M_AUTH_MODE "hybrid") (eq .Values.M2M_AUTH_MODE "k8s") }}
+          # Mirror of coretpl.volumeMounts.default; renders nothing in legacy mode.
+          volumeMounts:
+            - name: topology
+              mountPath: /etc/topology
+              readOnly: true
+            - name: projected-netcracker-token
+              mountPath: /var/run/secrets/tokens/netcracker
+              readOnly: true
+            - name: projected-dbaas-token
+              mountPath: /var/run/secrets/tokens/dbaas
+              readOnly: true
+            - name: projected-maas-token
+              mountPath: /var/run/secrets/tokens/maas
+              readOnly: true
+          {{- end }}
