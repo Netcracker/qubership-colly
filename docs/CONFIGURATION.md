@@ -329,9 +329,9 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 
 In Kubernetes the authenticators are delivered as mounted files instead of `env` + `secretKeyRef`.
 Each key of a k8s Secret is mounted as a file whose **name is the configuration property** and whose
-content is the value. Both services read them through `org.qubership.colly.podsecrets.SecretFilesConfigSource`, which
-is registered via `META-INF/services` and marked `@StaticInitSafe`, so OIDC, Redis and the Git client see
-the values already during static initialisation.
+content is the value. Both services read them through `org.qubership.colly.podsecrets.SecretFilesConfigSource` from the
+shared `pod-secrets-config-source` module, which is registered via `META-INF/services` and marked
+`@StaticInitSafe`, so OIDC, Redis and the Git client see the values already during static initialisation.
 
 | Mounted file                                                | Property                            | Service   |
 |-------------------------------------------------------------|-------------------------------------|-----------|

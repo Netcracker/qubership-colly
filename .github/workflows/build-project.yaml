@@ -30,6 +30,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Check Docker version
         run: docker version
+      - name: Set up JDK 21 for shared modules
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install shared modules
+        run: mvn -B -q -pl pod-secrets-config-source install
       - name: Build java
         uses: netcracker/qubership-workflow-hub/actions/maven-snapshot-deploy@main
         with:
