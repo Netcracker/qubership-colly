@@ -192,7 +192,9 @@ helm uninstall qubership-colly
     - Verify repository URL and credentials
     - Check network egress policies
     - Ensure proper authentication tokens
-   - For project repository: check `COLLY_EIS_PROJECT_REPO_GIT_TOKEN` is set correctly
+   - For project repository: check that the project token is configured - the mounted file
+     `/etc/secrets/pod-secrets/app/colly.eis.project.repo.git.token` in Kubernetes, or
+     `COLLY_EIS_PROJECT_REPO_GIT_TOKEN` for local runs
    - For instance repositories: check that either an explicit `token` is set in `parameters.yaml` or
      `COLLY_EIS_GIT_TOKENS_<REGION>` is configured for the repository's region, or for the default region
      if it has none (see [Git Token Configuration](#git-token-configuration))
@@ -272,6 +274,12 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 
 ### Environment Variables
 
+> **Kubernetes deployments do not pass authenticators as environment variables.**
+> Per the BASS Authenticators Handling Guide (requirement #4), every secret listed below is
+> mounted into the pod as a file under `/etc/secrets/pod-secrets/`
+> (see [Mounted Secret Files](#mounted-secret-files)). The variables are kept for local
+> runs and `docker-compose`, and their names are still the configuration property names.
+
 #### Inventory Service
 
 | Variable                           | Description                                                                                                                                                                                                   | Default                           |
@@ -317,6 +325,36 @@ curl -H "Authorization: Bearer $USER_TOKEN" http://localhost:8081/colly/v2/inven
 | `QUARKUS_OIDC_CLIENT_ID`                        | OIDC client ID                           | `ui-service`                   |
 | `QUARKUS_OIDC_CREDENTIALS_SECRET`               | OIDC client secret                       | -                              |
 
+### Mounted Secret Files
+
+In Kubernetes the authenticators are delivered as mounted files instead of `env` + `secretKeyRef`.
+Each key of a k8s Secret is mounted as a file whose **name is the configuration property** and whose
+content is the value. Both services read them through `org.qubership.colly.podsecrets.SecretFilesConfigSource`, which
+is registered via `META-INF/services` and marked `@StaticInitSafe`, so OIDC, Redis and the Git client see
+the values already during static initialisation.
+
+| Mounted file                                                | Property                            | Service   |
+|-------------------------------------------------------------|-------------------------------------|-----------|
+| `/etc/secrets/pod-secrets/app/quarkus.redis.username`       | `quarkus.redis.username`            | both      |
+| `/etc/secrets/pod-secrets/app/quarkus.redis.password`       | `quarkus.redis.password`            | both      |
+| `/etc/secrets/pod-secrets/app/colly.eis.project.repo.git.token` | `colly.eis.project.repo.git.token` | inventory |
+| `/etc/secrets/pod-secrets/app/colly.eis.git.tokens.<region>` | `colly.eis.git.tokens.<region>`     | inventory |
+| `/etc/secrets/pod-secrets/oidc/quarkus.oidc.client-id`      | `quarkus.oidc.client-id`            | both      |
+| `/etc/secrets/pod-secrets/oidc/quarkus.oidc.credentials.secret` | `quarkus.oidc.credentials.secret` | both   |
+
+The volume is mounted without `subPath`, so the kubelet keeps updating the files when the Secret changes.
+The directory is re-scanned every 60 s, and a rotated value is picked up without a pod restart
+(guide requirement #8). A single trailing line break, which `kubectl create secret --from-file` adds to
+values produced by `echo`, is stripped; interior whitespace is preserved.
+
+| Setting               | Description                                                              | Default                     |
+|-----------------------|--------------------------------------------------------------------------|-----------------------------|
+| `POD_SECRETS_DIR`     | Directory to scan. The system property `pod.secrets.dir` takes precedence | `/etc/secrets/pod-secrets`  |
+| `pod.secrets.ttl`     | ISO-8601 duration between re-scans (system property only)                | `PT60S`                     |
+| `pod.secrets.enabled` | Set `false` to disable the source (system property only)                 | `true`                      |
+
+Secret values are never logged: only directory and file names appear in the log (requirement #2).
+
 ## Git Token Configuration
 
 Inventory service uses two types of Git tokens:
@@ -326,11 +364,12 @@ Inventory service uses two types of Git tokens:
 Used exclusively to clone the **project Git repository** (the repo containing `parameters.yaml` files that define
 projects and their instance repositories).
 
-| Configuration        | Value                                               |
-|----------------------|-----------------------------------------------------|
-| Helm parameter       | `colly.envgeneInventoryService.projectRepoGitToken` |
-| Environment variable | `COLLY_EIS_PROJECT_REPO_GIT_TOKEN`                  |
-| Application property | `colly.eis.project.repo.git.token`                  |
+| Configuration                      | Value                                               |
+|------------------------------------|-----------------------------------------------------|
+| Helm parameter                     | `colly.envgeneInventoryService.projectRepoGitToken` |
+| Environment variable (local runs)  | `COLLY_EIS_PROJECT_REPO_GIT_TOKEN`                  |
+| Mounted file (Kubernetes)          | `/etc/secrets/pod-secrets/app/colly.eis.project.repo.git.token` |
+| Application property               | `colly.eis.project.repo.git.token`                  |
 
 ### Per-Region Instance Repository Tokens
 
@@ -362,6 +401,11 @@ colly:
 COLLY_EIS_GIT_TOKENS_CN=ghp_token_for_cn_region
 COLLY_EIS_GIT_TOKENS_MB=ghp_token_for_mb_region
 ```
+
+**Mounted secret files (Kubernetes):** the same regions are provided as files named after the property,
+`/etc/secrets/pod-secrets/app/colly.eis.git.tokens.cn` and
+`/etc/secrets/pod-secrets/app/colly.eis.git.tokens.mb`. The Helm chart creates those files from the
+`gitTokens` list; environment variables with the tokens are not used in Kubernetes (BASS requirement #4).
 
 **Example `parameters.yaml` showing all cases:**
 
