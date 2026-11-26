@@ -6,13 +6,16 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Unit tests for the config source, independent of a Quarkus application.
@@ -121,6 +124,48 @@ class SecretFilesConfigSourceTest {
         assertTrue(SecretFilesConfigSource.PRIORITY > 400, "above SysPropsConfigSource");
         assertEquals(450, SecretFilesConfigSource.PRIORITY);
         assertFalse(SecretFilesConfigSource.DEFAULT_BASE_DIR.toString().isEmpty());
+    }
+
+    @Test
+    void exposesItsNameAndOrdinal(@TempDir Path tmp) {
+        SecretFilesConfigSource source = new SecretFilesConfigSource(tmp, Duration.ofSeconds(1));
+        assertEquals("secret-files-config-source", source.getName());
+        assertEquals(SecretFilesConfigSource.PRIORITY, source.getOrdinal());
+    }
+
+    @Test
+    void getProperties_returnsAllMountedFiles(@TempDir Path tmp) throws Exception {
+        Files.writeString(tmp.resolve("a.one"), "1");
+        Files.writeString(tmp.resolve("b.two"), "2");
+
+        SecretFilesConfigSource source = new SecretFilesConfigSource(tmp, Duration.ZERO);
+        assertEquals(Map.of("a.one", "1", "b.two", "2"), source.getProperties());
+    }
+
+    @Test
+    void invalidTtlFallsBackToDefault(@TempDir Path tmp) throws Exception {
+        Files.writeString(tmp.resolve("quarkus.redis.username"), "redis-user");
+        System.setProperty("pod.secrets.dir", tmp.toString());
+        System.setProperty("pod.secrets.ttl", "not-a-duration");
+
+        try {
+            assertEquals("redis-user", new SecretFilesConfigSource().getValue("quarkus.redis.username"));
+        } finally {
+            clearKnobs();
+        }
+    }
+
+    @Test
+    void unreadableFile_isSkippedAndOthersStillLoad(@TempDir Path tmp) throws Exception {
+        assumeFalse(System.getProperty("os.name").toLowerCase().contains("win"), "POSIX permissions required");
+        Path unreadable = tmp.resolve("quarkus.redis.password");
+        Files.writeString(unreadable, "secret");
+        Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("---------"));
+        Files.writeString(tmp.resolve("quarkus.redis.username"), "redis-user");
+
+        SecretFilesConfigSource source = new SecretFilesConfigSource(tmp, Duration.ZERO);
+        assertEquals("redis-user", source.getValue("quarkus.redis.username"));
+        assertNull(source.getValue("quarkus.redis.password"));
     }
 
     @Test
