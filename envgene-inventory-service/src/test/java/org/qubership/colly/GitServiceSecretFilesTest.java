@@ -34,14 +34,12 @@ class GitServiceSecretFilesTest {
     Path secretsDir;
 
     private GitService gitServiceWithMountedSecrets() {
-        GitService service = new GitService();
         // Zero TTL: re-read the "mounted" files on every access, mirroring the
         // mounted-k8s-secret behaviour (production TTL defaults to PT60S).
         Config config = new SmallRyeConfigBuilder()
                 .withSources(new SecretFilesConfigSource(secretsDir, Duration.ZERO))
                 .build();
-        service.config = config;
-        return service;
+        return new GitService(config, GitService.DEFAULT_REGION);
     }
 
     @Test

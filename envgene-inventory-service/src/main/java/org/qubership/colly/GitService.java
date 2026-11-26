@@ -1,8 +1,7 @@
 package org.qubership.colly;
 
 import io.quarkus.logging.Log;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
@@ -18,7 +17,11 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.io.File;
 import java.util.*;
 
-@ApplicationScoped
+/**
+ * {@link Singleton} rather than {@code @ApplicationScoped}: the service is stateless apart from its
+ * configuration, and constructor injection needs no client proxy (and therefore no no-args constructor).
+ */
+@Singleton
 public class GitService {
 
     private static final long GC_LOOSE_OBJECTS_THRESHOLD = 2000;
@@ -29,18 +32,19 @@ public class GitService {
     static final String DEFAULT_REGION_PROPERTY = "colly.eis.git.default-region";
     static final String DEFAULT_REGION = "cn";
 
+    private final Config config;
+    private final String defaultRegion;
+
     /**
      * Git tokens are resolved on every use instead of at bean injection, so a rotated
      * credential (mounted into the pod as a file, see the authenticator-handling
      * requirements) is picked up without a service restart.
      */
-    // Package-private (not private) so GitServiceSecretFilesTest in the same package
-    // can wire a test Config; @Inject overwrites it in the real application context.
-    @Inject
-    Config config;
-
-    @ConfigProperty(name = DEFAULT_REGION_PROPERTY, defaultValue = DEFAULT_REGION)
-    String defaultRegion;
+    public GitService(Config config,
+                      @ConfigProperty(name = DEFAULT_REGION_PROPERTY, defaultValue = DEFAULT_REGION) String defaultRegion) {
+        this.config = config;
+        this.defaultRegion = defaultRegion;
+    }
 
     private String projectRepoGitToken() {
         String token = config.getOptionalValue(PROJECT_REPO_GIT_TOKEN_PROPERTY, String.class).orElse(null);

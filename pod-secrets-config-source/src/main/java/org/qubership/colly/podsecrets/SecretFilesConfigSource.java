@@ -166,7 +166,8 @@ public class SecretFilesConfigSource implements ConfigSource {
             } catch (IOException | RuntimeException e) {
                 // Keep the previous value on transient read errors so a rotating
                 // volume never blanks a configuration property.
-                log.log(Level.WARNING, "Failed to re-read secret files from " + baseDir + "; keeping previous values", e);
+                log.log(Level.WARNING, e,
+                        () -> "Failed to re-read secret files from " + baseDir + "; keeping previous values");
             }
             expiresAtMillis.set(System.currentTimeMillis() + ttl.toMillis());
             return values.get();
@@ -196,14 +197,22 @@ public class SecretFilesConfigSource implements ConfigSource {
                             // authentication silently. Legitimate interior/leading
                             // whitespace is preserved.
                             String value = Files.readString(file, StandardCharsets.UTF_8);
-                            result.put(name, value.replaceFirst("[\\r\\n]+$", ""));
+                            int end = value.length();
+                            while (end > 0 && isLineBreak(value.charAt(end - 1))) {
+                                end--;
+                            }
+                            result.put(name, value.substring(0, end));
                         } catch (IOException e) {
                             // A file may vanish between listing and reading while
                             // Kubernetes swaps the ..data directory.
-                            log.log(Level.WARNING, "Cannot read secret file " + file, e);
+                            log.log(Level.WARNING, e, () -> "Cannot read secret file " + file);
                         }
                     });
         }
         return Map.copyOf(result);
+    }
+
+    private static boolean isLineBreak(char c) {
+        return c == '\r' || c == '\n';
     }
 }
