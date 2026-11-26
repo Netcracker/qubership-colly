@@ -9,6 +9,7 @@ Qubership Colly: Kubernetes environment tracking across many clusters. Most work
 |-----------------------------------|----------------------------------------------|---------------------------------------------------|
 | `envgene-inventory-service`       | Quarkus, Java 21, Redis                      | Reads environments from Git (envgene), writes UI overrides back to Git |
 | `environment-operational-service` | Quarkus, Java 21, Redis                      | Live cluster state, monitoring, sync from inventory service |
+| `pod-secrets-config-source`       | Java 21 library (MicroProfile Config)        | Exposes files mounted from k8s Secrets as configuration properties; shared by both services |
 | `ui-service`                      | Quarkus + React 19 / MUI (`src/main/webui`)  | Frontend                                          |
 | `charts/qubership-colly`          | Helm                                         | Deployment                                        |
 

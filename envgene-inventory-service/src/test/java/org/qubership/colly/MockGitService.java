@@ -2,15 +2,28 @@ package org.qubership.colly;
 
 import io.quarkus.logging.Log;
 import io.quarkus.test.Mock;
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.apache.commons.io.FileUtils;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * {@link Singleton} rather than {@link jakarta.enterprise.context.ApplicationScoped}: a normal-scoped
+ * bean needs a no-args constructor for its client proxy, which the superclass no longer has.
+ */
 @Mock
-@ApplicationScoped
+@Singleton
 public class MockGitService extends GitService {
+
+    @Inject
+    public MockGitService(Config config,
+                          @ConfigProperty(name = DEFAULT_REGION_PROPERTY, defaultValue = DEFAULT_REGION) String defaultRegion) {
+        super(config, defaultRegion);
+    }
 
     @FunctionalInterface
     public interface CloneAction {

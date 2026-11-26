@@ -197,6 +197,7 @@ For complete documentation on project structure, field descriptions, and configu
 qubership-colly-v2/
 ├── envgene-inventory-service/   # Inventory management service
 ├── environment-operational-service/  # Operational data service
+├── pod-secrets-config-source/   # Shared config source for mounted secret files
 ├── ui-service/                  # UI and BFF service
 ├── docker-compose.yml           # Docker Compose configuration
 └── build-images.sh              # Build script for all services
